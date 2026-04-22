@@ -34,7 +34,7 @@ DEFAULT_APPS = [
 ]
 
 CUSTOM_APPS = [
-    'apps.loan',
+    'apps.campus',
     'apps.users'
 ]
 
@@ -44,7 +44,7 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "rest_framework_simplejwt",
     "drf_yasg",
-    'django_filters',
+    # 'django_filters',
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + CUSTOM_APPS + THIRD_PARTY_APPS
@@ -68,11 +68,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ROOT_URLCONF = "backend.urls"
-<<<<<<< HEAD
-# AUTH_USER_MODEL ='users.User'
-=======
-# AUTH_USER_MODEL ='users.User' cmt for now, can be used in future when we have custom user model
->>>>>>> ce7ff0aa79a7e51858c9c11b447a1d16de7bd2c0
+
+AUTH_USER_MODEL ='users.User'
 
 TEMPLATES = [
     {
@@ -96,20 +93,20 @@ WSGI_APPLICATION = "backend.wsgi.application"
 DATABASES = {}
 
 # Redis Cache Configuration
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1"),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PARSER_KWARGS": {"encoding": "utf8"},
-            "SOCKET_CONNECT_TIMEOUT": 5,
-            "SOCKET_TIMEOUT": 5,
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
-        },
-    }
-}
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1"),
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             "PARSER_KWARGS": {"encoding": "utf8"},
+#             "SOCKET_CONNECT_TIMEOUT": 5,
+#             "SOCKET_TIMEOUT": 5,
+#             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+#             "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+#         },
+#     }
+# }
 
 # Cache TTL (Time To Live) in seconds - 1 day default
 CACHE_TTL = int(os.environ.get("CACHE_TTL", 60 * 60 * 24))
@@ -244,126 +241,6 @@ SWAGGER_SETTINGS = {
     "PERSIST_AUTH": True,
 }
 
-<<<<<<< HEAD
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv('REDIS_PORT'),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "IGNORE_EXCEPTIONS": True,
-        }
-    }
-}
-
-CELERY_BROKER_URL = os.getenv('REDIS_PORT')
-CELERY_RESULT_BACKEND = os.getenv('REDIS_PORT')
-
-# Optional: tune performance
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Africa/Lagos'
-
-
-
-ADMINS = [
-    ('Admin', 'salawulucky08071@gmail.com'),
-]
-# Log directory
-LOG_DIR = 'logs'
-os.makedirs(LOG_DIR, exist_ok=True)
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-
-    # ===== FORMATTERS =====
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d}\n{message}',
-            'style': '{',
-        },
-        'structured': {
-            'format': '[{asctime}] [{levelname}] {name}: {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname}: {message}',
-            'style': '{',
-        },
-    },
-
-    # ===== FILTERS =====
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
-        },
-    },
-
-    # ===== HANDLERS =====
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',  # Show everything in console
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-        'file': {
-            'level': 'ERROR',  # Only write errors and tracebacks to file
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'app.log'),
-            'formatter': 'verbose',
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'class': 'django.utils.log.AdminEmailHandler',
-            'formatter': 'verbose',
-            'filters': ['require_debug_false'],
-        },
-    },
-
-    # ===== ROOT LOGGER =====
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': 'DEBUG',
-    },
-
-    # ===== DJANGO LOGGER =====
-    'loggers': {
-        # General Django logs
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-
-        # 🔥 Request logger: captures 500s with traceback
-        'django.request': {
-            'handlers': ['console', 'file'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-
-        # Optional: your project logger
-        'project': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-    },
-}
-    
-
-PAYSTACK_SECRET_KEY=os.getenv('PAYSTACK_SECRET_KEY')
-
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-APPEND_SLASH = False
-=======
 DRF_STANDARDIZED_ERRORS = {
     "ENABLE_IN_DEBUG_FOR_UNHANDLED_EXCEPTIONS": True,
     "EXCEPTION_FORMATTER_CLASS": "backend.exception_formatter.ExceptionFormatter",
@@ -471,4 +348,3 @@ LOGGING = {
         },
     },
 }
->>>>>>> ce7ff0aa79a7e51858c9c11b447a1d16de7bd2c0

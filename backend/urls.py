@@ -14,9 +14,9 @@ from backend.schema import BothHttpAndHttpsSchemaGenerator, swagger_protect
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="Default Base Backend API",
+        title="CampusConnect Backend API",
         default_version="v1",
-        description="API description for Default Base Backend",
+        description="API description for CampusConnect Backend",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="contact@snippets.local"),
         license=openapi.License(name="BSD License"),
@@ -30,7 +30,8 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/backdoor/', permanent=False)),
     path('backdoor/', admin.site.urls),
 
-    # path('auth/api/', include("apps.authentication.urls")),
+    path('campus/api/', include("apps.campus.urls")),
+    path('user/api/', include("apps.users.urls")),
     
     path(
         "doc/",

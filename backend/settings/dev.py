@@ -3,31 +3,13 @@ from .base import *
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME"),
-        "USER": os.environ.get("DB_USER"),
-        "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
-<<<<<<< HEAD
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5501",
-    "http://192.168.0.198:5501"
-    ]
-
-=======
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.postgresql",
@@ -38,8 +20,6 @@ CORS_ALLOWED_ORIGINS = [
 #         "PORT": os.environ.get("DB_PORT", "5432"),
 #     }
 # }
->>>>>>> ce7ff0aa79a7e51858c9c11b447a1d16de7bd2c0
-
 
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND")
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
