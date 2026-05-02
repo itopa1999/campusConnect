@@ -42,7 +42,8 @@ class AuthCommand:
                 data={
                     'access_token': access_token,
                     'refresh_token': refresh_token,
-                    'user_id': user.id
+                    'user_id': user.id,
+                    'is_email_verified': user.email_verified
                 },
                 status_code=200
             )
