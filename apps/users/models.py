@@ -8,6 +8,8 @@ from datetime import timedelta
 import random
 from apps.users.manager import UserManager
 from utils.base_model import BaseModel
+from utils.enums import TokenType
+import secrets
 # Create your models here.
 
 
@@ -23,6 +25,22 @@ class User(BaseModel, AbstractUser):
         max_length=15,
         blank=True,
         null=True
+    )
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/',
+        blank=True,
+        null=True,
+        help_text="Upload a profile picture that will appear on all your product listings"
+    )
+    # meeting_point_description = models.TextField(
+    #     blank=True,
+    #     null=True,
+    #     help_text="Describe your preferred meeting location/area for product handover",
+    #     max_length=500
+    # )
+    email_verified = models.BooleanField(
+        default=False,
+        help_text="Email verification status"
     )
     
     def save(self, *args, **kwargs):
@@ -43,22 +61,29 @@ class User(BaseModel, AbstractUser):
     
     def __str__(self):
         return f"{self.email}"
+
+
+class VerificationToken(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
+    token = models.PositiveIntegerField(unique=True)
+    token_type = models.CharField(max_length=50, choices=TokenType.choices())
+    is_used = models.BooleanField(default=False)
     
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['user', 'token_type']),
+        ] 
     
-
-class UserVerification(BaseModel):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    token = models.CharField(max_length=6)
-    is_verified = models.BooleanField(default=False)
-
-    def generate_token(self):
-        """Generate a 6-digit token"""
-        self.token = str(random.randint(100000, 999999))
-        self.created_at = timezone.now()
-
-    def is_token_expired(self):
-        """Check if token is expired (valid for 10 minutes)"""
-        return timezone.now() > self.created_at + timedelta(minutes=10)
-
     def __str__(self):
-        return f"Verification for {self.user.email}"
+        return f"{self.user.email} - {self.token_type}"
+    
+    def is_valid(self):
+        return not self.is_used
+    
+    @staticmethod
+    def generate_token():
+        return random.randint(100000, 999999)
+    
+
