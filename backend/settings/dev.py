@@ -31,8 +31,9 @@ EMAIL_FROM = os.environ.get("EMAIL_FROM")
 
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5501",
-    "http://127.0.0.1:5501",
+    "http://127.0.0.1:5500",
     "http://192.168.0.199:5501",
     "http://192.168.0.200:5501",
     "http://192.168.0.198:5501",
 ]
+

@@ -32,12 +32,14 @@ class User(BaseModel, AbstractUser):
         null=True,
         help_text="Upload a profile picture that will appear on all your product listings"
     )
-    # meeting_point_description = models.TextField(
-    #     blank=True,
-    #     null=True,
-    #     help_text="Describe your preferred meeting location/area for product handover",
-    #     max_length=500
-    # )
+    matric_number = models.CharField(max_length=50, unique=True, null=True)
+    student_id_photo = models.ImageField(upload_to='student_ids/', null =True)
+    student_id_verified = models.BooleanField(default=False)
+    department = models.CharField(max_length=100, blank=True, null=True)
+    faculty = models.CharField(max_length=100, blank=True, null=True)
+    level = models.PositiveIntegerField(blank=True, null=True)
+    average_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0.00)
+    transaction_count = models.PositiveIntegerField(default=0)
     email_verified = models.BooleanField(
         default=False,
         help_text="Email verification status"
@@ -57,6 +59,13 @@ class User(BaseModel, AbstractUser):
         ordering = ['-id']
         indexes = [
             models.Index(fields=['-id']),
+            models.Index(fields=['email']),
+            models.Index(fields=['matric_number']),
+            models.Index(fields=['student_id_verified']),
+            models.Index(fields=['average_rating']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['level']),
+            models.Index(fields=['department']),
         ]
     
     def __str__(self):

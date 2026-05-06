@@ -3,6 +3,7 @@ from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.shortcuts import render
 from .serializers import *
 from .BBL.Commands.account_command import AccountCommand
@@ -73,3 +74,27 @@ class ChangePasswordView(generics.GenericAPIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
+
+class LogoutUserView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        refresh_token = serializer.validated_data['refresh_token']
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Logged out successfully"}, status=200)
+        except TokenError:
+            return Response({"error": "Invalid or expired token"}, status=400)
+
+class ReturnOkay(generics.GenericAPIView):
+    serializer_class = None
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        return Response()

@@ -23,3 +23,7 @@ class UserForgotPasswordSerializer(serializers.Serializer):
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(max_length=128, write_only=True, required=True)
     new_password = serializers.CharField(max_length=128, write_only=True, required=True)
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField(max_length=5000, write_only=True, required=True)

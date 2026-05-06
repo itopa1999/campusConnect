@@ -1,136 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Verification</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            max-width: 500px;
-            width: 100%;
-            padding: 40px;
-            text-align: center;
-            animation: slideIn 0.5s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-            animation: bounce 0.6s ease-out;
-        }
-        
-        .icon.success {
-            color: #4caf50;
-        }
-        
-        .icon.error {
-            color: #f44336;
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        h1 {
-            font-size: 28px;
-            margin-bottom: 15px;
-            color: #333;
-        }
-        
-        h1.success {
-            color: #4caf50;
-        }
-        
-        h1.error {
-            color: #f44336;
-        }
-        
-        .message {
-            font-size: 16px;
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 30px;
-        }
-        
-        .button {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 30px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-size: 16px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        .button:active {
-            transform: translateY(0);
-        }
-        
-        .footer {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #999;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>CampusConnect UI · Email Verification</title>
+  <!-- Google Fonts + AOS + Particles CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #ffffff;
+      color: #1a2c2e;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    /* soft, earthy accent palette — no aggressive blues */
+    :root {
+      --accent: #2c7a5e;
+      --accent-light: #eaf7f0;
+      --accent-dark: #1f5e48;
+      --warm-gray: #f8f9fa;
+      --card-border: #eef2f0;
+      --text-dark: #1e2a2c;
+      --text-muted: #5a6e6f;
+    }
+
+    /* Particles canvas (z-index behind content) */
+    #particles-js {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      /* opacity: 0.35; */
+      pointer-events: none;
+    }
+
+    /* Verification card */
+    .verification-card {
+      background: white;
+      border-radius: 2rem;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08);
+      max-width: 520px;
+      width: 100%;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      z-index: 1;
+      position: relative;
+      transition: transform 0.25s ease;
+    }
+
+    /* Icon styles */
+    .icon {
+      font-size: 4rem;
+      width: 100px;
+      height: 100px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .icon.success {
+      color: var(--accent);
+    }
+
+    .icon.error {
+      color: #dc3545;
+    }
+
+    .icon i {
+      font-size: 3rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    h1.success {
+      color: var(--accent-dark);
+    }
+
+    h1.error {
+      color: #b91c2c;
+    }
+
+    .message {
+      font-size: 1rem;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .btn-primary-custom {
+      background-color: var(--accent);
+      border: none;
+      padding: 0.75rem 1.8rem;
+      font-weight: 600;
+      border-radius: 40px;
+      transition: all 0.2s ease;
+      color: white;
+      font-size: 0.95rem;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0 2px 6px rgba(44, 122, 94, 0.15);
+    }
+
+    .btn-primary-custom:hover {
+      background-color: var(--accent-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(44, 122, 94, 0.2);
+      color: white;
+    }
+
+    .footer {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--card-border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 480px) {
+      .verification-card {
+        padding: 1.8rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+      .icon {
+        width: 80px;
+        height: 80px;
+      }
+      .icon i {
+        font-size: 2.5rem;
+      }
+    }
+  </style>
+  <!-- Font Awesome (for icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        {% if is_success %}
-            <div class="icon success">✓</div>
-            <h1 class="success">Success!</h1>
-            <p class="message">{{ message }}</p>
-            <a href="/" class="button">Go to Home</a>
-        {% else %}
-            <div class="icon error">✕</div>
-            <h1 class="error">Verification Failed</h1>
-            <p class="message">{{ message }}</p>
-            <a href="/" class="button">Go to Home</a>
-        {% endif %}
-        
-        <div class="footer">
-            <p>If you need help, please contact our support team.</p>
-        </div>
+<div id="particles-js"></div>
+
+<div class="verification-card" data-aos="fade-up" data-aos-duration="800">
+  {% if is_success %}
+    <div class="icon success">
+      <i class="fas fa-check-circle"></i>
     </div>
+    <h1 class="success">Email Verified!</h1>
+    <p class="message">{{ message }}</p>
+  {% else %}
+    <div class="icon error">
+      <i class="fas fa-times-circle"></i>
+    </div>
+    <h1 class="error">Verification Failed</h1>
+    <p class="message">{{ message }}</p>
+  {% endif %}
+
+  <div class="footer">
+    <p>Need help? <a href="#" style="color: var(--accent); text-decoration: none;">Contact Support</a></p>
+  </div>
+</div>
+
+<!-- Scripts: AOS, Particles -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<script>
+  AOS.init({ duration: 700, once: true, offset: 20 });
+
+  // Subtle particles background (matches main site)
+  if (typeof particlesJS !== 'undefined') {
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 40, density: { enable: true, value_area: 800 } },
+        color: { value: '#2c7a5e' },
+        shape: { type: 'circle' },
+        opacity: { value: 0.25, random: true },
+        size: { value: 3, random: true },
+        line_linked: { enable: true, distance: 150, color: '#2c7a5e', opacity: 0.15, width: 1 },
+        move: { enable: true, speed: 1, direction: 'none', random: false, straight: false, out_mode: 'out' }
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true }
+      },
+      retina_detect: true
+    });
+  }
+</script>
 </body>
 </html>

@@ -21,7 +21,7 @@ class EmailHelper:
     @staticmethod
     def send_verification_email(user, verification_token, request):
         try:
-            verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email/')}?token={verification_token.token}"
+            verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
             subject = "Verify Your Campus Connect Email"
             message = f"""
 Hello {user.first_name},

@@ -13,6 +13,14 @@ class AuthCommand:
         try:
             email = validated_data['email']
             password = validated_data['password']
+
+            # is_valid, message = validate_ui_email(email)
+            # if not is_valid:
+            #     return BaseResultWithData(
+            #         message=message,
+            #         data=None,
+            #         status_code=400
+            #     )
             
             # Get user by email
             user = User.objects.filter(email=email).first()
@@ -21,7 +29,7 @@ class AuthCommand:
                 return BaseResultWithData(
                     message="Invalid email or password",
                     data=None,
-                    status_code=401
+                    status_code=400
                 )
             
             # Verify password
@@ -29,7 +37,7 @@ class AuthCommand:
                 return BaseResultWithData(
                     message="Invalid email or password",
                     data=None,
-                    status_code=401
+                    status_code=400
                 )
             
             # Generate tokens
@@ -60,6 +68,14 @@ class AuthCommand:
     def ForgotPassword(request, validated_data):
         try:
             email = validated_data['email']
+
+            # is_valid, message = validate_ui_email(email)
+            # if not is_valid:
+            #     return BaseResultWithData(
+            #         message=message,
+            #         data=None,
+            #         status_code=400
+            #     )
             
             # Get user by email
             user = User.objects.filter(email=email).first()

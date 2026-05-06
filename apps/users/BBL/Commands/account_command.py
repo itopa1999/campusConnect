@@ -9,9 +9,25 @@ class AccountCommand:
     def Execute(request, validated_data):
         try:
             email = validated_data['email']
+            phone = validated_data['phone']
+
+            # is_valid, message = validate_ui_email(email)
+            # if not is_valid:
+            #     return BaseResultWithData(
+            #         message=message,
+            #         data=None,
+            #         status_code=400
+            #     )
+
             if User.objects.filter(email=email).exists():
                 return BaseResult(
                     message="Email already registered.",
+                    status_code=400
+                )
+
+            if User.objects.filter(phone=phone).exists():
+                return BaseResult(
+                    message="Phone already registered with.",
                     status_code=400
                 )
             
@@ -28,6 +44,7 @@ class AccountCommand:
                 first_name=validated_data['first_name'],
                 last_name=validated_data['last_name'],
                 password=validated_data['password'],
+                is_active = False,
                 email_verified=False
             )
             verification_token = AccountCommand._create_verification_token(user)
@@ -82,6 +99,7 @@ class AccountCommand:
             
             user = verification_token.user
             user.email_verified = True
+            user.is_active = True
             user.save()
             
             return BaseResultWithData(

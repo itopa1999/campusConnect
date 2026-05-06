@@ -20,3 +20,23 @@ class TokenType(Enum):
         """Return choices for Django model field"""
         return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
     
+
+class ListingType(Enum):
+    SELL = 'sell'
+    WANTED = 'wanted'
+    FREEBIE = 'freebie'
+
+    @classmethod
+    def choices(cls):
+        """Return choices for Django model field"""
+        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+
+class ListingStatusType(Enum):
+    ACTIVE = 'active'
+    SOLD = 'sold'
+    EXPIRED = 'expired'
+
+    @classmethod
+    def choices(cls):
+        """Return choices for Django model field"""
+        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
