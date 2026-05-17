@@ -19,6 +19,10 @@ class TokenType(Enum):
     def choices(cls):
         """Return choices for Django model field"""
         return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
     
 
 class ListingType(Enum):
@@ -31,6 +35,10 @@ class ListingType(Enum):
         """Return choices for Django model field"""
         return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
 
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+
 class ListingStatusType(Enum):
     ACTIVE = 'active'
     SOLD = 'sold'
@@ -38,5 +46,23 @@ class ListingStatusType(Enum):
 
     @classmethod
     def choices(cls):
-        """Return choices for Django model field"""
         return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+
+class IssueTypeEnum(Enum):
+    REPORT_LISTING = "report_listing"
+    REPORT_USER = "report_user"
+    BUG = "bug"
+    QUESTION = "question"
+    OTHER = "other"
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]    

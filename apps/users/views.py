@@ -8,6 +8,7 @@ from django.shortcuts import render
 from .serializers import *
 from .BBL.Commands.account_command import AccountCommand
 from .BBL.Commands.auth_command import AuthCommand
+from .BBL.Commands.report_command import ReportCommand
 
 
 class CreateAccountView(generics.GenericAPIView):
@@ -74,6 +75,16 @@ class ChangePasswordView(generics.GenericAPIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
+class RefreshTokenView(generics.GenericAPIView):
+    serializer_class = RefreshTokenSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = AuthCommand.RefreshToken(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
 
 class LogoutUserView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
@@ -90,6 +101,19 @@ class LogoutUserView(generics.GenericAPIView):
             return Response({"message": "Logged out successfully"}, status=200)
         except TokenError:
             return Response({"error": "Invalid or expired token"}, status=400)
+
+
+class SubmitReportView(generics.GenericAPIView):
+    serializer_class = ReportSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = ReportCommand.Add(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
 
 class ReturnOkay(generics.GenericAPIView):
     serializer_class = None

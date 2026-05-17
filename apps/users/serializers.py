@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User
+from utils.enums import IssueTypeEnum
 
 
 class UserCreationSerializer(serializers.Serializer):
@@ -25,5 +26,16 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(max_length=128, write_only=True, required=True)
 
 
+class ReportSerializer(serializers.Serializer):
+    reporter_name = serializers.CharField(max_length=255)
+    reporter_email = serializers.EmailField()
+    issue_type = serializers.ChoiceField(choices=IssueTypeEnum.choices())
+    listing_identifier = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    reported_user_email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    message = serializers.CharField()
+
 class LogoutSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField(max_length=5000, write_only=True, required=True)
+
+class RefreshTokenSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(max_length=5000, write_only=True, required=True)

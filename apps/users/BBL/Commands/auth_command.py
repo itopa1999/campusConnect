@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from utils.emails_helper import EmailHelper
 import secrets
 import string
-
+from utils.helpers import validate_ui_email, is_email_verified
 
 class AuthCommand:    
     @staticmethod
@@ -23,7 +23,7 @@ class AuthCommand:
             #     )
             
             # Get user by email
-            user = User.objects.filter(email=email).first()
+            user = User.objects.filter(email=email, is_deleted = False).first()
             
             if not user:
                 return BaseResultWithData(
@@ -40,6 +40,20 @@ class AuthCommand:
                     status_code=400
                 )
             
+            if not is_email_verified(user):
+                return BaseResultWithData(
+                    message="Email not verified. Please check your inbox for the verification email.",
+                    data=None,
+                    status_code=400
+                )
+
+            if not user.is_active:
+                return BaseResultWithData(
+                    message="Your account has been deactivated. Please contact support for assistance.",
+                    data=None,
+                    status_code=400
+                )
+            
             # Generate tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
@@ -51,7 +65,8 @@ class AuthCommand:
                     'access_token': access_token,
                     'refresh_token': refresh_token,
                     'user_id': user.id,
-                    'is_email_verified': user.email_verified
+                    'is_email_verified': user.email_verified,
+                    'is_hall_verified' : user.
                 },
                 status_code=200
             )
@@ -82,13 +97,20 @@ class AuthCommand:
             
             if not user:
                 return BaseResultWithData(
-                    message="If an account with that email exists, an email containing a new password has been sent",
+                    message="Account with email doesn't exists",
                     data=None,
-                    status_code=200
+                    status_code=400
+                )
+
+            if not is_email_verified(user):
+                return BaseResultWithData(
+                    message="Email not verified.",
+                    data=None,
+                    status_code=400
                 )
             
             # Generate new random password
-            new_password = ''.join(secrets.choice(string.ascii_letters + string.digits + string.punctuation) for _ in range(12))
+            new_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
             
             # Update user password
             user.set_password(new_password)
@@ -166,6 +188,68 @@ Campus Connect Team
         except Exception as e:
             return BaseResultWithData(
                 message=f"Error changing password: {str(e)}",
+                data=None,
+                status_code=500
+            )
+
+    @staticmethod
+    def RefreshToken(request, validated_data):
+        """
+        Verify refresh token, check user exists and is not deleted,
+        return new access token and rotated refresh token.
+        """
+        refresh_token_str = validated_data.get('refresh_token')
+        
+        user_id = None
+        is_email_verified = None
+        
+        try:
+            refresh = RefreshToken(refresh_token_str)
+            
+            user_id = refresh.payload.get('user_id')
+            if not user_id:
+                return BaseResultWithData(
+                    message="Invalid token payload",
+                    data=None,
+                    status_code=400
+                )
+            
+            try:
+                user = User.objects.get(id=user_id, email_verified=True, is_active = True, is_deleted=False)
+                user_id = user.id
+                is_email_verified = user.email_verified
+            except User.DoesNotExist:
+                return BaseResultWithData(
+                    message="User account not found or not verified",
+                    data=None,
+                    status_code=400
+                )
+            
+            new_access_token = str(refresh.access_token)
+            new_refresh_token = str(refresh) 
+            
+            data = {
+                'access_token': new_access_token,
+                'refresh_token': new_refresh_token,
+                'user_id': user_id,
+                'is_email_verified': is_email_verified,
+            }
+            
+            return BaseResultWithData(
+                message="Token refreshed successfully",
+                data=data,
+                status_code=200
+            )
+            
+        except (TokenError, InvalidToken) as e:
+            return BaseResultWithData(
+                message="Invalid or expired refresh token",
+                data=None,
+                status_code=401
+            )
+        except Exception as e:
+            return BaseResultWithData(
+                message="Unable to refresh token",
                 data=None,
                 status_code=500
             )

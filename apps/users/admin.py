@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import *
+from django.db.models import Avg
+
 
 class UserAdmin(admin.ModelAdmin):
     list_display = ('email', 'full_name', 'matric_number', 'student_id_verified_badge', 'email_verified_badge', 
@@ -118,5 +120,127 @@ class VerificationTokenAdmin(admin.ModelAdmin):
     status_badge.short_description = "Status"
 
 
+
+class ContactReportAdmin(admin.ModelAdmin):
+    # ========== LIST VIEW ==========
+    list_display = (
+        'id', 
+        'issue_type_badge', 
+        'reporter_name', 
+        'reporter_email',
+        'created_at', 
+        'is_reviewed', 
+        'is_deleted'
+    )
+    
+    list_filter = (
+        'issue_type',
+        'is_reviewed',
+        'is_deleted',
+        'created_at',
+    )
+    
+    search_fields = (
+        'reporter_name',
+        'reporter_email',
+        'reported_user_email',
+        'listing_identifier',
+        'message',
+        'admin_notes'
+    )
+    
+    readonly_fields = (
+        'created_at',
+        'created_by',
+        'modified_at',
+        'modified_by',
+        'deleted_at',
+        'deleted_by',
+    )
+    
+    list_per_page = 25
+    date_hierarchy = 'created_at'
+    ordering = ['-created_at']
+    
+    # ========== FIELD SETS (detail view) ==========
+    fieldsets = (
+        ('Reporter Information', {
+            'fields': ('reporter_name', 'reporter_email'),
+            'classes': ('wide',),
+        }),
+        ('Issue Details', {
+            'fields': ('issue_type', 'message'),
+            'classes': ('wide',),
+        }),
+        ('Context (if applicable)', {
+            'fields': ('listing_identifier', 'reported_user_email'),
+            'classes': ('collapse', 'wide'),
+        }),
+        ('Admin Handling', {
+            'fields': ('is_reviewed', 'admin_notes'),
+            'classes': ('wide',),
+        }),
+        ('Audit Trail (BaseModel fields)', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by'
+            ),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    # ========== ACTIONS ==========
+    actions = ['mark_as_reviewed', 'mark_as_unreviewed', 'soft_delete_selected']
+    
+    @admin.action(description='Mark selected reports as reviewed')
+    def mark_as_reviewed(self, request, queryset):
+        updated = queryset.update(is_reviewed=True)
+        self.message_user(request, f'{updated} report(s) marked as reviewed.')
+    
+    @admin.action(description='Mark selected reports as not reviewed')
+    def mark_as_unreviewed(self, request, queryset):
+        updated = queryset.update(is_reviewed=False)
+        self.message_user(request, f'{updated} report(s) marked as not reviewed.')
+    
+    @admin.action(description='Soft delete selected reports')
+    def soft_delete_selected(self, request, queryset):
+        from django.utils.timezone import now
+        updated = queryset.update(
+            is_deleted=True,
+            deleted_at=now(),
+            deleted_by=request.user.username
+        )
+        self.message_user(request, f'{updated} report(s) soft-deleted.')
+    
+    # ========== CUSTOM METHODS FOR LIST DISPLAY ==========
+    def issue_type_badge(self, obj):
+        """Display issue type with a colored badge."""
+        colors = {
+            'report_listing': '#dc3545',   # red
+            'report_user': '#fd7e14',      # orange
+            'bug': '#ffc107',              # yellow
+            'question': '#28a745',         # green
+            'other': '#6c757d',            # gray
+        }
+        display = obj.get_issue_type_display()
+        color = colors.get(obj.issue_type, '#6c757d')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem;">{}</span>',
+            color, display
+        )
+    issue_type_badge.short_description = 'Issue Type'
+    issue_type_badge.admin_order_field = 'issue_type'
+    
+    # ========== SAVE METHOD (optional) ==========
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:
+            obj.created_by = request.user.username
+        obj.modified_by = request.user.username
+        super().save_model(request, obj, form, change)
+    
+
+
+admin.site.register(ContactReport, ContactReportAdmin)
 admin.site.register(User, UserAdmin)
 admin.site.register(VerificationToken, VerificationTokenAdmin)

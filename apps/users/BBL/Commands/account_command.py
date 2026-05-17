@@ -2,15 +2,22 @@ from apps.users.models import User, VerificationToken
 from utils.base_result import BaseResult, BaseResultWithData
 from utils.enums import TokenType
 from utils.emails_helper import EmailHelper
-
+from utils.helpers import validate_ui_email, normalize_nigerian_phone
 
 class AccountCommand:    
     @staticmethod
     def Execute(request, validated_data):
         try:
             email = validated_data['email']
-            phone = validated_data['phone']
+            raw_phone = validated_data['phone']
 
+            normalized_phone = normalize_nigerian_phone(raw_phone)
+            if not normalized_phone:
+                return BaseResult(
+                    message="Invalid Nigerian phone number format.",
+                    status_code=400
+                )
+            
             # is_valid, message = validate_ui_email(email)
             # if not is_valid:
             #     return BaseResultWithData(
@@ -25,7 +32,7 @@ class AccountCommand:
                     status_code=400
                 )
 
-            if User.objects.filter(phone=phone).exists():
+            if User.objects.filter(phone=normalized_phone).exists():
                 return BaseResult(
                     message="Phone already registered with.",
                     status_code=400
@@ -39,12 +46,12 @@ class AccountCommand:
                 )
             
             user = User.objects.create_user(
-                email=validated_data['email'],
-                phone=validated_data['phone'],
+                email=email,
+                phone=normalized_phone,
                 first_name=validated_data['first_name'],
                 last_name=validated_data['last_name'],
-                password=validated_data['password'],
-                is_active = False,
+                password=password,
+                is_active = True,
                 email_verified=False
             )
             verification_token = AccountCommand._create_verification_token(user)

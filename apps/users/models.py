@@ -10,6 +10,7 @@ from apps.users.manager import UserManager
 from utils.base_model import BaseModel
 from utils.enums import TokenType
 import secrets
+from utils.enums import IssueTypeEnum
 # Create your models here.
 
 
@@ -44,6 +45,7 @@ class User(BaseModel, AbstractUser):
         default=False,
         help_text="Email verification status"
     )
+    hall_verified = models.BooleanField(default=False, help_text="Student hall/residence verified")
     
     def save(self, *args, **kwargs):
         self.first_name = self.first_name.capitalize()
@@ -96,3 +98,39 @@ class VerificationToken(BaseModel):
         return random.randint(100000, 999999)
     
 
+class ContactReport(BaseModel):
+
+    # Basic info
+    reporter_name = models.CharField(max_length=255, help_text="Full name of the person reporting")
+    reporter_email = models.EmailField(help_text="UI email address")
+
+    # Issue categorization
+    issue_type = models.CharField(max_length=30, choices=IssueTypeEnum.choices(), db_index=True)
+
+    # Fields specific to certain issue types (optional)
+    listing_identifier = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Listing URL or title (for report_listing)"
+    )
+    reported_user_email = models.EmailField(
+        blank=True,
+        null=True,
+        help_text="Email of the user being reported (for report_user)"
+    )
+
+    # Main message
+    message = models.TextField(help_text="Detailed description of the issue")
+
+    # Metadata
+    is_reviewed = models.BooleanField(default=False, help_text="Admin has reviewed this report")
+    admin_notes = models.TextField(blank=True, help_text="Internal notes from admin")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Contact / Report"
+        verbose_name_plural = "Contact / Reports"
+
+    def __str__(self):
+        return f"{self.get_issue_type_display()} - {self.reporter_name} ({self.created_at.date()})"
