@@ -6,10 +6,10 @@ from .views import *
 
 urlpatterns = [
     path(
-        "product/",
+        "campus/",
         include(
             [
-
+                path("dashboard", GetDashboardView.as_view(), name="campus-dashboard"),
             ]
         )
     )

@@ -66,7 +66,7 @@ class AuthCommand:
                     'refresh_token': refresh_token,
                     'user_id': user.id,
                     'is_email_verified': user.email_verified,
-                    'is_hall_verified' : user.
+                    'is_hall_verified' : user.hall_verified
                 },
                 status_code=200
             )
@@ -202,7 +202,7 @@ Campus Connect Team
         
         user_id = None
         is_email_verified = None
-        
+        hall_verified = None
         try:
             refresh = RefreshToken(refresh_token_str)
             
@@ -218,6 +218,7 @@ Campus Connect Team
                 user = User.objects.get(id=user_id, email_verified=True, is_active = True, is_deleted=False)
                 user_id = user.id
                 is_email_verified = user.email_verified
+                hall_verified = user.hall_verified
             except User.DoesNotExist:
                 return BaseResultWithData(
                     message="User account not found or not verified",
@@ -233,19 +234,13 @@ Campus Connect Team
                 'refresh_token': new_refresh_token,
                 'user_id': user_id,
                 'is_email_verified': is_email_verified,
+                'is_hall_verified' : hall_verified
             }
             
             return BaseResultWithData(
                 message="Token refreshed successfully",
                 data=data,
                 status_code=200
-            )
-            
-        except (TokenError, InvalidToken) as e:
-            return BaseResultWithData(
-                message="Invalid or expired refresh token",
-                data=None,
-                status_code=401
             )
         except Exception as e:
             return BaseResultWithData(
