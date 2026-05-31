@@ -61,7 +61,7 @@ class Listing(BaseModel):
         choices=ListingStatusType.choices(), 
         default=ListingStatusType.ACTIVE.value
     )
-    expires_at = models.DateTimeField()
+    expires_at = models.DateTimeField(null=True, blank=True)
 
     hotspots = models.ManyToManyField(CampusHotspot, through='ListingHotspot', related_name='listings')
 

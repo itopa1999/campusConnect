@@ -131,7 +131,7 @@ class ListingAdmin(admin.ModelAdmin):
             'fields': ('expires_at',)
         }),
         ('Analytics', {
-            'fields': ('views_count', 'review_count', 'avg_rating'),
+            'fields': ('review_count', 'avg_rating'),
             'classes': ('collapse',)
         }),
         ('Metadata', {

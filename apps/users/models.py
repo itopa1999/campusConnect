@@ -13,6 +13,19 @@ import secrets
 from utils.enums import IssueTypeEnum
 # Create your models here.
 
+# BADGE_CHOICES = (
+#     ('none', 'None'),
+#     ('trusted', 'Trusted User'),
+#     ('verified', 'Verified User'),
+#     ('top_seller', 'Top Seller'),
+# )
+
+class Badge(models.Model):
+    name = models.CharField(max_length=50)
+    icon = models.ImageField(upload_to='badges/')
+    description = models.TextField()
+
+
 
 class User(BaseModel, AbstractUser):
     username = None
@@ -33,8 +46,8 @@ class User(BaseModel, AbstractUser):
         null=True,
         help_text="Upload a profile picture that will appear on all your product listings"
     )
-    matric_number = models.CharField(max_length=50, unique=True, null=True)
-    student_id_photo = models.ImageField(upload_to='student_ids/', null =True)
+    matric_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    student_id_photo = models.ImageField(upload_to='student_ids/', null =True, blank=True)
     student_id_verified = models.BooleanField(default=False)
     department = models.CharField(max_length=100, blank=True, null=True)
     faculty = models.CharField(max_length=100, blank=True, null=True)
@@ -46,7 +59,11 @@ class User(BaseModel, AbstractUser):
         help_text="Email verification status"
     )
     hall_verified = models.BooleanField(default=False, help_text="Student hall/residence verified")
-    
+    user_badges = models.ManyToManyField(
+        Badge,
+        blank=True,
+        related_name="users_with_badge"
+    )
     def save(self, *args, **kwargs):
         self.first_name = self.first_name.capitalize()
         self.last_name = self.last_name.capitalize()
@@ -65,7 +82,6 @@ class User(BaseModel, AbstractUser):
             models.Index(fields=['matric_number']),
             models.Index(fields=['student_id_verified']),
             models.Index(fields=['average_rating']),
-            models.Index(fields=['is_active']),
             models.Index(fields=['level']),
             models.Index(fields=['department']),
         ]
