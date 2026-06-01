@@ -49,7 +49,7 @@ Campus Connect Team
             return False
     
     @staticmethod
-    def send_password_reset_email(email, first_name, reset_link):
+    def send_password_reset_email(email, first_name, link):
         try:         
             # Email subject and message
             subject = "Reset Your Campus Connect Password"
@@ -58,7 +58,7 @@ Hello {first_name},
 
 We received a request to reset your password. Click the link below to reset it:
 
-{reset_link}
+{link}
 
 This link will expire in 10 minutes.
 
@@ -99,3 +99,47 @@ Campus Connect Team
         except Exception as e:
             print(f"Error sending password reset confirmation email: {str(e)}")
             return False
+        
+
+    @staticmethod
+    def send_account_verification_success_email(email, first_name):
+        try:
+            subject = "Your Campus Connect Account Has Been Verified"
+            message = f"""
+Hello {first_name},
+
+Your account has been successfully verified. You can now log in to your Campus Connect account.
+
+Best regards,
+Campus Connect Team
+            """
+            return EmailHelper.send_email(
+                subject=subject,
+                message=message,
+                recipient_list=[email],
+                fail_silently=False
+            )
+        except Exception as e:
+            print(f"Error sending account verification success email: {str(e)}")
+            return False
+        
+    @staticmethod
+    def send_password_change_confirmation_email(email, first_name):
+        try:
+            subject = "Your Campus Connect Password Has Been Changed"
+            message = f"""
+Hello {first_name},
+Your password has been successfully changed. If you did not perform this action, please contact our support team immediately.
+Best regards,
+Campus Connect Team
+            """
+            return EmailHelper.send_email(
+                subject=subject,
+                message=message,
+                recipient_list=[email],
+                fail_silently=False
+            )
+        except Exception as e:
+            print(f"Error sending password change confirmation email: {str(e)}")
+            return False
+        

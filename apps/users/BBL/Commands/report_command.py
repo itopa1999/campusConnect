@@ -1,22 +1,23 @@
 from apps.users.models import ContactReport
 from utils.base_result import BaseResultWithData
 from django.utils import timezone
-
 from utils.enums import IssueTypeEnum
+from utils.log_helpers import logger, OperationLogger
 
 class ReportCommand:
     @staticmethod
     def Add(request, validated_data):
+        reporter_name = validated_data.get('reporter_name', '').strip()
+        reporter_email = validated_data.get('reporter_email', '').strip()
+        issue_type = validated_data.get('issue_type', '').strip()
+        message = validated_data.get('message', '').strip()
+        listing_identifier = validated_data.get('listing_identifier', '').strip()
+        reported_user_email = validated_data.get('reported_user_email', '').strip()
+        op = OperationLogger("ReportCommand.Add", reporter_email=reporter_email, issue_type=issue_type)
+        op.start()
         try:
-            # Extract fields
-            reporter_name = validated_data.get('reporter_name', '').strip()
-            reporter_email = validated_data.get('reporter_email', '').strip()
-            issue_type = validated_data.get('issue_type', '').strip()
-            message = validated_data.get('message', '').strip()
-            listing_identifier = validated_data.get('listing_identifier', '').strip()
-            reported_user_email = validated_data.get('reported_user_email', '').strip()
-
             if not reporter_name:
+                logger.warning("[ReportCommand.Add] Reporter name is required")
                 return BaseResultWithData(
                     message="Reporter name is required.",
                     data=None,
@@ -24,6 +25,7 @@ class ReportCommand:
                 )
 
             if not reporter_email:
+                logger.warning("[ReportCommand.Add] Reporter email is required")
                 return BaseResultWithData(
                     message="Reporter email is required.",
                     data=None,
@@ -32,6 +34,7 @@ class ReportCommand:
 
             # is_valid, message = validate_ui_email(reporter_email)
             # if not is_valid:
+            #     logger.warning(f"[ReportCommand.Add] Invalid reporter email: {reporter_email}")
             #     return BaseResultWithData(
             #         message=message,
             #         data=None,
@@ -39,6 +42,7 @@ class ReportCommand:
             #     )
             allowed_types = [choice[0] for choice in IssueTypeEnum.choices()]
             if not issue_type or issue_type not in allowed_types:
+                logger.warning(f"[ReportCommand.Add] Invalid issue type: {issue_type}")
                 return BaseResultWithData(
                     message="Invalid or missing issue type.",
                     data=None,
@@ -46,12 +50,14 @@ class ReportCommand:
                 )
 
             if issue_type == IssueTypeEnum.REPORT_LISTING.value and not listing_identifier:
+                logger.warning("[ReportCommand.Add] Missing listing identifier for listing report")
                 return BaseResultWithData(
                     message="Listing URL or title is required when reporting a listing.",
                     data=None,
                     status_code=400
                 )
             if issue_type == IssueTypeEnum.REPORT_USER.value and not reported_user_email:
+                logger.warning("[ReportCommand.Add] Missing reported user email for user report")
                 return BaseResultWithData(
                     message="Email of the reported user is required.",
                     data=None,
@@ -59,6 +65,7 @@ class ReportCommand:
                 )
 
             if not message:
+                logger.warning("[ReportCommand.Add] Report message cannot be empty")
                 return BaseResultWithData(
                     message="Message cannot be empty.",
                     data=None,
@@ -74,7 +81,7 @@ class ReportCommand:
                 message=message,
                 is_reviewed=False,
             )
-
+            op.success("Report submitted successfully")
             return BaseResultWithData(
                 message="Thank you. Your report has been submitted. We will review it within 48 hours.",
                 data={
@@ -84,6 +91,7 @@ class ReportCommand:
                 status_code=201
             )
         except Exception as e:
+            op.fail("Unable to submit report", exc=e)
             return BaseResultWithData(
                 message=f"Unable to submit report: {str(e)}",
                 data=None,
