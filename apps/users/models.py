@@ -68,7 +68,11 @@ class User(BaseModel, AbstractUser):
         self.first_name = self.first_name.capitalize()
         self.last_name = self.last_name.capitalize()
                     
-        super().save(*args, **kwargs)    
+        super().save(*args, **kwargs)  
+
+
+    def get_full_name(self):
+        return super().get_full_name()  
 
     objects=UserManager( )
     USERNAME_FIELD ='email'

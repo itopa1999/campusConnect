@@ -11,7 +11,7 @@ from utils.base_model import BaseModel
 class Category(BaseModel):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True)
-    icon = models.CharField(max_length=50, blank=True, null=True)  # emoji or CSS class
+    icon = models.CharField(max_length=50, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -133,27 +133,3 @@ class Review(BaseModel):
             avg=models.Avg('rating')
         )['avg'] or 0.00
         self.to_user.save(update_fields=['average_rating'])
-
-
-
-class Transaction(BaseModel):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='user_transactions',
-        db_index=True
-    )
-    listing = models.CharField(max_length=500, null=True, blank=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-
-    class Meta:
-        ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['user', '-created_at']),
-            models.Index(fields=['created_at']),
-        ]
-        verbose_name = "Transaction"
-        verbose_name_plural = "Transactions"
-
-    def __str__(self):
-        return f"Transaction by {self.user.email} - ${self.amount}"

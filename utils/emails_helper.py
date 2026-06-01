@@ -143,3 +143,22 @@ Campus Connect Team
             print(f"Error sending password change confirmation email: {str(e)}")
             return False
         
+    @staticmethod
+    def send_report_received_email(email, first_name, issue_type):
+        try:
+            subject = "We Have Received Your Report"
+            message = f"""
+Hello {first_name},
+Thank you for submitting your report regarding "{issue_type}". We have received your report and our team will review it within 48 hours. We appreciate your help in keeping our community safe and welcoming.
+Best regards,
+Campus Connect Team
+            """
+            return EmailHelper.send_email(
+                subject=subject,
+                message=message,
+                recipient_list=[email],
+                fail_silently=False
+            )
+        except Exception as e:
+            print(f"Error sending report received email: {str(e)}")
+            return False

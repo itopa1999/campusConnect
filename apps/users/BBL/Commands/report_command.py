@@ -1,4 +1,5 @@
 from apps.users.models import ContactReport
+from utils.Tasks.emailService import background_task_send_report_recieved_email
 from utils.base_result import BaseResultWithData
 from django.utils import timezone
 from utils.enums import IssueTypeEnum
@@ -81,7 +82,12 @@ class ReportCommand:
                 message=message,
                 is_reviewed=False,
             )
-            op.success("Report submitted successfully")
+            try:
+                background_task_send_report_recieved_email.delay(reporter_email, reporter_name, issue_type)
+            except Exception as e:
+                logger.error(f"Error queuing report received email: {str(e)}")
+            else:
+                op.success("Report submitted successfully")
             return BaseResultWithData(
                 message="Thank you. Your report has been submitted. We will review it within 48 hours.",
                 data={

@@ -215,7 +215,9 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'user': '20000/hour',     
         'anon': '20000/hour',
-        # "magic_link": "50/minute",
+        "login": "5/min",
+        "password_reset": "1/min",
+        "email_verify": "10/min"
     },
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
 

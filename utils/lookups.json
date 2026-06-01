@@ -1,0 +1,246 @@
+{
+  "categories": [
+    {
+      "name": "Books & Study Materials",
+      "slug": "books-study-materials",
+      "icon": "fas fa-book",
+      "description": "Textbooks, handouts, PDFs, lecture notes, and study resources.",
+      "sort_order": 1
+    },
+    {
+      "name": "Past Questions",
+      "slug": "past-questions",
+      "icon": "fas fa-file-alt",
+      "description": "Past examination questions and revision materials.",
+      "sort_order": 2
+    },
+    {
+      "name": "Academic Services",
+      "slug": "academic-services",
+      "icon": "fas fa-print",
+      "description": "Typing, printing, binding, project assistance, and research support.",
+      "sort_order": 3
+    },
+    {
+      "name": "Tutoring & Coaching",
+      "slug": "tutoring-coaching",
+      "icon": "fas fa-chalkboard-teacher",
+      "description": "Private lessons, exam preparation, and academic coaching.",
+      "sort_order": 4
+    },
+    {
+      "name": "Hostels & Accommodation",
+      "slug": "hostels-accommodation",
+      "icon": "fas fa-home",
+      "description": "Hostels, apartments, rooms, and accommodation listings.",
+      "sort_order": 5
+    },
+    {
+      "name": "Roommates & Shared Apartments",
+      "slug": "roommates-shared-apartments",
+      "icon": "fas fa-users",
+      "description": "Find roommates and shared living arrangements.",
+      "sort_order": 6
+    },
+    {
+      "name": "Phones & Accessories",
+      "slug": "phones-accessories",
+      "icon": "fas fa-mobile-alt",
+      "description": "Smartphones, chargers, earphones, smartwatches, and accessories.",
+      "sort_order": 7
+    },
+    {
+      "name": "Laptops & Computers",
+      "slug": "laptops-computers",
+      "icon": "fas fa-laptop",
+      "description": "Laptops, desktops, monitors, and computer accessories.",
+      "sort_order": 8
+    },
+    {
+      "name": "Electronics & Gadgets",
+      "slug": "electronics-gadgets",
+      "icon": "fas fa-plug",
+      "description": "Speakers, gaming devices, gadgets, and electronic accessories.",
+      "sort_order": 9
+    },
+    {
+      "name": "Food & Catering",
+      "slug": "food-catering",
+      "icon": "fas fa-utensils",
+      "description": "Meals, snacks, drinks, food vendors, and catering services.",
+      "sort_order": 10
+    },
+    {
+      "name": "Fashion & Clothing",
+      "slug": "fashion-clothing",
+      "icon": "fas fa-tshirt",
+      "description": "Clothing, shoes, bags, watches, and fashion accessories.",
+      "sort_order": 11
+    },
+    {
+      "name": "Beauty & Personal Care",
+      "slug": "beauty-personal-care",
+      "icon": "fas fa-spa",
+      "description": "Haircare, skincare, cosmetics, perfumes, and grooming products.",
+      "sort_order": 12
+    },
+    {
+      "name": "Furniture & Home Essentials",
+      "slug": "furniture-home-essentials",
+      "icon": "fas fa-couch",
+      "description": "Beds, tables, chairs, wardrobes, fans, and home essentials.",
+      "sort_order": 13
+    },
+    {
+      "name": "Transportation",
+      "slug": "transportation",
+      "icon": "fas fa-motorcycle",
+      "description": "Cars, motorcycles, bicycles, rides, and transportation services.",
+      "sort_order": 14
+    },
+    {
+      "name": "Jobs & Side Hustles",
+      "slug": "jobs-side-hustles",
+      "icon": "fas fa-briefcase",
+      "description": "Part-time jobs, internships, student jobs, and side hustles.",
+      "sort_order": 15
+    },
+    {
+      "name": "Freelance Services",
+      "slug": "freelance-services",
+      "icon": "fas fa-tools",
+      "description": "Graphic design, programming, photography, writing, and other services.",
+      "sort_order": 16
+    },
+    {
+      "name": "Event Tickets & Campus Events",
+      "slug": "event-tickets-campus-events",
+      "icon": "fas fa-ticket-alt",
+      "description": "Campus events, parties, concerts, and event tickets.",
+      "sort_order": 17
+    },
+    {
+      "name": "Sports & Fitness",
+      "slug": "sports-fitness",
+      "icon": "fas fa-futbol",
+      "description": "Sports equipment, gym items, and fitness-related products.",
+      "sort_order": 18
+    },
+    {
+      "name": "Lost & Found",
+      "slug": "lost-found",
+      "icon": "fas fa-search",
+      "description": "Lost items, found items, and recovery assistance.",
+      "sort_order": 19
+    },
+    {
+      "name": "Others",
+      "slug": "others",
+      "icon": "fas fa-ellipsis-h",
+      "description": "Items and services that do not fit into other categories.",
+      "sort_order": 20
+    }
+  ],
+  "campus_hotspots": [
+    {
+      "name": "Main Gate",
+      "description": "Primary entry and exit point of the campus where students and visitors converge.",
+      "sort_order": 1
+    },
+    {
+      "name": "Lecture Theatres Complex",
+      "description": "Central academic building hosting large lecture halls for multiple departments.",
+      "sort_order": 2
+    },
+    {
+      "name": "Faculty of Science Block",
+      "description": "Academic hub for science students including labs and lecture rooms.",
+      "sort_order": 3
+    },
+    {
+      "name": "Faculty of Engineering Block",
+      "description": "Engineering lectures, labs, and workshops are conducted here.",
+      "sort_order": 4
+    },
+    {
+      "name": "Student Union Building (SUB)",
+      "description": "Main student activity center for meetings, events, and governance.",
+      "sort_order": 5
+    },
+    {
+      "name": "Campus Market (Mini Market)",
+      "description": "Commercial hub where students buy food, clothes, and daily essentials.",
+      "sort_order": 6
+    },
+    {
+      "name": "Food Court / Cafeteria",
+      "description": "Central dining area offering affordable meals for students.",
+      "sort_order": 7
+    },
+    {
+      "name": "Library",
+      "description": "Quiet academic space for research, reading, and study sessions.",
+      "sort_order": 8
+    },
+    {
+      "name": "Computer Lab Center",
+      "description": "Access to computers, internet, and digital academic resources.",
+      "sort_order": 9
+    },
+    {
+      "name": "Hostel Area (Male)",
+      "description": "Residential accommodation zone for male students.",
+      "sort_order": 10
+    },
+    {
+      "name": "Hostel Area (Female)",
+      "description": "Residential accommodation zone for female students.",
+      "sort_order": 11
+    },
+    {
+      "name": "Sport Complex",
+      "description": "Facilities for football, basketball, athletics, and fitness training.",
+      "sort_order": 12
+    },
+    {
+      "name": "Health Centre / Clinic",
+      "description": "On-campus medical facility for student healthcare services.",
+      "sort_order": 13
+    },
+    {
+      "name": "Amphi Theatre",
+      "description": "Outdoor event space for concerts, ceremonies, and student gatherings.",
+      "sort_order": 14
+    },
+    {
+      "name": "Engineering Workshop Area",
+      "description": "Practical hands-on workshop for engineering students.",
+      "sort_order": 15
+    },
+    {
+      "name": "Bus Park / Transport Hub",
+      "description": "Main transport pickup and drop-off point for campus movement.",
+      "sort_order": 16
+    },
+    {
+      "name": "ICT Hub / Innovation Lab",
+      "description": "Tech innovation space for developers, startups, and digital projects.",
+      "sort_order": 17
+    },
+    {
+      "name": "Admin Block",
+      "description": "Administrative offices including registrar and student affairs.",
+      "sort_order": 18
+    },
+    {
+      "name": "Religious Centre",
+      "description": "Spaces for worship, prayer, and spiritual activities.",
+      "sort_order": 19
+    },
+    {
+      "name": "Campus Lounge / Chill Spot",
+      "description": "Relaxation area where students socialize and unwind.",
+      "sort_order": 20
+    }
+  ]
+}
