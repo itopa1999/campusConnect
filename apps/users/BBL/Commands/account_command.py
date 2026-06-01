@@ -3,6 +3,8 @@ from utils.base_result import BaseResult, BaseResultWithData
 from utils.enums import TokenType
 from utils.emails_helper import EmailHelper
 from utils.helpers import validate_ui_email, normalize_nigerian_phone
+from django.db import transaction
+
 
 class AccountCommand:    
     @staticmethod
@@ -54,10 +56,10 @@ class AccountCommand:
                 is_active = True,
                 email_verified=False
             )
-            verification_token = AccountCommand._create_verification_token(user)
+            verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)
             
-            # todo: add to background task.
-            EmailHelper.send_verification_email(user, verification_token, request)
+            verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
+            EmailHelper.send_verification_email(user.email, user.first_name, verification_link)
             
             return BaseResultWithData(
                 message="Account created successfully. Please check your email to verify your account.",
@@ -79,35 +81,17 @@ class AccountCommand:
     def VerifyEmail(request, token):
         """Verify user email using verification token"""
         try:
-            if not token:
+            
+            is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.EMAIL_VERIFICATION.value)
+            if not is_valid:
                 return BaseResult(
-                    message="Token is required",
+                    message=result,
                     status_code=400
                 )
-            
-            # Get verification token
-            verification_token = VerificationToken.objects.filter(token=token).first()
-            
-            if not verification_token:
-                return BaseResult(
-                    message="Invalid token",
-                    status_code=400
-                )
-            
-            if not verification_token.is_valid():
-                return BaseResult(
-                    message="Token has already been used",
-                    status_code=400
-                )
-            
-            # Mark token as used and verify user email
-            verification_token.is_used = True
-            verification_token.save()
-            
-            user = verification_token.user
+            user = result.user
             user.email_verified = True
             user.is_active = True
-            user.save()
+            user.save(update_fields=["email_verified", "is_active"])
             
             return BaseResultWithData(
                 message="Email verified successfully",
@@ -122,17 +106,50 @@ class AccountCommand:
             )
     
     @staticmethod
-    def _create_verification_token(user):
+    def _create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value):
         """Create a verification token for email verification"""
+
+        VerificationToken.objects.filter(
+            user=user,
+            token_type=token_type,
+            is_used=False
+        ).update(is_used=True)
+        
         token = VerificationToken.generate_token()
         
-        while VerificationToken.objects.filter(token=token).exists():
+        while VerificationToken.objects.filter(
+            token=token,
+            is_used=False
+        ).exists():
             token = VerificationToken.generate_token()
         
         verification_token = VerificationToken.objects.create(
             user=user,
             token=token,
-            token_type=TokenType.EMAIL_VERIFICATION.value
+            token_type=token_type,
         )
         return verification_token
+    
+    @staticmethod
+    def _verify_token(token, token_type):
+        """Verify if a token is valid for a given token type"""
+        if not token:
+            return False, "Token is required"
+        
+        verification_token = VerificationToken.objects.filter(
+            token=token,
+            token_type=token_type,
+            is_deleted=False
+        ).first()
+        
+        if not verification_token:
+            return False, "Invalid token"
+        
+        if not verification_token.is_valid():
+            return False, "Token has already been used or has expired"
+        
+        verification_token.is_used = True
+        verification_token.save(update_fields=["is_used"])
+        
+        return True, verification_token
 

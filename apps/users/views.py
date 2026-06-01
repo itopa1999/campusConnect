@@ -39,6 +39,34 @@ class VerifyAccountEmailView(generics.GenericAPIView):
         return render(request, 'email_verification.html', context)
 
 
+class VerifyForgetPasswordEmailView(generics.GenericAPIView):
+    """Verify user email for forgot password using verification token"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        token = request.query_params.get('token')
+        result = AuthCommand.VerifyForgetPasswordEmail(request, token)
+        context = {
+            'message': result.message,
+            'data': result.data,
+            'is_success': result.is_success
+        }
+        return render(request, 'password_reset_verification.html', context)
+
+
+class ConfirmResetPasswordView(generics.GenericAPIView):
+    """Confirm reset password using verification token"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    serializer_class = ConfirmResetPasswordSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = AuthCommand.ConfirmResetPassword(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
 class LoginView(generics.GenericAPIView):
     serializer_class = UserLoginSerializer
     permission_classes = [AllowAny]

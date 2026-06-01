@@ -19,16 +19,17 @@ class EmailHelper:
             return False
     
     @staticmethod
-    def send_verification_email(user, verification_token, request):
+    def send_verification_email(email, first_name, verification_link):
         try:
-            verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
             subject = "Verify Your Campus Connect Email"
             message = f"""
-Hello {user.first_name},
+Hello {first_name},
 
 Welcome to Campus Connect! Please verify your email by clicking the link below:
 
 {verification_link}
+
+This link will expire in 10 minutes.
 
 This link is unique and can only be used once. If you didn't create this account, please ignore this email.
 
@@ -40,7 +41,7 @@ Campus Connect Team
             return EmailHelper.send_email(
                 subject=subject,
                 message=message,
-                recipient_list=[user.email],
+                recipient_list=[email],
                 fail_silently=False
             )
         except Exception as e:
@@ -48,21 +49,18 @@ Campus Connect Team
             return False
     
     @staticmethod
-    def send_password_reset_email(user, reset_token, request):
-        try:
-            # Build password reset URL
-            reset_url = f"{request.build_absolute_uri('/api/users/reset-password/')}?token={reset_token}"
-            
+    def send_password_reset_email(email, first_name, reset_link):
+        try:         
             # Email subject and message
             subject = "Reset Your Campus Connect Password"
             message = f"""
-Hello {user.first_name},
+Hello {first_name},
 
 We received a request to reset your password. Click the link below to reset it:
 
-{reset_url}
+{reset_link}
 
-This link will expire in 24 hours.
+This link will expire in 10 minutes.
 
 If you didn't request this, please ignore this email.
 
@@ -74,9 +72,30 @@ Campus Connect Team
             return EmailHelper.send_email(
                 subject=subject,
                 message=message,
-                recipient_list=[user.email],
+                recipient_list=[email],
                 fail_silently=False
             )
         except Exception as e:
             print(f"Error sending password reset email: {str(e)}")
+            return False
+
+
+    @staticmethod
+    def send_password_reset_confirmation_email(email, first_name):
+        try:
+            subject = "Your Campus Connect Password Has Been Reset"
+            message = f"""
+Hello {first_name},
+Your password has been successfully reset. If you did not perform this action, please contact our support team immediately.
+Best regards,
+Campus Connect Team
+            """
+            return EmailHelper.send_email(
+                subject=subject,
+                message=message,
+                recipient_list=[email],
+                fail_silently=False
+            )
+        except Exception as e:
+            print(f"Error sending password reset confirmation email: {str(e)}")
             return False

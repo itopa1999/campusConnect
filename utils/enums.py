@@ -58,6 +58,7 @@ class IssueTypeEnum(Enum):
     BUG = "bug"
     QUESTION = "question"
     OTHER = "other"
+    ACCOUNT = "account"
 
     @classmethod
     def choices(cls):

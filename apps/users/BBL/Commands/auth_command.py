@@ -1,10 +1,13 @@
 
+from apps.users.BBL.Commands.account_command import AccountCommand
 from apps.users.models import User
+from utils.Tasks.emailService import background_task_send_password_reset_email
 from utils.base_result import BaseResultWithData
 from rest_framework_simplejwt.tokens import RefreshToken
 from utils.emails_helper import EmailHelper
 import secrets
 import string
+from utils.enums import TokenType
 from utils.helpers import validate_ui_email, is_email_verified
 
 class AuthCommand:    
@@ -109,36 +112,10 @@ class AuthCommand:
                     status_code=400
                 )
             
-            # Generate new random password
-            new_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+            verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.PASSWORD_RESET.value)
             
-            # Update user password
-            user.set_password(new_password)
-            user.save()
-            
-            # Send password reset email
-            subject = "Your Campus Connect Password Has Been Reset"
-            message = f"""
-Hello {user.first_name},
-
-Your password has been reset. Here is your new password:
-
-{new_password}
-
-Please log in with this password and change it to something more secure in your account settings.
-
-If you didn't request this, please contact our support team immediately.
-
-Best regards,
-Campus Connect Team
-            """
-            
-            EmailHelper.send_email(
-                subject=subject,
-                message=message,
-                recipient_list=[user.email],
-                fail_silently=False
-            )
+            reset_link = f"{request.build_absolute_uri('/user/api/auth/verify-forget-password-email')}?token={verification_token.token}"
+            background_task_send_password_reset_email.delay(user.email, user.first_name, reset_link)
             
             return BaseResultWithData(
                 message="If an account with that email exists, an email containing a new password has been sent",
@@ -149,6 +126,77 @@ Campus Connect Team
         except Exception as e:
             return BaseResultWithData(
                 message=f"Error processing password reset: {str(e)}",
+                data=None,
+                status_code=500
+            )
+        
+    @staticmethod
+    def VerifyForgetPasswordEmail(request, token):
+        try:
+            is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.PASSWORD_RESET.value)
+            if not is_valid:
+                return BaseResultWithData(
+                    message=result,
+                    data=None,
+                    status_code=400
+                )
+            
+            verification_token = result
+            user = verification_token.user
+            
+                        
+            return BaseResultWithData(
+                message="Link verified successful.",
+                data={
+                    'user_id': user.id,
+                    'email': user.email
+                },
+                status_code=200
+            )
+            
+        except Exception as e:
+            return BaseResultWithData(
+                message=f"Error verifying password reset token: {str(e)}",
+                data=None,
+                status_code=500
+            )
+        
+    @staticmethod
+    def ConfirmResetPassword(request, validated_data):
+        try:
+            user_id = validated_data['user_id'].strip()
+            email = validated_data['email'].strip()
+            password = validated_data['password'].strip()
+            confirm_password = validated_data['confirm_password'].strip()
+
+            if password != confirm_password:
+                return BaseResultWithData(
+                    message="Password and confirm password do not match",
+                    data=None,
+                    status_code=400
+                )
+            
+            user = User.objects.filter(id=user_id, email=email, is_active=True, is_deleted=False).first()
+            
+            if not user:
+                return BaseResultWithData(
+                    message="Account has issues. Please contact support for assistance.",
+                    data=None,
+                    status_code=400
+                )
+            
+            user.set_password(password)
+            user.save()
+            
+            return BaseResultWithData(
+                message="Password reset successful. You can now log in with your new password.",
+                data=None,
+                status_code=200
+            )
+            
+        except Exception as e:
+            return BaseResultWithData(
+                message=f"Error resetting password: {str(e)}",
                 data=None,
                 status_code=500
             )

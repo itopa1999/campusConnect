@@ -89,12 +89,15 @@ class User(BaseModel, AbstractUser):
     def __str__(self):
         return f"{self.email}"
 
+def token_expiry():
+    return timezone.now() + timedelta(minutes=10)
 
 class VerificationToken(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
     token = models.PositiveIntegerField(unique=True)
     token_type = models.CharField(max_length=50, choices=TokenType.choices())
     is_used = models.BooleanField(default=False)
+    expires_at = models.DateTimeField(default=token_expiry)
     
     class Meta:
         ordering = ['-created_at']
@@ -107,8 +110,11 @@ class VerificationToken(BaseModel):
         return f"{self.user.email} - {self.token_type}"
     
     def is_valid(self):
-        return not self.is_used
-    
+        return (
+            not self.is_used and
+            self.expires_at > timezone.now()
+        )
+
     @staticmethod
     def generate_token():
         return random.randint(100000, 999999)
