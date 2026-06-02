@@ -13,18 +13,13 @@ import secrets
 from utils.enums import IssueTypeEnum
 # Create your models here.
 
-# BADGE_CHOICES = (
-#     ('none', 'None'),
-#     ('trusted', 'Trusted User'),
-#     ('verified', 'Verified User'),
-#     ('top_seller', 'Top Seller'),
-# )
-
 class Badge(models.Model):
     name = models.CharField(max_length=50)
-    icon = models.ImageField(upload_to='badges/')
-    description = models.TextField()
+    icon = models.ImageField(upload_to='badges/', blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
 
+    def __str__(self):
+        return self.name
 
 
 class User(BaseModel, AbstractUser):
@@ -53,7 +48,6 @@ class User(BaseModel, AbstractUser):
     faculty = models.CharField(max_length=100, blank=True, null=True)
     level = models.PositiveIntegerField(blank=True, null=True)
     average_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0.00)
-    transaction_count = models.PositiveIntegerField(default=0)
     email_verified = models.BooleanField(
         default=False,
         help_text="Email verification status"
@@ -160,3 +154,18 @@ class ContactReport(BaseModel):
 
     def __str__(self):
         return f"{self.get_issue_type_display()} - {self.reporter_name} ({self.created_at.date()})"
+    
+
+class Point(BaseModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='points')
+    amount = models.IntegerField()
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['amount']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.amount} points"

@@ -242,5 +242,27 @@
       "description": "Relaxation area where students socialize and unwind.",
       "sort_order": 20
     }
+  ],
+  "badges" : [
+    {
+      "name": "unverified",
+      "description": "User has not verified their account.",
+      "icon": ""
+    },
+    {
+      "name": "verified",
+      "description": "User has verified their account.",
+      "icon": ""
+    },
+    {
+      "name": "trusted",
+      "description": "User is trusted based on positive interactions and feedback.",
+      "icon": ""
+    },
+    {
+      "name": "top_seller",
+      "description": "User is recognized as a top seller based on sales performance.",
+      "icon": ""
+    }
   ]
 }

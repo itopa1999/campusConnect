@@ -5,16 +5,42 @@ from django.db.models import Avg
 
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'full_name', 'matric_number', 'student_id_verified_badge', 'email_verified_badge', 
-                    'average_rating', 'transaction_count', 'is_active', 'date_joined')
-    list_filter = ('is_active', 'is_staff', 'email_verified', 'student_id_verified', 'level', 'created_at')
+    list_display = (
+        'email',
+        'full_name',
+        'matric_number',
+        'student_id_verified_badge',
+        'email_verified_badge',
+        'badges_display',
+        'average_rating',
+        'is_active',
+        'date_joined'
+    )
+    list_filter = (
+        'is_active',
+        'is_staff',
+        'email_verified',
+        'student_id_verified',
+        'hall_verified',
+        'level',
+        'created_at'
+    )
     search_fields = ('email', 'first_name', 'last_name', 'matric_number', 'phone')
-    readonly_fields = ('date_joined', 'last_login', 'student_id_preview', 'profile_picture_preview', 
-                       'average_rating_display')
+    readonly_fields = (
+        'date_joined',
+        'last_login',
+        'student_id_preview',
+        'profile_picture_preview',
+        'average_rating_display',
+        'created_at',
+        'modified_at',
+        'deleted_at',
+        'deleted_by'
+    )
     
     fieldsets = (
         ('Account Information', {
-            'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified')
+            'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'hall_verified')
         }),
         ('Student Verification (Trust Core)', {
             'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified')
@@ -28,7 +54,19 @@ class UserAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Trust Metrics', {
-            'fields': ('average_rating_display', 'transaction_count'),
+            'fields': ('average_rating_display', 'user_badges'),
+            'classes': ('collapse',)
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at',
+                'created_by',
+                'modified_at',
+                'modified_by',
+                'is_deleted',
+                'deleted_at',
+                'deleted_by',
+            ),
             'classes': ('collapse',)
         }),
         ('Permissions', {
@@ -51,6 +89,13 @@ class UserAdmin(admin.ModelAdmin):
             return format_html('<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">✓ Email</span>')
         return format_html('<span style="background-color: #ffc107; padding: 3px 8px; border-radius: 4px; color: black;">⏳ Email</span>')
     email_verified_badge.short_description = "Email"
+
+    def badges_display(self, obj):
+        badges = obj.user_badges.all()
+        if not badges:
+            return "No badges"
+        return ", ".join(badge.name for badge in badges)
+    badges_display.short_description = "Badges"
     
     def student_id_verified_badge(self, obj):
         if obj.student_id_verified:
@@ -119,6 +164,21 @@ class VerificationTokenAdmin(admin.ModelAdmin):
             return format_html('<span style="background-color: #28a745; padding: 5px 10px; border-radius: 5px; color: white;">Valid</span>')
     status_badge.short_description = "Status"
 
+class BadgeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description_short', 'icon_preview')
+    search_fields = ('name', 'description')
+    readonly_fields = ('icon_preview',)
+    
+    def description_short(self, obj):
+        return (obj.description[:75] + '...') if obj.description and len(obj.description) > 75 else obj.description
+    description_short.short_description = "Description"
+    
+    def icon_preview(self, obj):
+        if obj.icon:
+            return format_html('<img src="{}" width="50" height="50" style="object-fit: cover; border-radius: 5px;"/>', 
+                              obj.icon.url)
+        return "No icon"
+    icon_preview.short_description = "Icon Preview"
 
 
 class ContactReportAdmin(admin.ModelAdmin):
@@ -239,8 +299,16 @@ class ContactReportAdmin(admin.ModelAdmin):
         obj.modified_by = request.user.username
         super().save_model(request, obj, form, change)
     
-
+class PointAdmin(admin.ModelAdmin):
+    list_display = ('user_email', 'amount')
+    search_fields = ('user__email',)
+    
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = "User Email"
 
 admin.site.register(ContactReport, ContactReportAdmin)
 admin.site.register(User, UserAdmin)
 admin.site.register(VerificationToken, VerificationTokenAdmin)
+admin.site.register(Badge, BadgeAdmin)
+admin.site.register(Point, PointAdmin)

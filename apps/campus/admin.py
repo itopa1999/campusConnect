@@ -231,28 +231,3 @@ class ReviewAdmin(admin.ModelAdmin):
     def comment_preview(self, obj):
         return obj.comment[:50] + '...' if obj.comment and len(obj.comment) > 50 else obj.comment or ''
     comment_preview.short_description = 'Comment'
-
-
-
-
-@admin.register(Transaction)
-class TransactionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'amount', 'listing', 'created_at')
-    list_filter = ('created_at', 'user')
-    search_fields = ('user__email', 'listing', 'user__username')
-    readonly_fields = ('created_at', 'modified_at', 'deleted_at')
-    date_hierarchy = 'created_at'
-    list_select_related = ('user',)
-    fieldsets = (
-        ('Transaction Info', {
-            'fields': ('user', 'amount', 'listing')
-        }),
-        ('Audit Trail', {
-            'fields': ('created_at', 'created_by', 'modified_at', 'modified_by',
-                       'is_deleted', 'deleted_at', 'deleted_by'),
-            'classes': ('collapse',)
-        }),
-    )
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user')

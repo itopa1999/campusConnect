@@ -67,3 +67,18 @@ class IssueTypeEnum(Enum):
     @classmethod
     def values(cls):
         return [item.value for item in cls]    
+
+
+class BadgeChoiceEnum(Enum):
+    UN_VERIFIED = "unverified"
+    VERIFIED = "verified"
+    TRUSTED = "trusted"
+    TOP_SELLER = "top_seller"
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]

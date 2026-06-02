@@ -1,9 +1,9 @@
-from apps.users.models import User, VerificationToken
+from apps.users.models import Point, User, VerificationToken
 from utils.Tasks.emailService import background_task_send_account_verify_email, background_task_send_verification_email
 from utils.base_result import BaseResult, BaseResultWithData
-from utils.enums import TokenType
+from utils.enums import BadgeChoiceEnum, TokenType
 from utils.emails_helper import EmailHelper
-from utils.helpers import validate_ui_email, normalize_nigerian_phone
+from utils.helpers import BadgeService, validate_ui_email, normalize_nigerian_phone
 from django.db import transaction
 from utils.log_helpers import logger, OperationLogger
 from celery.exceptions import OperationalError
@@ -64,6 +64,11 @@ class AccountCommand:
                 is_active=True,
                 email_verified=False
             )
+
+            Point.objects.create(user=user, amount=3)
+
+            BadgeService.set(user, [BadgeChoiceEnum.UN_VERIFIED.value])
+
             verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)
             
             verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
@@ -108,6 +113,8 @@ class AccountCommand:
             user.email_verified = True
             user.is_active = True
             user.save(update_fields=["email_verified", "is_active"])
+            BadgeService.remove(user, BadgeChoiceEnum.UN_VERIFIED.value)
+            BadgeService.set(user, [BadgeChoiceEnum.VERIFIED.value])
 
             try:
                 background_task_send_account_verify_email.delay(user.email, user.first_name)

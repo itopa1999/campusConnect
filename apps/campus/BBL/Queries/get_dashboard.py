@@ -2,7 +2,7 @@ from datetime import datetime
 from django.db.models import Sum, Q
 from django.utils import timezone
 
-from apps.campus.models import Listing, Transaction
+from apps.campus.models import Listing
 from utils.base_result import BaseResultWithData
 from utils.enums import ListingStatusType
 
@@ -11,8 +11,6 @@ class DashboardQuery:
     def get_dashboard(request):
         user = request.user
         now = timezone.now()
-        current_month = now.month
-        current_year = now.year
 
         active_listings_count = Listing.objects.filter(
             user=user,
@@ -20,13 +18,6 @@ class DashboardQuery:
             is_deleted=False,
             expires_at__gt=now
         ).count()
-
-        sales_this_month = Transaction.objects.filter(
-            user=user,
-            created_at__year=current_year,
-            created_at__month=current_month,
-            is_deleted=False
-        ).aggregate(total=Sum('amount'))['total'] or 0
 
         trust_score = float(user.average_rating or 0.0)
 
@@ -72,7 +63,6 @@ class DashboardQuery:
             message="Dashboard data retrieved successfully",
             data={
                 'active_listings_count': active_listings_count,
-                'sales_this_month': sales_this_month,
                 'trust_score': trust_score,
                 'profile_completion': profile_completion,
                 'listings': listings_data
