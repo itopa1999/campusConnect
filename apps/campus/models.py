@@ -4,7 +4,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 import datetime
 
 from apps.users.models import User
-from utils.enums import ListingType, ListingStatusType
+from apps.users.manager import SoftDeleteManager
+from utils.enums import BadgeListingType, ListingType, ListingStatusType
 from utils.base_model import BaseModel
 
 
@@ -14,6 +15,8 @@ class Category(BaseModel):
     icon = models.CharField(max_length=50, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     sort_order = models.PositiveIntegerField(default=0)
+    
+    objects = SoftDeleteManager()
 
     class Meta:
         indexes = [
@@ -21,6 +24,7 @@ class Category(BaseModel):
             models.Index(fields=['slug']),
             models.Index(fields=['is_deleted']),
             models.Index(fields=['sort_order']),
+            models.Index(fields=['is_deleted', 'sort_order']),
         ]
         ordering = ['sort_order', 'name']
 
@@ -32,12 +36,15 @@ class CampusHotspot(BaseModel):
     name = models.CharField(max_length=150)
     description = models.CharField(max_length=255, blank=True, null=True)
     sort_order = models.PositiveIntegerField(default=0)
+    
+    objects = SoftDeleteManager()
 
     class Meta:
         indexes = [
             models.Index(fields=['is_deleted']),
             models.Index(fields=['sort_order']),
             models.Index(fields=['name']),
+            models.Index(fields=['is_deleted', 'sort_order']),
         ]
         ordering = ['sort_order', 'name']
 
@@ -51,6 +58,12 @@ class Listing(BaseModel):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    badge = models.CharField(
+        max_length=50, 
+        choices=BadgeListingType.choices(), 
+        blank=True, 
+        null=True
+    )
     listing_type = models.CharField(
         max_length=10, 
         choices=ListingType.choices(), 
@@ -64,17 +77,21 @@ class Listing(BaseModel):
     expires_at = models.DateTimeField(null=True, blank=True)
 
     hotspots = models.ManyToManyField(CampusHotspot, through='ListingHotspot', related_name='listings')
+    
+    objects = SoftDeleteManager()
 
     class Meta:
         indexes = [
             models.Index(fields=['user']),
+            models.Index(fields=['user', 'is_deleted']),
             models.Index(fields=['category']),
             models.Index(fields=['status']),
+            models.Index(fields=['status', 'is_deleted']),
             models.Index(fields=['listing_type']),
             models.Index(fields=['expires_at']),
             models.Index(fields=['created_at']),
             models.Index(fields=['price']),
-            models.Index(fields=['status', 'expires_at']),
+            models.Index(fields=['status', 'expires_at', 'is_deleted']),
         ]
         ordering = ['-created_at']
 

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.db.models import Avg, Prefetch
 from .models import *
-from django.db.models import Avg
 
 
 class UserAdmin(admin.ModelAdmin):
@@ -133,6 +133,12 @@ class UserAdmin(admin.ModelAdmin):
         queryset.update(is_active=False)
         self.message_user(request, f"{queryset.count()} user(s) deactivated.")
     deactivate_users.short_description = "Deactivate selected users"
+    
+    def get_queryset(self, request):
+        # Optimize with prefetch_related for many-to-many and reverse foreign keys
+        queryset = super().get_queryset(request)
+        queryset = queryset.prefetch_related('user_badges', 'groups', 'user_permissions')
+        return queryset
 
 class VerificationTokenAdmin(admin.ModelAdmin):
     list_display = ('user_email', 'token_type', 'status_badge', 'created_at')
@@ -163,6 +169,12 @@ class VerificationTokenAdmin(admin.ModelAdmin):
         else:
             return format_html('<span style="background-color: #28a745; padding: 5px 10px; border-radius: 5px; color: white;">Valid</span>')
     status_badge.short_description = "Status"
+    
+    def get_queryset(self, request):
+        # Optimize with select_related for foreign key
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related('user')
+        return queryset
 
 class BadgeAdmin(admin.ModelAdmin):
     list_display = ('name', 'description_short', 'icon_preview')

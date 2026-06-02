@@ -102,7 +102,7 @@ class AuthCommand:
             #         status_code=400
             #     )
             
-            user = User.objects.filter(email=email).first()
+            user = User.objects.filter(email=email, is_deleted=False).first()
             
             if not user:
                 logger.warning(f"[AuthCommand.ForgotPassword] No account found for email: {email}")

@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.core.validators import RegexValidator
 from datetime import timedelta
 import random
-from apps.users.manager import UserManager
+from apps.users.manager import UserManager, SoftDeleteManager
 from utils.base_model import BaseModel
 from utils.enums import TokenType
 import secrets
@@ -24,7 +24,7 @@ class Badge(models.Model):
 
 class User(BaseModel, AbstractUser):
     username = None
-    email = models.EmailField(max_length=40, unique=True)
+    email = models.EmailField(max_length=40, unique=True, db_index=True)
     phone_regex = RegexValidator(
         regex=r'^(?:\+234|0)[789][01]\d{8}$',
         message="Phone number must be a valid Nigerian number (e.g., 08012345678 or +2348012345678)."
@@ -77,11 +77,17 @@ class User(BaseModel, AbstractUser):
         indexes = [
             models.Index(fields=['-id']),
             models.Index(fields=['email']),
+            models.Index(fields=['email', 'is_deleted']),
+            models.Index(fields=['phone']),
+            models.Index(fields=['phone', 'is_deleted']),
             models.Index(fields=['matric_number']),
             models.Index(fields=['student_id_verified']),
             models.Index(fields=['average_rating']),
             models.Index(fields=['level']),
             models.Index(fields=['department']),
+            models.Index(fields=['is_deleted']),
+            models.Index(fields=['is_active', 'is_deleted']),
+            models.Index(fields=['email_verified', 'is_deleted']),
         ]
     
     def __str__(self):
@@ -94,14 +100,19 @@ class VerificationToken(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
     token = models.PositiveIntegerField(unique=True)
     token_type = models.CharField(max_length=50, choices=TokenType.choices())
-    is_used = models.BooleanField(default=False)
+    is_used = models.BooleanField(default=False, db_index=True)
     expires_at = models.DateTimeField(default=token_expiry)
+    
+    objects = SoftDeleteManager()
     
     class Meta:
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['token']),
             models.Index(fields=['user', 'token_type']),
+            models.Index(fields=['token', 'is_deleted']),
+            models.Index(fields=['token_type', 'is_used', 'is_deleted']),
+            models.Index(fields=['expires_at']),
         ] 
     
     def __str__(self):

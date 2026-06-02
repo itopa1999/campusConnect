@@ -52,6 +52,22 @@ class ListingStatusType(Enum):
     def values(cls):
         return [item.value for item in cls]
 
+class BadgeListingType(Enum):
+    NEW = 'new'
+    FAIR = 'fair'
+    LIKE_NEW = 'like_new'
+    BUNDLE = 'bundle'
+    ALMOST_NEW = 'almost_new'
+    OTHER = 'other'
+
+    @classmethod
+    def choices(cls):
+        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+    
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+
 class IssueTypeEnum(Enum):
     REPORT_LISTING = "report_listing"
     REPORT_USER = "report_user"

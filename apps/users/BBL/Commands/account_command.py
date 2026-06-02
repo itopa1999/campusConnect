@@ -33,14 +33,14 @@ class AccountCommand:
             #         status_code=400
             #     )
 
-            if User.objects.filter(email=email).exists():
+            if User.objects.filter(email=email, is_deleted=False).exists():
                 logger.warning(f"[AccountCommand.Execute] Email already registered: {email}")
                 return BaseResult(
                     message="Email already registered.",
                     status_code=400
                 )
 
-            if User.objects.filter(phone=normalized_phone).exists():
+            if User.objects.filter(phone=normalized_phone, is_deleted=False).exists():
                 logger.warning(f"[AccountCommand.Execute] Phone already registered: {normalized_phone}")
                 return BaseResult(
                     message="Phone already registered with.",

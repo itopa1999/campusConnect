@@ -62,7 +62,11 @@ class BadgeService:
         if isinstance(badge, Badge):
             return badge
         if isinstance(badge, int):
-            return Badge.objects.filter(id=badge).first()
+            # Use get instead of filter().first() - more efficient
+            try:
+                return Badge.objects.get(id=badge)
+            except Badge.DoesNotExist:
+                return None
         if isinstance(badge, str):
             badge_obj, _ = Badge.objects.get_or_create(
                 name=badge,
@@ -109,21 +113,27 @@ class BadgeService:
 class UpdatePointsService:
     @staticmethod
     def update_points(user, points: int, action: str):
-        point_obj, _ = Point.objects.get_or_create(user=user)
+        """Update user points with atomic transaction for data consistency"""
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Use select_for_update to prevent race conditions
+            point_obj, _ = Point.objects.select_for_update().get_or_create(user=user)
 
-        if action == 'add':
-            point_obj.amount += points
+            if action == 'add':
+                point_obj.amount += points
 
-        elif action == 'subtract':
-            point_obj.amount = max(point_obj.amount - points, 0)
+            elif action == 'subtract':
+                point_obj.amount = max(point_obj.amount - points, 0)
 
-        else:
-            raise ValueError("Action must be 'add' or 'subtract'")
+            else:
+                raise ValueError("Action must be 'add' or 'subtract'")
 
-        point_obj.save(update_fields=['amount'])
+            point_obj.save(update_fields=['amount'])
         return point_obj.amount
 
     @staticmethod
     def check_points(user) -> int:
+        """Get user points without modification"""
         point_obj, _ = Point.objects.get_or_create(user=user)
         return point_obj.amount

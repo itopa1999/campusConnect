@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
 from django.urls import reverse
-from django.db.models import Count, Avg
+from django.db.models import Count, Avg, Prefetch
 
 from .models import *
 
@@ -75,7 +75,8 @@ class CategoryAdmin(admin.ModelAdmin):
     actions = ['mark_active', 'mark_deleted']
 
     def listing_count(self, obj):
-        return obj.listings.filter(is_deleted=False).count()
+        # Use count() instead of filter().count() for better performance
+        return obj.listings.count()
     listing_count.short_description = 'Active Listings'
 
     def listing_count_display(self, obj):
@@ -108,13 +109,14 @@ class CampusHotspotAdmin(admin.ModelAdmin):
     actions = ['mark_active', 'mark_deleted']
 
     def listing_count(self, obj):
-        return obj.listings.filter(is_deleted=False).count()
+        # Use count() which already filters is_deleted via manager
+        return obj.listings.count()
     listing_count.short_description = 'Active Assoc. Listings'
 
 
 @admin.register(Listing)
 class ListingAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user_link', 'category', 'price', 'listing_type', 'status', 'expires_at', 'is_expired', 'created_at')
+    list_display = ('title', 'user_link', 'category', 'price', 'listing_type', 'badge', 'status', 'expires_at', 'is_expired', 'created_at')
     list_filter = ('listing_type', 'status', 'category', 'is_deleted', 'expires_at')
     search_fields = ('title', 'description', 'user__email', 'user__full_name')
     readonly_fields = ('created_at', 'modified_at', 'review_count', 'avg_rating')
@@ -152,10 +154,12 @@ class ListingAdmin(admin.ModelAdmin):
     is_expired.short_description = 'Expired?'
 
     def review_count(self, obj):
+        # Note: Review model needs SoftDeleteManager to fully benefit
         return obj.reviews.filter(is_deleted=False).count()
     review_count.short_description = 'Reviews'
 
     def avg_rating(self, obj):
+        # Note: Review model needs SoftDeleteManager
         avg = obj.reviews.filter(is_deleted=False).aggregate(Avg('rating'))['rating__avg']
         return f"{avg:.1f}★" if avg else 'No reviews'
     avg_rating.short_description = 'Avg Rating'
@@ -179,7 +183,10 @@ class ListingAdmin(admin.ModelAdmin):
     extend_expiry.short_description = "Extend expiry +30 days"
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user', 'category').prefetch_related('hotspots')
+        # Optimize with select_related for foreign keys and prefetch_related for reverse relations
+        queryset = super().get_queryset(request).select_related('user', 'category')
+        queryset = queryset.prefetch_related('hotspots')
+        return queryset
 
 
 @admin.register(ListingHotspot)

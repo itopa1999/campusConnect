@@ -12,12 +12,15 @@ class DashboardQuery:
         user = request.user
         now = timezone.now()
 
-        active_listings_count = Listing.objects.filter(
+        # Query active listings once and reuse results
+        active_listings_queryset = Listing.objects.filter(
             user=user,
             status=ListingStatusType.ACTIVE.value,
             is_deleted=False,
             expires_at__gt=now
-        ).count()
+        ).select_related('category').order_by('-created_at')
+        
+        active_listings_count = active_listings_queryset.count()
 
         trust_score = float(user.average_rating or 0.0)
 
@@ -37,13 +40,8 @@ class DashboardQuery:
         filled_fields = sum(1 for value in profile_fields.values() if value)
         profile_completion = int((filled_fields / total_fields) * 100) if total_fields else 0
 
-
-        active_listings = Listing.objects.filter(
-            user=user,
-            status=ListingStatusType.ACTIVE.value,
-            is_deleted=False,
-            expires_at__gt=now
-        ).select_related('category').order_by('-created_at')[:10]
+        # Get first 10 items from already queried results
+        active_listings = list(active_listings_queryset[:10])
 
 
         listings_data = [
