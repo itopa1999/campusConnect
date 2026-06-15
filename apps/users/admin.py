@@ -40,7 +40,7 @@ class UserAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Account Information', {
-            'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'hall_verified')
+            'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'hall_verified', 'points')
         }),
         ('Student Verification (Trust Core)', {
             'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified')
@@ -310,17 +310,107 @@ class ContactReportAdmin(admin.ModelAdmin):
             obj.created_by = request.user.username
         obj.modified_by = request.user.username
         super().save_model(request, obj, form, change)
-    
-class PointAdmin(admin.ModelAdmin):
-    list_display = ('user_email', 'amount')
-    search_fields = ('user__email',)
-    
-    def user_email(self, obj):
-        return obj.user.email
-    user_email.short_description = "User Email"
 
 admin.site.register(ContactReport, ContactReportAdmin)
 admin.site.register(User, UserAdmin)
 admin.site.register(VerificationToken, VerificationTokenAdmin)
 admin.site.register(Badge, BadgeAdmin)
-admin.site.register(Point, PointAdmin)
+
+
+@admin.register(PointPackage)
+class PointPackageAdmin(admin.ModelAdmin):
+    list_display = ('points', 'price', 'price_per_point_display', 'savings_percentage_display', 'is_popular', 'is_best_value', 'sort_order')
+    list_filter = ('is_popular', 'is_best_value', 'sort_order')
+    search_fields = ('description',)
+    ordering = ('sort_order', 'points')
+    fieldsets = (
+        (None, {
+            'fields': ('points', 'price', 'description', 'sort_order')
+        }),
+        ('Highlighting', {
+            'fields': ('is_popular', 'is_best_value'),
+            'classes': ('wide',)
+        }),
+        ('Metadata', {
+            'fields': ('is_deleted', 'created_at', 'modified_at'),
+            'classes': ('collapse',)
+        })
+    )
+    readonly_fields = ('created_at', 'modified_at')
+    actions = ['mark_popular', 'unmark_popular', 'mark_best_value', 'unmark_best_value']
+
+    def price_per_point_display(self, obj):
+        return f"₦{obj.price_per_point:.2f}"
+    price_per_point_display.short_description = 'Price/Point'
+
+    def savings_percentage_display(self, obj):
+        savings = obj.savings_percentage
+        if savings:
+            return f"{savings}%"
+        return "-"
+    savings_percentage_display.short_description = 'Savings'
+
+    def mark_popular(self, request, queryset):
+        queryset.update(is_popular=True)
+    mark_popular.short_description = "Mark as Popular"
+
+    def unmark_popular(self, request, queryset):
+        queryset.update(is_popular=False)
+    unmark_popular.short_description = "Unmark Popular"
+
+    def mark_best_value(self, request, queryset):
+        queryset.update(is_best_value=True)
+    mark_best_value.short_description = "Mark as Best Value"
+
+    def unmark_best_value(self, request, queryset):
+        queryset.update(is_best_value=False)
+    unmark_best_value.short_description = "Unmark Best Value"
+
+
+@admin.register(PointPurchase)
+class PointPurchaseAdmin(admin.ModelAdmin):
+    list_display = ('user_link', 'package_link', 'points_awarded', 'amount_paid', 'status', 'completed_at', 'created_at')
+    list_filter = ('status', 'completed_at', 'created_at')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'package__description', 'payment_reference')
+    readonly_fields = ('created_at', 'modified_at', 'points_awarded', 'amount_paid')
+    raw_id_fields = ('user', 'package')
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'package', 'points_awarded', 'amount_paid', 'status', 'payment_reference', 'completed_at')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'modified_at', 'is_deleted'),
+            'classes': ('collapse',)
+        })
+    )
+    actions = ['mark_completed', 'mark_failed', 'mark_pending']
+
+    def user_link(self, obj):
+        from django.urls import reverse
+        from django.utils.html import format_html
+        url = reverse('admin:users_user_change', args=[obj.user.id])
+        display_name = obj.user.get_full_name() or obj.user.email
+        return format_html('<a href="{}">{}</a>', url, display_name)
+    user_link.short_description = 'User'
+    user_link.admin_order_field = 'user__email'
+
+    def package_link(self, obj):
+        from django.urls import reverse
+        from django.utils.html import format_html
+        url = reverse('admin:listings_pointpackage_change', args=[obj.package.id])
+        return format_html('<a href="{}">{} pts – ₦{}</a>', url, obj.package.points, obj.package.price)
+    package_link.short_description = 'Package'
+    package_link.admin_order_field = 'package__points'
+
+    def mark_completed(self, request, queryset):
+        from django.utils import timezone
+        queryset.update(status='completed', completed_at=timezone.now())
+    mark_completed.short_description = "Mark as Completed"
+
+    def mark_failed(self, request, queryset):
+        queryset.update(status='failed')
+    mark_failed.short_description = "Mark as Failed"
+
+    def mark_pending(self, request, queryset):
+        queryset.update(status='pending', completed_at=None)
+    mark_pending.short_description = "Mark as Pending"

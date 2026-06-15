@@ -75,7 +75,6 @@ class CategoryAdmin(admin.ModelAdmin):
     actions = ['mark_active', 'mark_deleted']
 
     def listing_count(self, obj):
-        # Use count() instead of filter().count() for better performance
         return obj.listings.count()
     listing_count.short_description = 'Active Listings'
 
@@ -109,7 +108,6 @@ class CampusHotspotAdmin(admin.ModelAdmin):
     actions = ['mark_active', 'mark_deleted']
 
     def listing_count(self, obj):
-        # Use count() which already filters is_deleted via manager
         return obj.listings.count()
     listing_count.short_description = 'Active Assoc. Listings'
 
@@ -127,7 +125,7 @@ class ListingAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {
-            'fields': ('user', 'category', 'title', 'description', 'price', 'listing_type', 'status')
+            'fields': ('user', 'category', 'title', 'description', 'price', 'listing_type', 'status', 'image')
         }),
         ('Expiry', {
             'fields': ('expires_at',)
@@ -144,7 +142,8 @@ class ListingAdmin(admin.ModelAdmin):
 
     def user_link(self, obj):
         url = reverse('admin:users_user_change', args=[obj.user.id])
-        return format_html('<a href="{}">{}</a>', url, obj.user.full_name or obj.user.email)
+        display_name = obj.user.get_full_name() or obj.user.email
+        return format_html('<a href="{}">{}</a>', url, display_name)
     user_link.short_description = 'Student'
     user_link.admin_order_field = 'user__full_name'
 
@@ -154,12 +153,10 @@ class ListingAdmin(admin.ModelAdmin):
     is_expired.short_description = 'Expired?'
 
     def review_count(self, obj):
-        # Note: Review model needs SoftDeleteManager to fully benefit
         return obj.reviews.filter(is_deleted=False).count()
     review_count.short_description = 'Reviews'
 
     def avg_rating(self, obj):
-        # Note: Review model needs SoftDeleteManager
         avg = obj.reviews.filter(is_deleted=False).aggregate(Avg('rating'))['rating__avg']
         return f"{avg:.1f}★" if avg else 'No reviews'
     avg_rating.short_description = 'Avg Rating'
@@ -183,7 +180,6 @@ class ListingAdmin(admin.ModelAdmin):
     extend_expiry.short_description = "Extend expiry +30 days"
 
     def get_queryset(self, request):
-        # Optimize with select_related for foreign keys and prefetch_related for reverse relations
         queryset = super().get_queryset(request).select_related('user', 'category')
         queryset = queryset.prefetch_related('hotspots')
         return queryset
@@ -238,3 +234,102 @@ class ReviewAdmin(admin.ModelAdmin):
     def comment_preview(self, obj):
         return obj.comment[:50] + '...' if obj.comment and len(obj.comment) > 50 else obj.comment or ''
     comment_preview.short_description = 'Comment'
+
+
+# ==================== LOST AND FOUND ADMIN ====================
+
+@admin.register(LostAndFound)
+class LostAndFoundAdmin(admin.ModelAdmin):
+    list_display = ('item_name', 'location', 'date_found', 'status', 'full_name', 'email', 'created_at')
+    list_filter = ('status', 'date_found', 'department', 'created_at')
+    search_fields = ('item_name', 'description', 'location', 'full_name', 'email', 'department')
+    readonly_fields = ('created_at', 'modified_at', 'is_deleted')
+    fieldsets = (
+        (None, {
+            'fields': ('item_name', 'description', 'location', 'date_found', 'image')
+        }),
+        ('Verification Questions', {
+            'fields': ('verification1', 'answer1', 'verification2', 'answer2'),
+            'classes': ('wide',)
+        }),
+        ('Finder Contact', {
+            'fields': ('full_name', 'email', 'department')
+        }),
+        ('Status', {
+            'fields': ('status', 'is_deleted'),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'modified_at'),
+            'classes': ('collapse',)
+        })
+    )
+    actions = ['mark_open', 'mark_claimed', 'mark_expired', 'mark_deleted']
+
+    def mark_open(self, request, queryset):
+        queryset.update(status='open', is_deleted=False)
+    mark_open.short_description = "Set status to Open"
+
+    def mark_claimed(self, request, queryset):
+        queryset.update(status='claimed')
+    mark_claimed.short_description = "Set status to Claimed"
+
+    def mark_expired(self, request, queryset):
+        queryset.update(status='expired')
+    mark_expired.short_description = "Set status to Expired"
+
+    def mark_deleted(self, request, queryset):
+        queryset.update(is_deleted=True)
+    mark_deleted.short_description = "Soft delete selected items"
+
+
+@admin.register(Claim)
+class ClaimAdmin(admin.ModelAdmin):
+    list_display = ('lost_item_link', 'full_name', 'email', 'phone', 'answers_match', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('lost_item__item_name', 'full_name', 'email', 'phone')
+    readonly_fields = ('created_at', 'modified_at', 'is_deleted')
+    raw_id_fields = ('lost_item',)
+    fieldsets = (
+        (None, {
+            'fields': ('lost_item', 'full_name', 'email', 'phone')
+        }),
+        ('Verification Answers', {
+            'fields': ('answer1', 'answer2')
+        }),
+        ('Status', {
+            'fields': ('is_deleted',),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'modified_at'),
+            'classes': ('collapse',)
+        })
+    )
+    actions = ['mark_deleted', 'mark_active']
+
+    def lost_item_link(self, obj):
+        url = reverse('admin:listings_lostandfound_change', args=[obj.lost_item.id])
+        return format_html('<a href="{}">{}</a>', url, obj.lost_item.item_name)
+    lost_item_link.short_description = 'Lost Item'
+    lost_item_link.admin_order_field = 'lost_item__item_name'
+
+    def answers_match(self, obj):
+        match1 = (obj.answer1 == obj.lost_item.answer1)
+        match2 = (obj.answer2 == obj.lost_item.answer2)
+        if match1 and match2:
+            return format_html('<span style="color: green; font-weight: bold;">✓ Both match</span>')
+        elif match1 or match2:
+            return format_html('<span style="color: orange;">⚠️ Partial match</span>')
+        else:
+            return format_html('<span style="color: red;">✗ No match</span>')
+    answers_match.short_description = 'Answers Match'
+
+    def mark_active(self, request, queryset):
+        queryset.update(is_deleted=False)
+    mark_active.short_description = "Mark as active"
+
+    def mark_deleted(self, request, queryset):
+        queryset.update(is_deleted=True)
+    mark_deleted.short_description = "Soft delete selected claims"
+

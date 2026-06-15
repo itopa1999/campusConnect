@@ -2,7 +2,12 @@ from enum import Enum
 
 class GroupNames(Enum):
     ADMIN = "Admin"
-    CUSTOMER = "Customer"
+    STUDENT = "Student"
+    MODERATOR = "Moderator"
+
+    @classmethod
+    def choices(cls):
+        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
     
     @classmethod
     def values(cls):
@@ -90,6 +95,20 @@ class BadgeChoiceEnum(Enum):
     VERIFIED = "verified"
     TRUSTED = "trusted"
     TOP_SELLER = "top_seller"
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+    
+
+class LostAndFoundStatusEnum(Enum):
+    OPEN = "open"
+    CLAIMED = "claimed"
+    EXPIRED = "expired"
 
     @classmethod
     def choices(cls):

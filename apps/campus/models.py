@@ -1,11 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 import datetime
 
 from apps.users.models import User
 from apps.users.manager import SoftDeleteManager
-from utils.enums import BadgeListingType, ListingType, ListingStatusType
+from utils.enums import BadgeListingType, ListingType, ListingStatusType, LostAndFoundStatusEnum
 from utils.base_model import BaseModel
 
 
@@ -16,7 +16,6 @@ class Category(BaseModel):
     description = models.CharField(max_length=255, blank=True, null=True)
     sort_order = models.PositiveIntegerField(default=0)
     
-    objects = SoftDeleteManager()
 
     class Meta:
         indexes = [
@@ -37,7 +36,6 @@ class CampusHotspot(BaseModel):
     description = models.CharField(max_length=255, blank=True, null=True)
     sort_order = models.PositiveIntegerField(default=0)
     
-    objects = SoftDeleteManager()
 
     class Meta:
         indexes = [
@@ -58,6 +56,9 @@ class Listing(BaseModel):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    image = models.ImageField(upload_to='Lisiting_images/',
+        blank=True,
+        null=True)
     badge = models.CharField(
         max_length=50, 
         choices=BadgeListingType.choices(), 
@@ -78,7 +79,6 @@ class Listing(BaseModel):
 
     hotspots = models.ManyToManyField(CampusHotspot, through='ListingHotspot', related_name='listings')
     
-    objects = SoftDeleteManager()
 
     class Meta:
         indexes = [
@@ -150,3 +150,65 @@ class Review(BaseModel):
             avg=models.Avg('rating')
         )['avg'] or 0.00
         self.to_user.save(update_fields=['average_rating'])
+
+
+class LostAndFound(BaseModel):
+    item_name = models.CharField(max_length=200)
+    description = models.TextField()
+    location = models.CharField(max_length=500)
+    date_found = models.DateField()
+    status = models.CharField(max_length=20, choices=LostAndFoundStatusEnum.choices(), default='open', db_index=True)
+    verification1 = models.CharField(max_length=500)
+    answer1 = models.CharField(max_length=500)
+    verification2 = models.CharField(max_length=500)
+    answer2 = models.CharField(max_length=500)
+    full_name = models.CharField(max_length=200)
+    email = models.EmailField(max_length=200)
+    department = models.CharField(max_length=200)
+    image = models.ImageField(upload_to='lost_and_found/',
+        blank=True,
+        null=True)
+    
+    
+
+    class Meta(BaseModel.Meta):
+        indexes = [
+            models.Index(fields=['date_found', 'status']),
+            models.Index(fields=['email', 'status']),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.item_name} ({self.location})"
+    
+
+class Claim(BaseModel):
+    lost_item = models.ForeignKey(LostAndFound, on_delete=models.CASCADE, related_name="item_lost")
+    answer1 = models.CharField(max_length=500)
+    answer2 = models.CharField(max_length=500)
+    full_name = models.CharField(max_length=200)
+    email = models.EmailField(max_length=200)
+    phone_regex = RegexValidator(
+        regex=r'^(?:\+234|0)[789][01]\d{8}$',
+        message="Phone number must be a valid Nigerian number (e.g., 08012345678 or +2348012345678)."
+    )
+    phone = models.CharField(
+        validators=[phone_regex],
+        max_length=15,
+        blank=True,
+        null=True
+    )
+
+
+    class Meta(BaseModel.Meta):
+        indexes = [
+            models.Index(fields=['lost_item']),
+            models.Index(fields=['email']),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Claim on {self.lost_item.item_name} by {self.full_name}"
+
+    
+

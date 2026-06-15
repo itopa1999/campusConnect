@@ -260,9 +260,46 @@
       "icon": ""
     },
     {
+      "name": "hall_verified",
+      "description": "User hall is verified.",
+      "icon": ""
+    },
+    {
       "name": "top_seller",
       "description": "User is recognized as a top seller based on sales performance.",
       "icon": ""
+    }
+  ],
+  "listings": [
+    {
+      "title": "Economics 101 Textbook",
+      "description": "Good condition, few highlights.",
+      "price": 3500
+    },
+    {
+      "title": "HP Laptop - Core i5",
+      "description": "8GB RAM, 256GB SSD, great for coding.",
+      "price": 145000
+    },
+    {
+      "title": "Desk + Office Chair",
+      "description": "Wooden desk with sturdy chair.",
+      "price": 12000
+    },
+    {
+      "title": "Sony WH-1000XM4 Headphones",
+      "description": "Noise cancelling, like new.",
+      "price": 27500
+    },
+    {
+      "title": "CSC 301 Past Questions",
+      "description": "Printed and bound, 5 years compilation.",
+      "price": 2000
+    },
+    {
+      "title": "Mini Fridge",
+      "description": "45L, perfect for hostel room.",
+      "price": 85000
     }
   ]
 }

@@ -1,4 +1,4 @@
-from apps.users.models import Point, User, VerificationToken
+from apps.users.models import User, VerificationToken
 from utils.Tasks.emailService import background_task_send_account_verify_email, background_task_send_verification_email
 from utils.base_result import BaseResult, BaseResultWithData
 from utils.enums import BadgeChoiceEnum, TokenType

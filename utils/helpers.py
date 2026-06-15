@@ -1,7 +1,12 @@
 import re
 
-from apps.users.models import Badge, Point
+from apps.users.models import Badge
 from utils.enums import BadgeChoiceEnum
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import sys
 
 def validate_ui_email(email: str) -> tuple[bool, str]:
   
@@ -110,30 +115,57 @@ class BadgeService:
         user.user_badges.set(resolved)
 
 
-class UpdatePointsService:
-    @staticmethod
-    def update_points(user, points: int, action: str):
-        """Update user points with atomic transaction for data consistency"""
-        from django.db import transaction
+# class UpdatePointsService:
+#     @staticmethod
+#     def update_points(user, points: int, action: str):
+#         """Update user points with atomic transaction for data consistency"""
+#         from django.db import transaction
         
-        with transaction.atomic():
-            # Use select_for_update to prevent race conditions
-            point_obj, _ = Point.objects.select_for_update().get_or_create(user=user)
+#         with transaction.atomic():
+#             # Use select_for_update to prevent race conditions
+#             # point_obj, _ = Point.objects.select_for_update().get_or_create(user=user)
 
-            if action == 'add':
-                point_obj.amount += points
+#             if action == 'add':
+#                 point_obj.amount += points
 
-            elif action == 'subtract':
-                point_obj.amount = max(point_obj.amount - points, 0)
+#             elif action == 'subtract':
+#                 point_obj.amount = max(point_obj.amount - points, 0)
 
-            else:
-                raise ValueError("Action must be 'add' or 'subtract'")
+#             else:
+#                 raise ValueError("Action must be 'add' or 'subtract'")
 
-            point_obj.save(update_fields=['amount'])
-        return point_obj.amount
+#             point_obj.save(update_fields=['amount'])
+#         return point_obj.amount
 
-    @staticmethod
-    def check_points(user) -> int:
-        """Get user points without modification"""
-        point_obj, _ = Point.objects.get_or_create(user=user)
-        return point_obj.amount
+#     @staticmethod
+#     def check_points(user) -> int:
+#         """Get user points without modification"""
+#         point_obj, _ = Point.objects.get_or_create(user=user)
+#         return point_obj.amount
+    
+
+def convert_to_webp(instance, field_name, quality=30):
+    """Convert an ImageField to WebP if not already WebP."""
+    field = getattr(instance, field_name)
+    if not field or not field.name:
+        return False
+    if field.name.lower().endswith('.webp'):
+        return False
+    try:
+        from PIL import Image
+        from io import BytesIO
+        from django.core.files.base import ContentFile
+        img = Image.open(field.path)
+        output = BytesIO()
+        img.save(output, format='WEBP', quality=quality, optimize=True)
+        output.seek(0)
+        base_name = field.name.rsplit('.', 1)[0]
+        new_name = f"{base_name}.webp"
+        new_file = ContentFile(output.read(), name=new_name)
+        # Delete old file
+        field.storage.delete(field.name)
+        setattr(instance, field_name, new_file)
+        return True
+    except Exception as e:
+        print(f"Error converting {field_name}: {e}")
+        return False

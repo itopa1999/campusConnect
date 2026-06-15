@@ -3,7 +3,7 @@ from django.db import models
 from utils.base_model import BaseModel
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
-from django.core.validators import RegexValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from datetime import timedelta
 import random
 from apps.users.manager import UserManager, SoftDeleteManager
@@ -41,6 +41,7 @@ class User(BaseModel, AbstractUser):
         null=True,
         help_text="Upload a profile picture that will appear on all your product listings"
     )
+    points = models.PositiveIntegerField(validators=[MinValueValidator(0)],null=True)
     matric_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
     student_id_photo = models.ImageField(upload_to='student_ids/', null =True, blank=True)
     student_id_verified = models.BooleanField(default=False)
@@ -103,7 +104,6 @@ class VerificationToken(BaseModel):
     is_used = models.BooleanField(default=False, db_index=True)
     expires_at = models.DateTimeField(default=token_expiry)
     
-    objects = SoftDeleteManager()
     
     class Meta:
         ordering = ['-created_at']
@@ -167,16 +167,119 @@ class ContactReport(BaseModel):
         return f"{self.get_issue_type_display()} - {self.reporter_name} ({self.created_at.date()})"
     
 
-class Point(BaseModel):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='points')
-    amount = models.IntegerField()
+class PointPackage(BaseModel):
+    """
+    Predefined point bundles that users can purchase.
+    Examples: 5 points for ₦2,500, 12 points for ₦5,000, etc.
+    """
+    points = models.PositiveIntegerField(
+        help_text="Number of points included in this package"
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        help_text="Price in Nigerian Naira (₦)"
+    )
+    description = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Short description (e.g., 'Best value', 'Power seller')"
+    )
+    is_popular = models.BooleanField(
+        default=False,
+        help_text="Highlight this package as '🔥 Popular'"
+    )
+    is_best_value = models.BooleanField(
+        default=False,
+        help_text="Mark as best value for money"
+    )
+    sort_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Order in which packages are displayed (lower first)"
+    )
+
+    class Meta:
+        ordering = ['sort_order', 'points']
+        verbose_name = "Point Package"
+        verbose_name_plural = "Point Packages"
+
+    def __str__(self):
+        return f"{self.points} points – ₦{self.price}"
+
+    @property
+    def price_per_point(self):
+        """Calculate price per point (for display)."""
+        if self.points:
+            return self.price / self.points
+        return 0
+
+    @property
+    def savings_percentage(self):
+        """
+        Calculate savings compared to the base package (smallest points).
+        Assumes base is the lowest points package.
+        """
+        base_package = PointPackage.objects.order_by('points').first()
+        if base_package and base_package.points > 0:
+            base_per_point = base_package.price / base_package.points
+            current_per_point = self.price / self.points
+            if base_per_point > 0:
+                return round((1 - (current_per_point / base_per_point)) * 100)
+        return 0
+
+
+class PointPurchase(BaseModel):
+    """
+    Tracks a user's purchase of a point package.
+    When a purchase is successful, the user's Point balance is increased.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='point_purchases'
+    )
+    package = models.ForeignKey(
+        PointPackage,
+        on_delete=models.PROTECT,
+        related_name='purchases'
+    )
+    points_awarded = models.PositiveIntegerField(
+        help_text="Number of points added to the user's balance"
+    )
+    amount_paid = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Amount paid in Naira"
+    )
+    payment_reference = models.CharField(
+        max_length=100,
+        unique=True,
+        blank=True,
+        null=True,
+        help_text="Reference from payment gateway"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('completed', 'Completed'),
+            ('failed', 'Failed'),
+            ('refunded', 'Refunded'),
+        ],
+        default='pending',
+        db_index=True
+    )
+    completed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the purchase was successfully completed"
+    )
 
     class Meta:
         ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=['user']),
-            models.Index(fields=['amount']),
-        ]
+        verbose_name = "Point Purchase"
+        verbose_name_plural = "Point Purchases"
 
     def __str__(self):
-        return f"{self.user.email} - {self.amount} points"
+        return f"{self.user.email} bought {self.points_awarded} points (₦{self.amount_paid})"

@@ -6,6 +6,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from utils.emails_helper import EmailHelper
 from celery.exceptions import OperationalError
 from utils.log_helpers import logger, OperationLogger
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from django.conf import settings
 
 from utils.enums import TokenType
 from utils.helpers import validate_ui_email, is_email_verified
@@ -65,6 +67,11 @@ class AuthCommand:
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
             op.success("Login successful")
+
+            if user.profile_picture and hasattr(user.profile_picture, 'url'):
+                profile_pic_url = user.profile_picture.url
+            else:
+                profile_pic_url = None
             
             return BaseResultWithData(
                 message="Login successful",
@@ -72,6 +79,12 @@ class AuthCommand:
                     'access_token': access_token,
                     'refresh_token': refresh_token,
                     'user_id': user.id,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'email': user.email,
+                    'profile_pic': profile_pic_url,
+                    'point_bal': user.points if user.points else 0,
+                    'trusting_score': user.average_rating,
                     'is_email_verified': user.email_verified,
                     'is_hall_verified' : user.hall_verified
                 },
@@ -282,62 +295,83 @@ class AuthCommand:
     @staticmethod
     def RefreshToken(request, validated_data):
         """
-        Verify refresh token, check user exists and is not deleted,
-        return new access token and rotated refresh token.
+        Verify refresh token, rotate tokens, and blacklist the old refresh token.
+        Returns new access token and new refresh token.
         """
         refresh_token_str = validated_data.get('refresh_token')
         op = OperationLogger("AuthCommand.RefreshToken", refresh_token=refresh_token_str)
         op.start()
-        
-        user_id = None
-        is_email_verified = None
-        hall_verified = None
+
         try:
-            refresh = RefreshToken(refresh_token_str)
-            
-            user_id = refresh.payload.get('user_id')
+            # 1. Validate the incoming refresh token
+            try:
+                old_refresh = RefreshToken(refresh_token_str)
+            except (TokenError, InvalidToken) as e:
+                logger.warning(f"Invalid refresh token: {e}")
+                return BaseResultWithData(
+                    message="Invalid or expired refresh token",
+                    data=None,
+                    status_code=401
+                )
+
+            user_id = old_refresh.payload.get('user_id')
             if not user_id:
-                logger.warning("[AuthCommand.RefreshToken] Invalid token payload")
+                logger.warning("Missing user_id in token payload")
                 return BaseResultWithData(
                     message="Invalid token payload",
                     data=None,
                     status_code=400
                 )
-            
+
+            # 2. Fetch the user (must be verified and active)
             try:
-                user = User.objects.get(id=user_id, email_verified=True, is_active=True, is_deleted=False)
-                user_id = user.id
-                is_email_verified = user.email_verified
-                hall_verified = user.hall_verified
+                user = User.objects.get(
+                    id=user_id,
+                    email_verified=True,
+                    is_active=True,
+                    is_deleted=False
+                )
             except User.DoesNotExist:
-                logger.warning(f"[AuthCommand.RefreshToken] User not found or not verified: user_id={user_id}")
+                logger.warning(f"User {user_id} not found or not eligible")
                 return BaseResultWithData(
                     message="User account not found or not verified",
                     data=None,
-                    status_code=400
+                    status_code=404
                 )
-            
-            new_access_token = str(refresh.access_token)
-            new_refresh_token = str(refresh)
-            
+
+            # 3. Blacklist the old refresh token (if feature enabled)
+            if getattr(settings, 'SIMPLE_JWT', {}).get('BLACKLIST_AFTER_ROTATION', False):
+                try:
+                    old_refresh.blacklist()
+                except AttributeError:
+                    logger.warning("Blacklist method not available – ensure token_blacklist is installed")
+                except Exception as e:
+                    logger.error(f"Failed to blacklist old token: {e}")
+
+            # 4. Create brand new tokens
+            new_refresh = RefreshToken.for_user(user)
+            new_access = new_refresh.access_token
+
             data = {
-                'access_token': new_access_token,
-                'refresh_token': new_refresh_token,
-                'user_id': user_id,
-                'is_email_verified': is_email_verified,
-                'is_hall_verified' : hall_verified
+                'access_token': str(new_access),
+                'refresh_token': str(new_refresh),
+                'user_id': user.id,
+                'is_email_verified': user.email_verified,
+                'is_hall_verified': user.hall_verified,
             }
-            op.success("Token refreshed successfully")
-            
+
+            op.success("Token refreshed and old token blacklisted")
             return BaseResultWithData(
                 message="Token refreshed successfully",
                 data=data,
                 status_code=200
             )
+
         except Exception as e:
-            op.fail("Unable to refresh token", exc=e)
+            op.fail("Unexpected error during token refresh", exc=e)
+            logger.exception(f"Refresh token error: {e}")
             return BaseResultWithData(
-                message="Unable to refresh token",
+                message="Unable to refresh token. Please login again.",
                 data=None,
                 status_code=500
             )
