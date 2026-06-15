@@ -1,7 +1,7 @@
 from apps.users.models import User, VerificationToken
 from utils.Tasks.emailService import background_task_send_account_verify_email, background_task_send_verification_email
 from utils.base_result import BaseResult, BaseResultWithData
-from utils.enums import BadgeChoiceEnum, TokenType
+from utils.enums import BadgeChoiceEnum, DefaultPointEnum, TokenType
 from utils.emails_helper import EmailHelper
 from utils.helpers import BadgeService, validate_ui_email, normalize_nigerian_phone
 from django.db import transaction
@@ -54,24 +54,22 @@ class AccountCommand:
                     message="Password must be at least 8 characters long.",
                     status_code=400
                 )
-            
-            user = User.objects.create_user(
-                email=email,
-                phone=normalized_phone,
-                first_name=validated_data.get('first_name'),
-                last_name=validated_data.get('last_name'),
-                password=password,
-                is_active=True,
-                email_verified=False
-            )
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    email=email,
+                    phone=normalized_phone,
+                    first_name=validated_data.get('first_name'),
+                    last_name=validated_data.get('last_name'),
+                    password=password,
+                    points = 3,
+                    is_active=True,
+                    email_verified=False
+                )
+                BadgeService.set(user, [BadgeChoiceEnum.UN_VERIFIED.value])
 
-            Point.objects.create(user=user, amount=3)
-
-            BadgeService.set(user, [BadgeChoiceEnum.UN_VERIFIED.value])
-
-            verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)
-            
-            verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
+                verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)
+                
+                verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
             try:
                 background_task_send_verification_email.delay(user.email, user.first_name, verification_link)
             except OperationalError as e:

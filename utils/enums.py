@@ -60,7 +60,6 @@ class ListingStatusType(Enum):
 class BadgeListingType(Enum):
     NEW = 'new'
     FAIR = 'fair'
-    LIKE_NEW = 'like_new'
     BUNDLE = 'bundle'
     ALMOST_NEW = 'almost_new'
     OTHER = 'other'
@@ -113,6 +112,14 @@ class LostAndFoundStatusEnum(Enum):
     @classmethod
     def choices(cls):
         return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+
+
+class DefaultPointEnum(Enum):
+    DefaultPoint = 3
 
     @classmethod
     def values(cls):

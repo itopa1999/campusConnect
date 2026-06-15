@@ -10,7 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.campus.models import CampusHotspot, Category, Listing, ListingHotspot
-from apps.users.models import Badge, User
+from apps.users.models import Badge, PointPackage, User
 from utils.enums import BadgeListingType, GroupNames, ListingStatusType, ListingType
 
 
@@ -84,12 +84,14 @@ class Command(BaseCommand):
             "hotspots": 0,
             "badges": 0,
             "listings": 0,
+            "point_packages": 0
         }
         updated = {
             "categories": 0,
             "hotspots": 0,
             "badges": 0,
             "listings": 0,
+            "point_packages": 0
         }
 
         # ------------------- 4. Seed categories, hotspots, badges -------------------
@@ -191,3 +193,28 @@ class Command(BaseCommand):
             created["listings"] += 1
 
         self.stdout.write(self.style.SUCCESS(f"Seeded {created['listings']} sample listings."))
+
+        points = lookup_data.get("points", [])
+        created["point_packages"] = 0
+        updated["point_packages"] = 0
+
+        for pkg_data in points:
+            defaults = {
+                "price": pkg_data.get("price"),
+                "description": pkg_data.get("description", ""),
+                "is_popular": pkg_data.get("is_popular", False),
+                "is_best_value": pkg_data.get("is_best_value", False),
+                "sort_order": pkg_data.get("sort_order", 0),
+            }
+            obj, was_created = PointPackage.objects.update_or_create(
+                points=pkg_data.get("points"),
+                defaults=defaults,
+            )
+            if was_created:
+                created["point_packages"] += 1
+            else:
+                updated["point_packages"] += 1
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Seeded {created['point_packages']} point packages, {updated['point_packages']} updated."
+        ))

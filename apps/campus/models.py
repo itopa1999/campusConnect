@@ -141,7 +141,9 @@ class Review(BaseModel):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Review by {self.from_user.full_name} → {self.to_user.full_name}: {self.rating}★"
+        from_user_name = self.from_user.get_full_name() or self.from_user.email
+        to_user_name = self.to_user.get_full_name() or self.to_user.email
+        return f"Review by {from_user_name} → {to_user_name}: {self.rating}★"
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

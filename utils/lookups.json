@@ -301,5 +301,39 @@
       "description": "45L, perfect for hostel room.",
       "price": 85000
     }
+  ],
+  "points": [
+    {
+      "points": 5,
+      "price": 2500.00,
+      "description": "",
+      "is_popular": false,
+      "is_best_value": false,
+      "sort_order": 1
+    },
+    {
+      "points": 12,
+      "price": 5000.00,
+      "description": "Best value",
+      "is_popular": true,
+      "is_best_value": true,
+      "sort_order": 2
+    },
+    {
+      "points": 25,
+      "price": 9500.00,
+      "description": "Save 24%",
+      "is_popular": false,
+      "is_best_value": false,
+      "sort_order": 3
+    },
+    {
+      "points": 60,
+      "price": 20000.00,
+      "description": "Power seller",
+      "is_popular": false,
+      "is_best_value": false,
+      "sort_order": 4
+    }
   ]
 }

@@ -10,6 +10,7 @@ urlpatterns = [
         include(
             [
                 path("dashboard", GetDashboardView.as_view(), name="campus-dashboard"),
+                path("index_products", GetIndexDefaultLisitingView.as_view(), name="get-inde-products")
             ]
         )
     )

@@ -193,12 +193,12 @@ class ListingHotspotAdmin(admin.ModelAdmin):
     search_fields = ('listing__title', 'hotspot__name')
 
     def listing_link(self, obj):
-        url = reverse('admin:listings_listing_change', args=[obj.listing.id])
+        url = reverse('admin:campus_listing_change', args=[obj.listing.id])
         return format_html('<a href="{}">{}</a>', url, obj.listing.title)
     listing_link.short_description = 'Listing'
 
     def hotspot_link(self, obj):
-        url = reverse('admin:listings_campushotspot_change', args=[obj.hotspot.id])
+        url = reverse('admin:campus_campushotspot_change', args=[obj.hotspot.id])
         return format_html('<a href="{}">{}</a>', url, obj.hotspot.name)
     hotspot_link.short_description = 'Hotspot'
 
@@ -214,19 +214,21 @@ class ReviewAdmin(admin.ModelAdmin):
 
     def from_user_link(self, obj):
         url = reverse('admin:users_user_change', args=[obj.from_user.id])
-        return format_html('<a href="{}">{}</a>', url, obj.from_user.full_name or obj.from_user.email)
+        display_name = obj.from_user.get_full_name() or obj.from_user.email
+        return format_html('<a href="{}">{}</a>', url, display_name)
     from_user_link.short_description = 'From'
-    from_user_link.admin_order_field = 'from_user__full_name'
+    from_user_link.admin_order_field = 'from_user__first_name'
 
     def to_user_link(self, obj):
         url = reverse('admin:users_user_change', args=[obj.to_user.id])
-        return format_html('<a href="{}">{}</a>', url, obj.to_user.full_name or obj.to_user.email)
+        display_name = obj.to_user.get_full_name() or obj.to_user.email
+        return format_html('<a href="{}">{}</a>', url, display_name)
     to_user_link.short_description = 'To'
-    to_user_link.admin_order_field = 'to_user__full_name'
+    to_user_link.admin_order_field = 'to_user__first_name'
 
     def listing_link(self, obj):
         if obj.listing:
-            url = reverse('admin:listings_listing_change', args=[obj.listing.id])
+            url = reverse('admin:campus_listing_change', args=[obj.listing.id])
             return format_html('<a href="{}">{}</a>', url, obj.listing.title)
         return '-'
     listing_link.short_description = 'Listing'
