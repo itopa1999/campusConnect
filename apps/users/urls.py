@@ -6,6 +6,7 @@ urlpatterns = [
     path("auth/", include([
         path("register", CreateAccountView.as_view(), name="register"),
         path("verify-email", VerifyAccountEmailView.as_view(), name="verify_email"),
+        path("resend-verification", ResendVerificationEmailView.as_view(), name="resend-email"),
         path("verify-forget-password-email", VerifyForgetPasswordEmailView.as_view(), name="verify_forget_password_email"),
         path("confirm-reset-password", ConfirmResetPasswordView.as_view(), name="confirm_reset_password"),
         path("login-user", LoginView.as_view(), name="login_user"),

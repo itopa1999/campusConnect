@@ -20,6 +20,8 @@ class UserLoginSerializer(serializers.Serializer):
 class UserForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
+class ResendVerificationEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
 
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(max_length=128, write_only=True, required=True)

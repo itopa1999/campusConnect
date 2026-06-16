@@ -34,6 +34,7 @@ class ListingType(Enum):
     SELL = 'sell'
     WANTED = 'wanted'
     FREEBIE = 'freebie'
+    SERVICE = 'service'
 
     @classmethod
     def choices(cls):

@@ -37,6 +37,19 @@ class VerifyAccountEmailView(generics.GenericAPIView):
             'is_success': result.is_success
         }
         return render(request, 'email_verification.html', context)
+    
+
+class ResendVerificationEmailView(generics.GenericAPIView):
+    """Allow user to resend verification link"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    serializer_class = ResendVerificationEmailSerializer
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = AccountCommand.ResendEmail(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
 
 
 class VerifyForgetPasswordEmailView(generics.GenericAPIView):

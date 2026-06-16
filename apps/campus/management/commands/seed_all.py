@@ -45,14 +45,12 @@ class Command(BaseCommand):
                 "Please create a superuser first using 'python manage.py createsuperuser'."
             )
 
-        # Check group membership
         if not admin_user.groups.filter(name=admin_group_name).exists():
             raise CommandError(
                 f"User '{admin_email}' is not in the '{admin_group_name}' group. "
                 f"Please add them to the group using: user.groups.add(Group.objects.get(name='{admin_group_name}'))"
             )
 
-        # Check superuser and staff flags
         if not admin_user.is_superuser or not admin_user.is_staff:
             raise CommandError(
                 f"User '{admin_email}' must have is_superuser=True and is_staff=True. "
@@ -77,20 +75,21 @@ class Command(BaseCommand):
         categories = lookup_data.get("categories", [])
         hotspots = lookup_data.get("campus_hotspots", [])
         badges = lookup_data.get("badges", [])
-        listings_data = lookup_data.get("listings", [])   # sample listings
+        listings_data = lookup_data.get("listings", [])
+        points_data = lookup_data.get("points", [])
 
         created = {
             "categories": 0,
             "hotspots": 0,
             "badges": 0,
-            "listings": 0,
+            "listings_created": 0,
+            "listings_updated": 0,
             "point_packages": 0
         }
         updated = {
             "categories": 0,
             "hotspots": 0,
             "badges": 0,
-            "listings": 0,
             "point_packages": 0
         }
 
@@ -147,9 +146,7 @@ class Command(BaseCommand):
             f"{created['badges']} badges created, {updated['badges']} updated."
         ))
 
-        # ------------------- 5. Seed sample listings -------------------
-
-        # Ensure we have categories and hotspots
+        # ------------------- 5. Seed sample listings with create-or-update -------------------
         if Category.objects.count() == 0 or CampusHotspot.objects.count() == 0:
             self.stdout.write(self.style.WARNING("Skipping listing seed: no categories or hotspots found."))
             return
@@ -164,41 +161,56 @@ class Command(BaseCommand):
             description = item.get("description", "")
             price = Decimal(item.get("price", 0))
 
-            # Randomly pick a category and a badge
             category = random.choice(Category.objects.all())
             badge = random.choice(badge_choices)
 
-            listing = Listing.objects.create(
-                user=admin_user,
-                category=category,
+            # Create or update listing
+            listing, was_created = Listing.objects.update_or_create(
                 title=title,
-                description=description,
-                price=price,
-                badge=badge,
-                listing_type=listing_type,
-                status=listing_status,
-                expires_at=expires_in_10_years,
-                image=None,
+                user=admin_user,
+                defaults={
+                    "category": category,
+                    "description": description,
+                    "price": price,
+                    "badge": badge,
+                    "listing_type": listing_type,
+                    "status": listing_status,
+                    "expires_at": expires_in_10_years,
+                    "image": None,
+                }
             )
 
-            # Pick 2 random hotspots (or fewer if not enough)
+            if was_created:
+                created["listings_created"] += 1
+            else:
+                created["listings_updated"] += 1
+
+            # --- Handle hotspots: clear existing and assign new ones ---
+            # Option 1: clear all existing hotspot relations and reassign
+            # ListingHotspot.objects.filter(listing=listing).delete()
+            # selected_hotspots = random.sample(list(CampusHotspot.objects.all()), min(2, CampusHotspot.objects.count()))
+            # for hotspot in selected_hotspots:
+            #     ListingHotspot.objects.create(listing=listing, hotspot=hotspot)
+
+            # Option 2: use get_or_create to avoid duplicates (if unique_together exists)
             all_hotspots = list(CampusHotspot.objects.all())
             if len(all_hotspots) >= 2:
                 selected = random.sample(all_hotspots, 2)
             else:
                 selected = all_hotspots
+
             for hotspot in selected:
-                ListingHotspot.objects.create(listing=listing, hotspot=hotspot)
+                ListingHotspot.objects.get_or_create(
+                    listing=listing,
+                    hotspot=hotspot
+                )
 
-            created["listings"] += 1
+        self.stdout.write(self.style.SUCCESS(
+            f"Listings seeded: {created['listings_created']} created, {created['listings_updated']} updated."
+        ))
 
-        self.stdout.write(self.style.SUCCESS(f"Seeded {created['listings']} sample listings."))
-
-        points = lookup_data.get("points", [])
-        created["point_packages"] = 0
-        updated["point_packages"] = 0
-
-        for pkg_data in points:
+        # ------------------- 6. Seed point packages -------------------
+        for pkg_data in points_data:
             defaults = {
                 "price": pkg_data.get("price"),
                 "description": pkg_data.get("description", ""),

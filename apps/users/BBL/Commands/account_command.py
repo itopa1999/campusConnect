@@ -133,6 +133,41 @@ class AccountCommand:
                 message=f"Error verifying email: {str(e)}",
                 status_code=500
             )
+        
+    @staticmethod
+    def ResendEmail(request, validated_data):
+        email = validated_data.get('email', '').strip()
+        op = OperationLogger("AccountCommand.ResendEmail", email=email)
+        op.start()
+        try:
+            user = User.objects.get(email=email, email_verified=False, is_active=True)
+        except User.DoesNotExist:
+            op.fail("User not found")
+            return BaseResult(
+                message="If this email is registered, a verification link has been sent.",
+                status_code=200
+            )
+        verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)
+                
+        verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
+        try:
+            background_task_send_verification_email.delay(user.email, user.first_name, verification_link)
+        except OperationalError as e:
+            op.success("Verification email successfully, but failed to queue verification email", exc =e)
+        else:
+            op.success("Verification email queued successfully")
+        
+        return BaseResultWithData(
+            message="Account created successfully. Please check your email to verify your account.",
+            data={
+                'user_id': user.id,
+                'email': user.email,
+                'message': 'If this email is registered, a verification link has been sent.'
+            },
+            status_code=200
+        )
+        
+
     
     @staticmethod
     def _create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value):
