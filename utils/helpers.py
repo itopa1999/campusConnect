@@ -115,33 +115,30 @@ class BadgeService:
         user.user_badges.set(resolved)
 
 
-# class UpdatePointsService:
-#     @staticmethod
-#     def update_points(user, points: int, action: str):
-#         """Update user points with atomic transaction for data consistency"""
-#         from django.db import transaction
+class UpdatePointsService:
+    @staticmethod
+    def update_points(user, points: int, action: str):
+        """Update user points with atomic transaction for data consistency"""
+        from django.db import transaction
         
-#         with transaction.atomic():
-#             # Use select_for_update to prevent race conditions
-#             # point_obj, _ = Point.objects.select_for_update().get_or_create(user=user)
+        with transaction.atomic():
 
-#             if action == 'add':
-#                 point_obj.amount += points
+            if action == 'add':
+                user.points += points
 
-#             elif action == 'subtract':
-#                 point_obj.amount = max(point_obj.amount - points, 0)
+            elif action == 'subtract':
+                user.points = max(user.points - points, 0)
 
-#             else:
-#                 raise ValueError("Action must be 'add' or 'subtract'")
+            else:
+                raise ValueError("Action must be 'add' or 'subtract'")
 
-#             point_obj.save(update_fields=['amount'])
-#         return point_obj.amount
+            user.save(update_fields=['points'])
+        return user.points
 
-#     @staticmethod
-#     def check_points(user) -> int:
-#         """Get user points without modification"""
-#         point_obj, _ = Point.objects.get_or_create(user=user)
-#         return point_obj.amount
+    @staticmethod
+    def check_points(user) -> int:
+        """Get user points without modification"""
+        return user.points
     
 
 def convert_to_webp(instance, field_name, quality=30):

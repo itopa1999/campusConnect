@@ -17,7 +17,6 @@ class IndexProductsQuery:
 
         listings_data = []
         for listing in queryset:
-            # Get first hotspot as location (fallback)
             location = listing.hotspots.first().name if listing.hotspots.exists() else "Campus"
 
             listings_data.append({
