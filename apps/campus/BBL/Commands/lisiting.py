@@ -1,12 +1,13 @@
+from django.utils import timezone
 import json
 from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
-from apps.campus.models import Listing
+from apps.campus.models import CampusHotspot, Listing
 from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
-from utils.enums import ListingType
+from utils.enums import ListingStatusType, ListingType
 from utils.helpers import UpdatePointsService
 from utils.log_helpers import OperationLogger
 
@@ -147,6 +148,264 @@ class ListingCommand:
                 )
         except Exception as e:
             op.fail("Unexpected error during creation", exc=e)
+            return BaseResultWithData(
+                message=f"An unexpected error occurred: {str(e)}",
+                status_code=500
+            )
+        
+    @staticmethod
+    def update_listing(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
+        """
+        Update a listing. Enforces 7-day edit restriction for non-status changes.
+        """
+        op = OperationLogger("UpdateListingCommand.update_listing", data={'listing_id': listing_id, **data})
+        op.start()
+
+        try:
+            listing = Listing.objects.filter(
+                id=listing_id,
+                user=user,
+                is_deleted=False
+            ).select_related('category').first()
+
+            if not listing:
+                op.fail("Listing not found")
+                return BaseResultWithData(
+                    message="Listing not found or you do not have permission.",
+                    status_code=404
+                )
+
+            # Check 7-day restriction (skip for status change)
+            fields_to_update = set(data.keys())
+
+            if fields_to_update and listing.modified_at:
+                days_since = (timezone.now() - listing.modified_at).days
+                if days_since < 7:
+                    op.fail("Edit restriction")
+                    return BaseResultWithData(
+                        message=f"You can only edit this listing once every 7 days. Last edit was {listing.modified_at.strftime('%Y-%m-%d')}.",
+                        status_code=400
+                    )
+
+            if 'category' in data:
+                data['category_id'] = data.pop('category')
+
+            # Handle hotspots: if present,
+            if 'hotspots' in data:
+                hotspot_ids = data['hotspots']
+                if isinstance(hotspot_ids, str):
+                    try:
+                        hotspot_ids = json.loads(hotspot_ids)
+                    except json.JSONDecodeError:
+                        hotspot_ids = None
+                if not hotspot_ids or not isinstance(hotspot_ids, list) or len(hotspot_ids) == 0:
+                    op.fail("No meeting spots selected")
+                    return BaseResultWithData(
+                        message="Please select at least one meeting spot.",
+                        status_code=400
+                    )
+                # Ensure all exist
+                existing_hotspots = CampusHotspot.objects.filter(id__in=hotspot_ids, is_deleted=False)
+                if existing_hotspots.count() != len(hotspot_ids):
+                    op.fail("Invalid hotspot IDs")
+                    return BaseResultWithData(
+                        message="One or more meeting spots are invalid.",
+                        status_code=400
+                    )
+                data['_hotspots'] = hotspot_ids
+
+            if 'price' in data:
+                raw_price = data['price']
+                if raw_price is None or raw_price == '':
+                    data['price'] = None
+                else:
+                    try:
+                        data['price'] = Decimal(str(raw_price))
+                    except (ValueError, TypeError):
+                        op.fail("Invalid price")
+                        return BaseResultWithData(
+                            message="Price must be a valid number.",
+                            status_code=400
+                        )
+                    if data['price'] < 0:
+                        op.fail("Negative price")
+                        return BaseResultWithData(
+                            message="Price cannot be negative.",
+                            status_code=400
+                        )
+
+            if 'listing_type' in data and data['listing_type'] not in ListingType.values():
+                op.fail("Invalid listing type")
+                return BaseResultWithData(
+                    message="Invalid listing type.",
+                    status_code=400
+                )
+
+            if data.get('listing_type') == ListingType.FREEBIE.value:
+                if 'price' in data and data['price'] not in (None, 0):
+                    op.fail("Freebie price must be 0")
+                    return BaseResultWithData(
+                        message="Freebie listings must have price set to 0.",
+                        status_code=400
+                    )
+
+            # --- Serializer validation ---
+            serializer = ListingSerializer(listing, data=data, partial=partial, context={'user': user})
+            try:
+                serializer.is_valid(raise_exception=True)
+            except serializers.ValidationError as e:
+                op.fail("Serializer validation failed", extra={'errors': e.detail})
+                return BaseResultWithData(
+                    message="Validation failed.",
+                    data={'errors': e.detail},
+                    status_code=400
+                )
+
+            with transaction.atomic():
+                updated_listing = serializer.save()
+                if '_hotspots' in data:
+                    updated_listing.hotspots.set(data['_hotspots'])
+                    updated_listing.save(update_fields=['modified_at'])
+
+                op.success(f"Listing {listing_id} updated")
+                return BaseResultWithData(
+                    message="Listing updated successfully.",
+                    data={'id': updated_listing.id},
+                    status_code=200
+                )
+
+        except Exception as e:
+            op.fail("Unexpected error", exc=e)
+            return BaseResultWithData(
+                message=f"An unexpected error occurred: {str(e)}",
+                status_code=500
+            )
+        
+    
+    @staticmethod
+    def delete_listing(user: User, listing_id: int) -> BaseResultWithData:
+        op = OperationLogger("DeleteListingCommand.delete_listing", data={'listing_id': listing_id})
+        op.start()
+
+        try:
+            listing = Listing.objects.filter(
+                id=listing_id,
+                user=user,
+                is_deleted=False
+            ).first()
+
+            if not listing:
+                op.fail("Listing not found")
+                return BaseResultWithData(
+                    message="Listing not found or you do not have permission.",
+                    status_code=404
+                )
+
+            with transaction.atomic():
+                listing.is_deleted = True
+                listing.save(update_fields=['is_deleted'])
+
+            op.success(f"Listing {listing_id} deleted")
+            return BaseResultWithData(
+                message="Listing deleted successfully.",
+                status_code=200
+            )
+
+        except Exception as e:
+            op.fail("Unexpected error", exc=e)
+            return BaseResultWithData(
+                message=f"An unexpected error occurred: {str(e)}",
+                status_code=500
+            )
+        
+    
+    @staticmethod
+    def reactivate_listing(user: User, listing_id: int) -> BaseResultWithData:
+        op = OperationLogger("ReactivateListingCommand.reactivate_listing", data={'listing_id': listing_id})
+        op.start()
+
+        try:
+            listing = Listing.objects.filter(
+                id=listing_id,
+                user=user,
+                is_deleted=False
+            ).first()
+
+            if not listing:
+                op.fail("Listing not found")
+                return BaseResultWithData(
+                    message="Listing not found or you do not have permission.",
+                    status_code=404
+                )
+
+            if listing.status.lower() != ListingStatusType.SOLD.value.lower():
+                op.fail("Invalid status")
+                return BaseResultWithData(
+                    message="Only sold listings can be reactivated.",
+                    status_code=400
+                )
+
+            # Check points
+            points = UpdatePointsService.check_points(user)
+            if points < 1:
+                op.fail("Insufficient points")
+                return BaseResultWithData(
+                    message="Insufficient points. You need 1 point to reactivate.",
+                    status_code=400
+                )
+
+            with transaction.atomic():
+                listing.status = ListingStatusType.ACTIVE.value
+                listing.save(update_fields=['status'])
+                UpdatePointsService.update_points(user, points=1, action='subtract')
+
+            op.success(f"Listing {listing_id} reactivated")
+            return BaseResultWithData(
+                message="Listing reactivated successfully.",
+                data={'id': listing.id},
+                status_code=200
+            )
+
+        except Exception as e:
+            op.fail("Unexpected error", exc=e)
+            return BaseResultWithData(
+                message=f"An unexpected error occurred: {str(e)}",
+                status_code=500
+            )
+        
+    
+    @staticmethod
+    def mark_sold(user: User, listing_id: int) -> BaseResultWithData:
+        op = OperationLogger("ReactivateListingCommand.mark_sold", data={'listing_id': listing_id})
+        op.start()
+
+        try:
+            listing = Listing.objects.filter(
+                id=listing_id,
+                user=user,
+                is_deleted=False
+            ).first()
+
+            if not listing:
+                op.fail("Listing not found")
+                return BaseResultWithData(
+                    message="Listing not found or you do not have permission.",
+                    status_code=404
+                )
+            
+            with transaction.atomic():
+                listing.status = ListingStatusType.SOLD.value
+                listing.save(update_fields=['status'])
+
+            op.success(f"Listing {listing_id} mark as sold")
+            return BaseResultWithData(
+                message="Listing mark as sold successfully.",
+                data={'id': listing.id},
+                status_code=200
+            )
+
+        except Exception as e:
+            op.fail("Unexpected error", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500

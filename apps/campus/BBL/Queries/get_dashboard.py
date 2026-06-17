@@ -81,13 +81,15 @@ class DashboardQuery:
 
         all_listings = []
         for listing in all_listings_qs:
-            location = listing.hotspots.first().name if listing.hotspots.exists() else "Campus"
+            location = [hs.name for hs in listing.hotspots.all()] or ["Campus"]
             all_listings.append({
                 'id': listing.id,
                 'title': listing.title,
                 'description': listing.description or "",
                 'price': float(listing.price) if listing.price else 0,
                 'category': listing.category.name,
+                'badge': listing.badge,
+                'lisiting_type': listing.listing_type,
                 'location': location,
                 'status': listing.status,
                 'image': listing.image.url if listing.image else None,

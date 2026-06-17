@@ -13,7 +13,9 @@ urlpatterns = [
                 path("index_products", GetIndexDefaultLisitingView.as_view(), name="get-index-products"),
                 path("get_lookup", GetLookUpView.as_view(), name="get-lookup"),
 
-                path("create_listing", CreateListingView.as_view(), name="create-lisiting")
+                path("create-listing", ListingView.as_view(), name="create-lisiting"),
+                path("mark-sold/<int:listing_id>", MarkAsSoldView.as_view(), name="mark-sold"),
+                path('listing/<int:listing_id>', ListingDetailView.as_view(), name='listing-detail'),
             ]
         )
     )

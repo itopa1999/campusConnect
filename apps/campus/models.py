@@ -78,6 +78,12 @@ class Listing(BaseModel):
     expires_at = models.DateTimeField(null=True, blank=True)
 
     hotspots = models.ManyToManyField(CampusHotspot, through='ListingHotspot', related_name='listings')
+
+    is_hot_sales = models.BooleanField(default=False)
+    is_hot_sales_expires_at = models.DateTimeField(null=True, blank=True)
+
+    is_ads_banner = models.BooleanField(default=False)
+    is_ads_banner_expires_at = models.DateTimeField(null=True, blank=True)
     
 
     class Meta:
@@ -99,10 +105,19 @@ class Listing(BaseModel):
         return self.title
 
     def save(self, *args, **kwargs):
-        # Auto-set expires_at to 30 days from creation if not set
         if not self.pk and not self.expires_at:
             self.expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
-        super().save(*args, **kwargs)
+
+        if self.is_hot_sales and self.is_hot_sales_expires_at is None:
+            self.is_hot_sales_expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
+        elif not self.is_hot_sales:
+            self.is_hot_sales_expires_at = None
+
+        if self.is_ads_banner and self.is_ads_banner_expires_at is None:
+            self.is_ads_banner_expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
+        elif not self.is_ads_banner:
+            self.is_ads_banner_expires_at = None
+            super().save(*args, **kwargs)
 
 
 class ListingHotspot(BaseModel):
