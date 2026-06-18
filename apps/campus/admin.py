@@ -112,12 +112,37 @@ class CampusHotspotAdmin(admin.ModelAdmin):
     listing_count.short_description = 'Active Assoc. Listings'
 
 
+from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
+from django.utils import timezone
+from django.db.models import Avg
+from apps.campus.models import Listing
+
+
+
 @admin.register(Listing)
 class ListingAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user_link', 'category', 'price', 'listing_type', 'badge', 'status', 'expires_at', 'is_expired', 'created_at')
-    list_filter = ('listing_type', 'status', 'category', 'is_deleted', 'expires_at')
-    search_fields = ('title', 'description', 'user__email', 'user__full_name')
-    readonly_fields = ('created_at', 'modified_at', 'review_count', 'avg_rating')
+    list_display = (
+        'title', 'user_link', 'category',
+        'price', 'listing_type', 'badge',
+        'status', 'expires_at', 'is_expired',
+        'created_at',
+        'is_hot_sales', 'is_hot_sales_expires_at',
+        'is_ads_banner', 'is_ads_banner_expires_at'
+    )
+    list_filter = (
+        'listing_type', 'status', 'category', 'is_deleted',
+        'expires_at', 'is_hot_sales', 'is_ads_banner'  # new filters
+    )
+    search_fields = (
+        'title', 'description', 'user__email', 'user__full_name',
+        'is_hot_sales', 'is_ads_banner'  # optional, but can help
+    )
+    readonly_fields = (
+        'created_at', 'modified_at', 'review_count', 'avg_rating',
+        'is_hot_sales_expires_at', 'is_ads_banner_expires_at'  # auto-set, so read-only
+    )
     autocomplete_fields = ['user', 'category']
     inlines = [ListingHotspotInline]
     date_hierarchy = 'created_at'
@@ -129,6 +154,10 @@ class ListingAdmin(admin.ModelAdmin):
         }),
         ('Expiry', {
             'fields': ('expires_at',)
+        }),
+        ('Promotions', {   # <-- new fieldset
+            'fields': ('is_ads_banner', 'is_ads_banner_expires_at', 'is_hot_sales', 'is_hot_sales_expires_at'),
+            'classes': ('wide',)
         }),
         ('Analytics', {
             'fields': ('review_count', 'avg_rating'),
@@ -183,7 +212,7 @@ class ListingAdmin(admin.ModelAdmin):
         queryset = super().get_queryset(request).select_related('user', 'category')
         queryset = queryset.prefetch_related('hotspots')
         return queryset
-
+    
 
 @admin.register(ListingHotspot)
 class ListingHotspotAdmin(admin.ModelAdmin):

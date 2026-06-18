@@ -3,8 +3,12 @@ from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.shortcuts import render
+
+from utils.base_result import BaseResultWithData
+from utils.helpers import UpdatePointsService
 from .serializers import *
 from .BBL.Commands.account_command import AccountCommand
 from .BBL.Commands.auth_command import AuthCommand
@@ -156,10 +160,14 @@ class SubmitReportView(generics.GenericAPIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
-class ReturnOkay(generics.GenericAPIView):
-    serializer_class = None
-    permission_classes = [AllowAny]
-    authentication_classes = []
+class RefreshPointBalanceView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response()
+        points = UpdatePointsService.check_points(request.user)
+        result = BaseResultWithData(
+            message="Points refreshed successfully",
+            data={'points_balance': points},
+            status_code=200
+        )
+        return Response(result.to_dict(), status=result.status_code)

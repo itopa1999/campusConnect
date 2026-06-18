@@ -1,5 +1,7 @@
 from enum import Enum
 
+from utils.constant_helper import ConstantHelper
+
 class GroupNames(Enum):
     ADMIN = "Admin"
     STUDENT = "Student"
@@ -29,6 +31,34 @@ class TokenType(Enum):
     def values(cls):
         return [item.value for item in cls]
     
+class AdvertTypeEnum(Enum):
+    BANNER = ("banner", "Banner", ConstantHelper.POINT_CHARGES_FOR_BANNER)
+    HOT_SALE = ("hot_sale", "Hot Sale", ConstantHelper.POINT_CHARGES_FOR_HOT_SALES)
+
+    @property
+    def value_code(self):
+        return self.value[0]
+
+    @property
+    def label(self):
+        return self.value[1]
+
+    @property
+    def points(self):
+        return self.value[2]
+
+    @classmethod
+    def choices(cls):
+        return [
+            {
+                "value": item.value_code,
+                "label": item.label,
+                "points": item.points,
+            }
+            for item in cls
+        ]
+    
+
 
 class ListingType(Enum):
     SELL = 'sell'

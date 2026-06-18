@@ -7,7 +7,8 @@ from apps.campus.models import CampusHotspot, Listing
 from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
-from utils.enums import ListingStatusType, ListingType
+from utils.constant_helper import ConstantHelper
+from utils.enums import AdvertTypeEnum, ListingStatusType, ListingType
 from utils.helpers import UpdatePointsService
 from utils.log_helpers import OperationLogger
 
@@ -28,19 +29,53 @@ class ListingCommand:
         op = OperationLogger("ListingCommand.create_listing", data=data)
         op.start()
 
-        # --- Convert QueryDict to mutable dict and clean empty values ---
         if hasattr(data, 'dict'):
             data = data.dict()
         else:
-            data = dict(data)   # ensure it's a dict
+            data = dict(data)
 
-        # Remove empty image string (frontend sends '' when no file)
         if data.get('image') == '':
             data.pop('image', None)
 
+        # --- 4. Price parsing and validation ---
+        raw_price = data.get('price')
+        price = None
+        if raw_price is not None and raw_price != '':
+            try:
+                price = Decimal(str(raw_price))
+            except (ValueError, TypeError):
+                op.fail("Invalid price format")
+                return BaseResultWithData(
+                    message="Price must be a valid number.",
+                    status_code=400
+                )
+            if price < 0:
+                op.fail("Negative price")
+                return BaseResultWithData(
+                    message="Price cannot be negative.",
+                    status_code=400
+                )
+        data['price'] = price
+
+        def parse_bool(val):
+            if isinstance(val, bool):
+                return val
+            if isinstance(val, str):
+                return val.lower() == 'true'
+            return False
+
+        is_banner = parse_bool(data.get('is_ads_banner', False))
+        is_hot = parse_bool(data.get('is_hot_sales', False))
+
+        # Calculate total points needed
+        base_points = ConstantHelper.BASE_POINT
+        banner_points = AdvertTypeEnum.BANNER.points if is_banner else 0
+        hot_points = AdvertTypeEnum.HOT_SALE.points if is_hot else 0
+        total_points_needed = base_points + banner_points + hot_points
+
         # --- 1. Points check ---
         current_points = UpdatePointsService.check_points(user)
-        if current_points < 1:
+        if current_points < total_points_needed:
             op.fail("Insufficient points")
             return BaseResultWithData(
                 message="Insufficient points. You need at least 1 point to post.",
@@ -70,10 +105,10 @@ class ListingCommand:
         # --- 3. Image validation (if provided) ---
         image = data.get('image')
         if image:
-            if image.size > 3 * 1024 * 1024:
+            if image.size > ConstantHelper.IMAGE_SIZE:
                 op.fail("Image too large")
                 return BaseResultWithData(
-                    message="Image file size must not exceed 3 MB.",
+                    message=f"Image file size must not exceed {ConstantHelper.IMAGE_SIZE} MB.",
                     status_code=400
                 )
             allowed_extensions = ('.jpg', '.jpeg', '.png', '.webp')
@@ -84,25 +119,7 @@ class ListingCommand:
                     status_code=400
                 )
 
-        # --- 4. Price parsing and validation ---
-        raw_price = data.get('price')
-        price = None
-        if raw_price is not None and raw_price != '':
-            try:
-                price = Decimal(str(raw_price))
-            except (ValueError, TypeError):
-                op.fail("Invalid price format")
-                return BaseResultWithData(
-                    message="Price must be a valid number.",
-                    status_code=400
-                )
-            if price < 0:
-                op.fail("Negative price")
-                return BaseResultWithData(
-                    message="Price cannot be negative.",
-                    status_code=400
-                )
-        data['price'] = price
+        
 
         # --- 5. Freebie specific rule ---
         listing_type = data.get('listing_type')
@@ -128,7 +145,7 @@ class ListingCommand:
         try:
             serializer.is_valid(raise_exception=True)
         except serializers.ValidationError as e:
-            op.fail("Serializer validation failed", extra={'errors': e.detail})
+            op.fail("Serializer validation failed", exc={'errors': e.detail})
             return BaseResultWithData(
                 message="Validation failed.",
                 data={'errors': e.detail},
@@ -139,7 +156,7 @@ class ListingCommand:
         try:
             with transaction.atomic():
                 listing = serializer.save(user=user)
-                UpdatePointsService.update_points(user, points=1, action='subtract')
+                UpdatePointsService.update_points(user, points=total_points_needed, action='subtract')
                 op.success(f"Listing created: {listing.id}")
                 return BaseResultWithData(
                     message="Listing created successfully, It will appear in the marketplace within a few minutes.",
@@ -156,7 +173,7 @@ class ListingCommand:
     @staticmethod
     def update_listing(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
         """
-        Update a listing. Enforces 7-day edit restriction for non-status changes.
+        Update a listing. Enforces {ConstantHelper.EDIT_DATE}-day edit restriction for non-status changes.
         """
         op = OperationLogger("UpdateListingCommand.update_listing", data={'listing_id': listing_id, **data})
         op.start()
@@ -175,15 +192,15 @@ class ListingCommand:
                     status_code=404
                 )
 
-            # Check 7-day restriction (skip for status change)
+            # Check {ConstantHelper.EDIT_DATE} restriction (skip for status change)
             fields_to_update = set(data.keys())
 
             if fields_to_update and listing.modified_at:
                 days_since = (timezone.now() - listing.modified_at).days
-                if days_since < 7:
+                if days_since < ConstantHelper.EDIT_DATE:
                     op.fail("Edit restriction")
                     return BaseResultWithData(
-                        message=f"You can only edit this listing once every 7 days. Last edit was {listing.modified_at.strftime('%Y-%m-%d')}.",
+                        message=f"You can only edit this listing once every {ConstantHelper.EDIT_DATE} days. Last edit was {listing.modified_at.strftime('%Y-%m-%d')}.",
                         status_code=400
                     )
 
@@ -254,7 +271,7 @@ class ListingCommand:
             try:
                 serializer.is_valid(raise_exception=True)
             except serializers.ValidationError as e:
-                op.fail("Serializer validation failed", extra={'errors': e.detail})
+                op.fail("Serializer validation failed", exc={'errors': e.detail})
                 return BaseResultWithData(
                     message="Validation failed.",
                     data={'errors': e.detail},
@@ -338,10 +355,10 @@ class ListingCommand:
                     status_code=404
                 )
 
-            if listing.status.lower() != ListingStatusType.SOLD.value.lower():
+            if listing.status.lower() != ListingStatusType.SOLD.value.lower() and listing.status.lower() != ListingStatusType.EXPIRED.value.lower():
                 op.fail("Invalid status")
                 return BaseResultWithData(
-                    message="Only sold listings can be reactivated.",
+                    message="Only sold or expired listings can be reactivated.",
                     status_code=400
                 )
 
@@ -400,6 +417,59 @@ class ListingCommand:
             op.success(f"Listing {listing_id} mark as sold")
             return BaseResultWithData(
                 message="Listing mark as sold successfully.",
+                data={'id': listing.id},
+                status_code=200
+            )
+
+        except Exception as e:
+            op.fail("Unexpected error", exc=e)
+            return BaseResultWithData(
+                message=f"An unexpected error occurred: {str(e)}",
+                status_code=500
+            )
+        
+    
+    @staticmethod
+    def image_upload(user: User, listing_id: int, image_file) -> BaseResultWithData:
+        op = OperationLogger("ListingCommand.image_upload", data={'listing_id': listing_id})
+        op.start()
+
+        try:
+            listing = Listing.objects.filter(
+                id=listing_id,
+                user=user,
+                is_deleted=False
+            ).first()
+
+            if not listing:
+                op.fail("Listing not found")
+                return BaseResultWithData(
+                    message="Listing not found or you do not have permission.",
+                    status_code=404
+                )
+
+            # Validate image (size, extension)
+            if image_file.size > ConstantHelper.IMAGE_SIZE:
+                op.fail("Image too large")
+                return BaseResultWithData(
+                    message=f"Image size must not exceed {ConstantHelper.IMAGE_SIZE} MB.",
+                    status_code=400
+                )
+            allowed_extensions = ('.jpg', '.jpeg', '.png', '.webp')
+            if not image_file.name.lower().endswith(allowed_extensions):
+                op.fail("Invalid image format")
+                return BaseResultWithData(
+                    message="Only JPG, PNG, and WEBP images are allowed.",
+                    status_code=400
+                )
+
+            with transaction.atomic():
+                listing.image = image_file
+                listing.save(update_fields=['image'])
+
+            op.success(f"Image uploaded for listing {listing_id}")
+            return BaseResultWithData(
+                message="Image uploaded successfully.",
                 data={'id': listing.id},
                 status_code=200
             )

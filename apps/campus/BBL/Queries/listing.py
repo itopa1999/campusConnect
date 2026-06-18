@@ -1,6 +1,7 @@
 from apps.campus.models import Listing
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
+from utils.constant_helper import ConstantHelper
 from utils.helpers import UpdatePointsService
 from utils.log_helpers import OperationLogger
 
@@ -47,6 +48,8 @@ class GetListingDetailQuery:
                 'description': listing.description or "",
                 'status': listing.status,
                 'badge': listing.badge or "",
+                'is_hot_sale': listing.is_hot_sales,
+                'is_ads_banner': listing.is_ads_banner,
                 'lisiting_type': listing.listing_type,
                 'hotspots': hotspot_ids,
                 'hotspot_names': hotspot_names,
@@ -54,6 +57,7 @@ class GetListingDetailQuery:
                 'created_at': listing.created_at.isoformat(),
                 'modified_at': listing.modified_at.isoformat(),
                 'expires_at': listing.expires_at.isoformat() if listing.expires_at else None,
+                'editing_period_day': ConstantHelper.EDIT_DATE
             }
 
             return BaseResultWithData(

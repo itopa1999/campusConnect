@@ -1,6 +1,6 @@
 from apps.campus.models import Category, CampusHotspot
 from utils.base_result import BaseResultWithData
-from utils.enums import BadgeListingType, ListingType
+from utils.enums import AdvertTypeEnum, BadgeListingType, ListingType
 
 class LookUpQuery:
     @staticmethod
@@ -46,11 +46,13 @@ class LookUpQuery:
             for choice in ListingType.choices()
         ]
 
+
         data = {
             'categories': categories,
             'hotspots': hotspots,
             'badge_choices': badge_choices,
-            'type_choices': type_choices
+            'type_choices': type_choices,
+            'advert_type': AdvertTypeEnum.choices()
         }
 
         return BaseResultWithData(

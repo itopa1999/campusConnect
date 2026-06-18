@@ -45,9 +45,15 @@ class ListingView(generics.GenericAPIView):
 
 class MarkAsSoldView(APIView):
     permission_classes = [IsAuthenticated]
-
     def patch(self, request, listing_id):
         result = ListingCommand.mark_sold(request.user, listing_id)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class UploadImageView(APIView):
+    permission_classes = [IsAuthenticated]
+    def patch(self, request, listing_id):
+        result = ListingCommand.image_upload(request.user, listing_id, )
         return Response(result.to_dict(), status=result.status_code)
     
 

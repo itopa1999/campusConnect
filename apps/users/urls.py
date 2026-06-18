@@ -18,5 +18,5 @@ urlpatterns = [
     path("report/", include([
         path("submit", SubmitReportView.as_view(), name="submit_contact_report"),
     ])),
-    path("", ReturnOkay.as_view()),
+    path("", RefreshPointBalanceView.as_view(), name='refresh-token'),
 ]

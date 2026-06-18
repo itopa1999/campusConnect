@@ -89,6 +89,8 @@ class DashboardQuery:
                 'price': float(listing.price) if listing.price else 0,
                 'category': listing.category.name,
                 'badge': listing.badge,
+                'is_hot_sale': listing.is_hot_sales,
+                'is_ads_banner': listing.is_ads_banner,
                 'lisiting_type': listing.listing_type,
                 'location': location,
                 'status': listing.status,

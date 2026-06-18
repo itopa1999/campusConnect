@@ -18,12 +18,15 @@ class ListingSerializer(serializers.ModelSerializer):
     )
     image = serializers.ImageField(required=False, allow_null=True)
 
+    is_ads_banner = serializers.BooleanField(required=False, default=False)
+    is_hot_sales = serializers.BooleanField(required=False, default=False)
+
     class Meta:
         model = Listing
         fields = [
             'id', 'title', 'description', 'price', 'listing_type',
             'badge', 'status', 'expires_at', 'image',
-            'category', 'hotspots'
+            'category', 'hotspots', 'is_ads_banner', 'is_hot_sales'
         ]
         read_only_fields = ['id', 'status', 'expires_at']
 

@@ -117,7 +117,8 @@ class Listing(BaseModel):
             self.is_ads_banner_expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
         elif not self.is_ads_banner:
             self.is_ads_banner_expires_at = None
-            super().save(*args, **kwargs)
+
+        super().save(*args, **kwargs)
 
 
 class ListingHotspot(BaseModel):
