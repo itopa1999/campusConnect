@@ -56,3 +56,13 @@ def background_task_send_change_password_email(self, email, first_name):
 )
 def background_task_send_report_recieved_email(self, email, first_name, issue_type):
     EmailHelper.send_report_received_email(email, first_name, issue_type)
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 10},
+)
+def background_task_send_lost_item_claim_email(self, email, full_name):
+    EmailHelper.send_lost_item_claim_email(email, full_name)

@@ -182,6 +182,16 @@ class LostAndFound(BaseModel):
     answer2 = models.CharField(max_length=500)
     full_name = models.CharField(max_length=200)
     email = models.EmailField(max_length=200)
+    phone_regex = RegexValidator(
+        regex=r'^(?:\+234|0)[789][01]\d{8}$',
+        message="Phone number must be a valid Nigerian number (e.g., 08012345678 or +2348012345678)."
+    )
+    phone = models.CharField(
+        validators=[phone_regex],
+        max_length=15,
+        blank=True,
+        null=True
+    )
     department = models.CharField(max_length=200)
     image = models.ImageField(upload_to='lost_and_found/',
         blank=True,

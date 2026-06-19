@@ -2,9 +2,7 @@ from apps.campus.models import Listing
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.helpers import UpdatePointsService
-from utils.log_helpers import OperationLogger
-
+from django.db.models import Avg, Count
 
 class GetListingDetailQuery:
     @staticmethod
@@ -36,7 +34,24 @@ class GetListingDetailQuery:
             hotspot_ids = list(listing.hotspots.values_list('id', flat=True))
             hotspot_names = list(listing.hotspots.values_list('name', flat=True))
 
-            points = UpdatePointsService.check_points(user)
+            # --- Reviews for this listing (only active, not deleted) ---
+            reviews_qs = listing.reviews.filter(is_deleted=False).select_related('from_user')
+            review_stats = reviews_qs.aggregate(
+                review_count=Count('id'),
+                avg_rating=Avg('rating')
+            )
+            review_count = review_stats['review_count'] or 0
+            avg_rating = review_stats['avg_rating'] or 0.0
+
+            reviews_list = []
+            for rev in reviews_qs:
+                reviews_list.append({
+                    'from_user': rev.from_user.get_full_name() or rev.from_user.email,
+                    'rating': rev.rating,
+                    'comment': rev.comment or "",
+                    'created_at': rev.created_at.isoformat(),
+                })
+
 
 
             data = {
@@ -57,7 +72,10 @@ class GetListingDetailQuery:
                 'created_at': listing.created_at.isoformat(),
                 'modified_at': listing.modified_at.isoformat(),
                 'expires_at': listing.expires_at.isoformat() if listing.expires_at else None,
-                'editing_period_day': ConstantHelper.EDIT_DATE
+                'editing_period_day': ConstantHelper.EDIT_DATE,
+                'review_count': review_count,
+                'avg_rating': float(avg_rating),
+                'reviews': reviews_list,
             }
 
             return BaseResultWithData(

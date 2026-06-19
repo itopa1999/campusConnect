@@ -16,6 +16,9 @@ urlpatterns = [
                 path("create_listing", ListingView.as_view(), name="create-lisiting"),
                 path("mark-sold/<int:listing_id>", MarkAsSoldView.as_view(), name="mark-sold"),
                 path('listing/<int:listing_id>', ListingDetailView.as_view(), name='listing-detail'),
+
+                path("report_lost_item", LostAndFoundView.as_view(), name="report-lost-item"),
+                path('lost-and-found/reports', LostAndFoundListView.as_view(), name='lost_and_found_report'),
             ]
         )
     )

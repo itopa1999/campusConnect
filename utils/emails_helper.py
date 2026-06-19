@@ -162,3 +162,25 @@ Campus Connect Team
         except Exception as e:
             print(f"Error sending report received email: {str(e)}")
             return False
+        
+
+    @staticmethod
+    def send_lost_item_claim_email(email, full_name):
+        try:
+            subject = "We Have Received Your Report"
+            message = f"""
+Hello {full_name},
+This is a test email to shows that it working here
+
+Best regards,
+Campus Connect Team
+            """
+            return EmailHelper.send_email(
+                subject=subject,
+                message=message,
+                recipient_list=[email],
+                fail_silently=False
+            )
+        except Exception as e:
+            print(f"Error sending report received email: {str(e)}")
+            return False

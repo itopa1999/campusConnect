@@ -2,11 +2,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.views import APIView
+from apps.campus.BBL.Commands.lost_and_found import LostandFoundCommand
 from apps.campus.BBL.Queries.get_dashboard import DashboardQuery
 from apps.campus.BBL.Queries.get_lookup import LookUpQuery
 from apps.campus.BBL.Queries.index_products import IndexProductsQuery
 from apps.campus.BBL.Commands.lisiting import ListingCommand
 from apps.campus.BBL.Queries.listing import GetListingDetailQuery
+from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
 from apps.campus.serializers import *
 
 # Create your views here.
@@ -74,4 +76,41 @@ class ListingDetailView(APIView):
 
     def delete(self, request, listing_id):
         result = ListingCommand.delete_listing(request.user, listing_id)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class LostAndFoundView(generics.GenericAPIView):
+    serializer_class = LostAndFoundSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        result = LostandFoundCommand.create_item(request.data)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+
+class LostAndFoundListView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        page = request.query_params.get('page', 1)
+        page_size = request.query_params.get('page_size', 10)
+
+        try:
+            page = int(page)
+            page_size = int(page_size)
+        except ValueError:
+            return Response(
+                {'is_success': False, 'message': 'Page and page_size must be integers.'},
+                status=400
+            )
+
+        if page_size < 1:
+            page_size = 1
+        if page_size > 100:
+            page_size = 100
+
+        result = GetLostItemsQuery.get_items(page, page_size)
         return Response(result.to_dict(), status=result.status_code)

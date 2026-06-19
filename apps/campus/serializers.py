@@ -1,9 +1,7 @@
 
 
 from rest_framework import serializers
-from django.core.exceptions import ValidationError
-from apps.campus.models import Listing, Category, CampusHotspot
-from apps.users.models import User
+from apps.campus.models import Claim, Listing, Category, CampusHotspot, LostAndFound
 
 class ListingSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(
@@ -35,3 +33,24 @@ class ListingSerializer(serializers.ModelSerializer):
         listing = Listing.objects.create(**validated_data)
         listing.hotspots.set(hotspots)
         return listing
+    
+
+class LostAndFoundSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LostAndFound
+        fields = [
+            'id', 'item_name', 'description', 'location', 'date_found',
+            'status', 'verification1', 'answer1', 'verification2', 'answer2',
+            'full_name', 'email', 'phone', 'department', 'image'
+        ]
+        read_only_fields = ['id', 'status']
+
+
+class ClaimSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Claim
+        fields = [
+            'id', 'lost_item', 'answer1', 'answer2',
+            'full_name', 'email', 'phone'
+        ]
+        read_only_fields = ['id']
