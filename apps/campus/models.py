@@ -182,6 +182,7 @@ class LostAndFound(BaseModel):
     answer2 = models.CharField(max_length=500)
     full_name = models.CharField(max_length=200)
     email = models.EmailField(max_length=200)
+    claimed_by = models.CharField(max_length=200, null=True, blank=True)
     phone_regex = RegexValidator(
         regex=r'^(?:\+234|0)[789][01]\d{8}$',
         message="Phone number must be a valid Nigerian number (e.g., 08012345678 or +2348012345678)."

@@ -271,7 +271,7 @@ class ReviewAdmin(admin.ModelAdmin):
 
 @admin.register(LostAndFound)
 class LostAndFoundAdmin(admin.ModelAdmin):
-    list_display = ('item_name', 'location', 'date_found', 'status', 'full_name', 'email', 'created_at')
+    list_display = ('item_name', 'location', 'date_found', 'status', 'full_name', 'email', 'claimed_by', 'created_at')
     list_filter = ('status', 'date_found', 'department', 'created_at')
     search_fields = ('item_name', 'description', 'location', 'full_name', 'email', 'department')
     readonly_fields = ('created_at', 'modified_at', 'is_deleted')
@@ -340,7 +340,8 @@ class ClaimAdmin(admin.ModelAdmin):
     actions = ['mark_deleted', 'mark_active']
 
     def lost_item_link(self, obj):
-        url = reverse('admin:listings_lostandfound_change', args=[obj.lost_item.id])
+        app_label = obj.lost_item._meta.app_label
+        url = reverse(f'admin:{app_label}_lostandfound_change', args=[obj.lost_item.id])
         return format_html('<a href="{}">{}</a>', url, obj.lost_item.item_name)
     lost_item_link.short_description = 'Lost Item'
     lost_item_link.admin_order_field = 'lost_item__item_name'

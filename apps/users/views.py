@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.shortcuts import render
 
+from apps.users.BBL.Queries.point_packages import PointPackagesQueries
 from utils.base_result import BaseResultWithData
 from utils.helpers import UpdatePointsService
 from .serializers import *
@@ -171,3 +172,46 @@ class RefreshPointBalanceView(APIView):
             status_code=200
         )
         return Response(result.to_dict(), status=result.status_code)
+    
+
+class PointPackagesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        is_transaction = request.query_params.get('is_transaction', 'false')
+        is_purchase = request.query_params.get('is_purchase', 'false')
+
+        # Convert to boolean
+        is_transaction_bool = is_transaction.lower() in ('true', '1', 'yes', 'y')
+        is_purchase_bool = is_purchase.lower() in ('true', '1', 'yes', 'y')
+
+        # Always include packages
+        packages = PointPackagesQueries.get_point_packages(request)
+
+        data = {'point_packages': packages}
+
+        if is_transaction_bool:
+            # fetch transactions paginated
+            page = request.query_params.get('page', 1)
+            per_page = request.query_params.get('per_page', 10)
+            txn_result = PointPackagesQueries.get_transactions(request.user, page, per_page)
+            if txn_result.is_success:
+                data['transactions'] = txn_result.data
+            else:
+                # handle error? Maybe return error
+                return Response(txn_result.to_dict(), status=txn_result.status_code)
+
+        if is_purchase_bool:
+            page = request.query_params.get('page', 1)
+            per_page = request.query_params.get('per_page', 10)
+            purchase_result = PointPackagesQueries.get_purchases(request.user, page, per_page)
+            if purchase_result.is_success:
+                data['purchases'] = purchase_result.data
+            else:
+                return Response(purchase_result.to_dict(), status=purchase_result.status_code)
+
+        return Response({
+            'is_success': True,
+            'message': 'Data retrieved successfully',
+            'data': data
+        }, status=200)

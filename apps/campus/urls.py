@@ -10,15 +10,17 @@ urlpatterns = [
         include(
             [
                 path("dashboard", GetDashboardView.as_view(), name="campus-dashboard"),
-                path("index_products", GetIndexDefaultLisitingView.as_view(), name="get-index-products"),
-                path("get_lookup", GetLookUpView.as_view(), name="get-lookup"),
+                path("index-products", GetIndexDefaultLisitingView.as_view(), name="get_index_products"),
+                path("get-lookup", GetLookUpView.as_view(), name="get_lookup"),
 
-                path("create_listing", ListingView.as_view(), name="create-lisiting"),
-                path("mark-sold/<int:listing_id>", MarkAsSoldView.as_view(), name="mark-sold"),
+                path("create-listing", ListingView.as_view(), name="create_lisiting"),
+                path("mark-sold/<int:listing_id>", MarkAsSoldView.as_view(), name="mark_sold"),
                 path('listing/<int:listing_id>', ListingDetailView.as_view(), name='listing-detail'),
 
-                path("report_lost_item", LostAndFoundView.as_view(), name="report-lost-item"),
+                path("report-lost-item", LostAndFoundView.as_view(), name="report_lost_item"),
                 path('lost-and-found/reports', LostAndFoundListView.as_view(), name='lost_and_found_report'),
+                path('lost-and-found/claim', LostAndFoundClaimView.as_view(), name='lost-and-found-claim'),
+                path('approve-claim', ApproveClaimView.as_view(), name='approve_claim'),
             ]
         )
     )

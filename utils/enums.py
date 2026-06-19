@@ -155,3 +155,37 @@ class DefaultPointEnum(Enum):
     @classmethod
     def values(cls):
         return [item.value for item in cls]
+    
+class PointPurchaseStatusEnum(Enum):
+    PENDING = 'pending'
+    COMPLETED = 'completed'
+    FAILED = 'failed'
+    REFUNDED = 'refunded'
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+    
+
+class PointTransactionTypeEnum(Enum):
+    PURCHASE = 'purchase'
+    LISTING_CREATION = 'listing_creation'
+    REACTIVATION = 'reactivation'
+    BADGE_UPGRADE = 'badge_upgrade'
+    PROMOTION = 'promotion'
+    ADMIN_ADJUSTMENT = 'admin_adjustment'
+    TRANSFER = 'transfer'
+    REFUND = 'refund'
+    OTHER = 'other'
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]

@@ -10,6 +10,7 @@ from apps.campus.BBL.Commands.lisiting import ListingCommand
 from apps.campus.BBL.Queries.listing import GetListingDetailQuery
 from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
 from apps.campus.serializers import *
+from django.shortcuts import render
 
 # Create your views here.
 
@@ -114,3 +115,28 @@ class LostAndFoundListView(APIView):
 
         result = GetLostItemsQuery.get_items(page, page_size)
         return Response(result.to_dict(), status=result.status_code)
+
+
+class LostAndFoundClaimView(generics.GenericAPIView):
+    serializer_class = ClaimSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        result = LostandFoundCommand.create_claim(request, request.data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class ApproveClaimView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        claim_id = request.query_params.get('claim_id')
+        email = request.query_params.get('email')
+        result = LostandFoundCommand.approve_claim(request, claim_id, email)
+        context = {
+            'message': result.message,
+            'is_success': result.is_success
+        }
+        return render(request, 'claim_approve.html', context)

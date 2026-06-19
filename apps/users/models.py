@@ -8,7 +8,7 @@ from datetime import timedelta
 import random
 from apps.users.manager import UserManager, SoftDeleteManager
 from utils.base_model import BaseModel
-from utils.enums import TokenType
+from utils.enums import PointPurchaseStatusEnum, PointTransactionTypeEnum, TokenType
 import secrets
 from utils.enums import IssueTypeEnum
 # Create your models here.
@@ -261,12 +261,7 @@ class PointPurchase(BaseModel):
     )
     status = models.CharField(
         max_length=20,
-        choices=[
-            ('pending', 'Pending'),
-            ('completed', 'Completed'),
-            ('failed', 'Failed'),
-            ('refunded', 'Refunded'),
-        ],
+        choices= PointPurchaseStatusEnum.choices(),
         default='pending',
         db_index=True
     )
@@ -283,3 +278,58 @@ class PointPurchase(BaseModel):
 
     def __str__(self):
         return f"{self.user.email} bought {self.points_awarded} points (₦{self.amount_paid})"
+    
+
+class PointTransaction(BaseModel):
+    """
+    Tracks every point addition or subtraction for a user.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='point_transactions'
+    )
+    amount = models.IntegerField(
+        help_text="Positive for addition, negative for subtraction."
+    )
+    balance_after = models.PositiveIntegerField(
+        help_text="The user's point balance after this transaction."
+    )
+    transaction_type = models.CharField(
+        max_length=30,
+        choices=PointTransactionTypeEnum.choices(),
+        default='other',
+        db_index=True
+    )
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Optional description of the transaction."
+    )
+    reference = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Optional reference ID (e.g., listing_id, purchase_id)."
+    )
+    purchase = models.ForeignKey(
+        'PointPurchase',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='transactions',
+        help_text="Link to the purchase if this transaction was from a purchase."
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Point Transaction"
+        verbose_name_plural = "Point Transactions"
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['user', 'transaction_type']),
+            models.Index(fields=['created_at']),
+        ]
+
+    def __str__(self):
+        sign = '+' if self.amount > 0 else ''
+        return f"{self.user.email}: {sign}{self.amount} points ({self.transaction_type})"

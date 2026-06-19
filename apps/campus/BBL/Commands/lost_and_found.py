@@ -1,8 +1,8 @@
 from django.db import OperationalError, transaction
 from rest_framework import serializers
-from apps.campus.models import LostAndFound
+from apps.campus.models import Claim, LostAndFound
 from apps.campus.serializers import ClaimSerializer, LostAndFoundSerializer  # you'll need this
-from utils.Tasks.emailService import background_task_send_lost_item_claim_email
+from utils.Tasks.emailService import background_task_send_founder_details_to_claimer_email, background_task_send_lost_item_claim_email
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
 from utils.enums import LostAndFoundStatusEnum
@@ -95,7 +95,7 @@ class LostandFoundCommand:
         
     
     @staticmethod
-    def create_claim(data: dict) -> BaseResultWithData:
+    def create_claim(request, data: dict) -> BaseResultWithData:
         """
         Submit a claim for a lost item.
         - Verify the item exists and is still open.
@@ -144,51 +144,116 @@ class LostandFoundCommand:
                 status_code=400
             )
 
-        # send email to the founder with a link please.
+        existing_claims_count = Claim.objects.filter(lost_item=item, email=email).count()
+        if existing_claims_count >= 2:
+            op.fail("Max claims limit reached")
+            return BaseResultWithData(
+                message="You have already submitted the maximum number of claims (2) for this item.",
+                status_code=400
+            )    
+
+        # ---- 5. All good – create the claim ----
+        claim_data = {
+            'lost_item': item.id,
+            'answer1': answer1,
+            'answer2': answer2,
+            'full_name': full_name,
+            'email': email,
+            'phone': phone or None,
+        }
+        serializer = ClaimSerializer(data=claim_data)
+
         try:
-            background_task_send_lost_item_claim_email.delay(item.email, item.full_name)
+            serializer.is_valid(raise_exception=True)
+        except serializers.ValidationError as e:
+            op.fail("Serializer validation failed", exc={'errors': e.detail})
+            return BaseResultWithData(
+                message="Validation failed.",
+                data={'errors': e.detail},
+                status_code=400
+            )
+
+        try:
+            with transaction.atomic():
+                claim = serializer.save()
+        except Exception as e:
+            op.fail("Unexpected error during claim creation", exc=e)
+            return BaseResultWithData(
+                message=f"An unexpected error occurred: {str(e)}",
+                status_code=500
+            )
+        
+
+        approval_link = request.build_absolute_uri(
+            f"/campus/api/campus/approve-claim?claim_id={claim.id}&email={claim.email}"
+        )
+        try:
+            background_task_send_lost_item_claim_email.delay(
+                item.item_name,
+                item.email, 
+                item.full_name, 
+                approval_link,
+                claim.full_name,
+                claim.answer1,
+                claim.answer2
+                )
         except OperationalError as e:
-            op.success("Account created successfully, but failed to queue verification email")
+            op.success("Successfully, but failed to queue verification email")
         else:
-            op.success("Account created successfully, verification email queued")
-
-            
-
-        # # ---- 5. All good – create the claim ----
-        # claim_data = {
-        #     'lost_item': item.id,
-        #     'answer1': answer1,
-        #     'answer2': answer2,
-        #     'full_name': full_name,
-        #     'email': email,
-        #     'phone': phone or None,
-        # }
-        # serializer = ClaimSerializer(data=claim_data)
-
-        # try:
-        #     serializer.is_valid(raise_exception=True)
-        # except serializers.ValidationError as e:
-        #     op.fail("Serializer validation failed", exc={'errors': e.detail})
-        #     return BaseResultWithData(
-        #         message="Validation failed.",
-        #         data={'errors': e.detail},
-        #         status_code=400
-        #     )
-
-        # try:
-        #     with transaction.atomic():
-        #         claim = serializer.save()
-        #         # Optionally mark the lost item as 'claimed'
-        #         # item.status = 'claimed'
-        #         # item.save(update_fields=['status'])
-        # except Exception as e:
-        #     op.fail("Unexpected error during claim creation", exc=e)
-        #     return BaseResultWithData(
-        #         message=f"An unexpected error occurred: {str(e)}",
-        #         status_code=500
-        #     )
+            op.success("Successfully, verification email queued")
 
         return BaseResultWithData(
             message="If your answer is right we will forward you the founder details. ",
+            status_code=200
+        )
+    
+
+    @staticmethod
+    def approve_claim(request, claim_id, email) -> BaseResultWithData:
+        op = OperationLogger("ClaimCommand.create_claim", data=claim_id + ' and ' + email)
+        op.start()
+        if not claim_id or not email:
+            return BaseResultWithData(
+                message="Invalid request: missing claim_id or email.",
+                status_code=400
+            )
+        
+        try:
+            claim = Claim.objects.filter(id=claim_id, email=email).first()
+        except Claim.DoesNotExist:
+            return BaseResultWithData(
+                message="Claim not found",
+                status_code=400
+            )
+        
+        lost_item = claim.lost_item
+
+        if lost_item.status.lower() != LostAndFoundStatusEnum.OPEN.value.lower():
+            op.fail("Item not claimable")
+            return BaseResultWithData(
+                message="This item has already been claimed or resolved.",
+                status_code=400
+            )
+        
+        lost_item.status = LostAndFoundStatusEnum.CLAIMED.value
+        lost_item.claimed_by = claim.full_name
+        lost_item.save()
+
+        try:
+            background_task_send_founder_details_to_claimer_email.delay(
+                lost_item.item_name,
+                lost_item.email, 
+                lost_item.full_name, 
+                lost_item.phone,
+                claim.full_name,
+                claim.email
+                )
+        except OperationalError as e:
+            op.success("Successfully, but failed to queue email")
+        else:
+            op.success("Successfully, email queued")
+
+        return BaseResultWithData (
+            message="Details has been forwarded.",
             status_code=200
         )

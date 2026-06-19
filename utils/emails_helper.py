@@ -165,21 +165,80 @@ Campus Connect Team
         
 
     @staticmethod
-    def send_lost_item_claim_email(email, full_name):
-        try:
-            subject = "We Have Received Your Report"
-            message = f"""
-Hello {full_name},
-This is a test email to shows that it working here
+    def send_lost_item_claim_email(item_name, founder_email, founder_full_name,
+                                   approval_link, claimer_full_name, answer1, answer2):
+
+        subject = f"Someone wants to claim your lost item: {item_name}"
+
+        message = f"""
+Hello {founder_full_name},
+
+A student named {claimer_full_name} has submitted a claim for the item "{item_name}" that you reported lost.
+
+Their answers to your verification questions:
+Q1: {answer1}
+Q2: {answer2}
+
+If you believe this is the rightful owner, please approve the claim by visiting the link below:
+{approval_link}
+
+If you do not recognise this claim, you can safely ignore this email.
 
 Best regards,
-Campus Connect Team
-            """
-            return EmailHelper.send_email(
+CampusConnect Team
+        """.strip()
+
+        try:
+            return send_mail(
                 subject=subject,
                 message=message,
-                recipient_list=[email],
-                fail_silently=False
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[founder_email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            print(f"Error sending report received email: {str(e)}")
+            return False
+        
+
+    @staticmethod
+    def send_founder_details_to_claimer_email(
+        item_name,
+        founder_email,
+        founder_full_name,
+        founder_phone,
+        claimer_full_name,
+        claimer_email
+    ):
+ 
+        subject = f"✅ Founder of '{item_name}' approved your claim – here's how to reach them"
+
+        message = f"""
+Hello {claimer_full_name},
+
+Good news! The founder of the item "{item_name}" has approved your claim and agreed to share their contact details with you.
+
+You can now reach out to them directly:
+
+📌 Founder's Name: {founder_full_name}
+📧 Email: {founder_email}
+📞 Phone: {founder_phone or 'Not provided'}
+
+Please contact them as soon as possible to arrange the reunion of the item.
+
+If you have any questions, feel free to contact us.
+
+Best regards,
+CampusConnect Team
+        """
+
+        try:
+            return send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[claimer_email],
+                fail_silently=False,
             )
         except Exception as e:
             print(f"Error sending report received email: {str(e)}")

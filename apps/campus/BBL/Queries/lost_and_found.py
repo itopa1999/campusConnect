@@ -1,6 +1,7 @@
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from apps.campus.models import LostAndFound
 from utils.base_result import BaseResultWithData
+from utils.enums import LostAndFoundStatusEnum
 from utils.log_helpers import OperationLogger
 
 
@@ -15,8 +16,8 @@ class GetLostItemsQuery:
 
         try:
             # Base queryset – only non‑deleted items, ordered newest first
+            # queryset = LostAndFound.objects.filter(is_deleted=False, status=LostAndFoundStatusEnum.OPEN.value).order_by('-created_at')
             queryset = LostAndFound.objects.filter(is_deleted=False).order_by('-created_at')
-
             paginator = Paginator(queryset, page_size)
 
             try:

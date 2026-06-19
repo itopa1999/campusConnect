@@ -1,7 +1,11 @@
 
 class ConstantHelper:
-    EDIT_DATE = int(3)
-    IMAGE_SIZE = 3145728 # 3 mb
-    POINT_CHARGES_FOR_HOT_SALES = 3
-    POINT_CHARGES_FOR_BANNER = 3
-    BASE_POINT = 1
+    EDIT_DATE = int(3) # This is for setting listing update limit. 
+    IMAGE_SIZE = 3145728 # 3 MB 
+    POINT_CHARGES_FOR_HOT_SALES = 3 # points charges for hot_sale
+    POINT_CHARGES_FOR_BANNER = 3 # points charges for hot_sale
+    BASE_POINT = 1 # base point(s).
+    POINT_SUBTRACTION = "subtract" # subtract
+    POINT_ADDITION = "addition" # add point 
+
+

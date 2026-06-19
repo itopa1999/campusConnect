@@ -1,12 +1,12 @@
 import re
-
-from apps.users.models import Badge
-from utils.enums import BadgeChoiceEnum
+from django.db import transaction
+from apps.users.models import Badge, PointTransaction
+from utils.constant_helper import ConstantHelper
+from utils.enums import BadgeChoiceEnum, PointTransactionTypeEnum
 from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
-import sys
 
 def validate_ui_email(email: str) -> tuple[bool, str]:
   
@@ -117,29 +117,61 @@ class BadgeService:
 
 class UpdatePointsService:
     @staticmethod
-    def update_points(user, points: int, action: str):
-        """Update user points with atomic transaction for data consistency"""
-        from django.db import transaction
-        
+    def update_points(user, points: int, action: str,
+                      transaction_type: str = 'other',
+                      description: str = '', reference: str = '', purchase=None):
+        """
+        Update user points and create a transaction record.
+
+        Args:
+            user: User instance.
+            points: Number of points to add or subtract.
+            action: 'add' or 'subtract'.
+            transaction_type: String from PointTransactionTypeEnum (e.g., 'purchase').
+            description: Optional description.
+            reference: Optional reference ID.
+            purchase: Optional PointPurchase instance.
+
+        Returns:
+            int: New points balance.
+        """
+        if action not in [ConstantHelper.POINT_ADDITION, ConstantHelper.POINT_SUBTRACTION]:
+            raise ValueError(f"Action must be {ConstantHelper.POINT_SUBTRACTION} or {ConstantHelper.POINT_ADDITION}")
+
+        # Validate transaction_type
+        valid_types = PointTransactionTypeEnum.values()
+        if transaction_type not in valid_types:
+            raise ValueError(f"Invalid transaction_type. Must be one of: {valid_types}")
+
         with transaction.atomic():
+            if action == ConstantHelper.POINT_ADDITION:
+                new_balance = user.points + points
+                amount = points
+            else:  # subtract
+                new_balance = max(user.points - points, 0)
+                amount = -points
 
-            if action == 'add':
-                user.points += points
-
-            elif action == 'subtract':
-                user.points = max(user.points - points, 0)
-
-            else:
-                raise ValueError("Action must be 'add' or 'subtract'")
-
+            # Update user balance
+            user.points = new_balance
             user.save(update_fields=['points'])
+
+            # Create transaction record
+            PointTransaction.objects.create(
+                user=user,
+                amount=amount,
+                balance_after=new_balance,
+                transaction_type=transaction_type,
+                description=description,
+                reference=reference,
+                purchase=purchase,
+            )
+
         return user.points
 
     @staticmethod
-    def check_points(user) -> int:
-        """Get user points without modification"""
-        return user.points
-    
+    def check_points(user):
+        """Return current points balance."""
+        return user.points    
 
 def convert_to_webp(instance, field_name, quality=30):
     """Convert an ImageField to WebP if not already WebP."""

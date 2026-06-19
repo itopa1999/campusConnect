@@ -317,6 +317,22 @@ admin.site.register(VerificationToken, VerificationTokenAdmin)
 admin.site.register(Badge, BadgeAdmin)
 
 
+# ========== PointTransaction Inline ==========
+class PointTransactionInline(admin.TabularInline):
+    model = PointTransaction
+    extra = 0
+    readonly_fields = ('amount', 'balance_after', 'transaction_type', 'description', 'reference', 'created_at')
+    fields = ('amount', 'balance_after', 'transaction_type', 'description', 'reference', 'created_at')
+    can_delete = False
+    show_change_link = True
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        # Optimize with select_related for user
+        return super().get_queryset(request).select_related('user')
+
+
+# ========== PointPackage Admin ==========
 @admin.register(PointPackage)
 class PointPackageAdmin(admin.ModelAdmin):
     list_display = ('points', 'price', 'price_per_point_display', 'savings_percentage_display', 'is_popular', 'is_best_value', 'sort_order')
@@ -367,6 +383,7 @@ class PointPackageAdmin(admin.ModelAdmin):
     unmark_best_value.short_description = "Unmark Best Value"
 
 
+# ========== PointPurchase Admin ==========
 @admin.register(PointPurchase)
 class PointPurchaseAdmin(admin.ModelAdmin):
     list_display = ('user_link', 'package_link', 'points_awarded', 'amount_paid', 'status', 'completed_at', 'created_at')
@@ -383,11 +400,11 @@ class PointPurchaseAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+    inlines = [PointTransactionInline]
     actions = ['mark_completed', 'mark_failed', 'mark_pending']
 
     def user_link(self, obj):
         from django.urls import reverse
-        from django.utils.html import format_html
         url = reverse('admin:users_user_change', args=[obj.user.id])
         display_name = obj.user.get_full_name() or obj.user.email
         return format_html('<a href="{}">{}</a>', url, display_name)
@@ -396,7 +413,6 @@ class PointPurchaseAdmin(admin.ModelAdmin):
 
     def package_link(self, obj):
         from django.urls import reverse
-        from django.utils.html import format_html
         url = reverse('admin:listings_pointpackage_change', args=[obj.package.id])
         return format_html('<a href="{}">{} pts – ₦{}</a>', url, obj.package.points, obj.package.price)
     package_link.short_description = 'Package'
@@ -414,3 +430,40 @@ class PointPurchaseAdmin(admin.ModelAdmin):
     def mark_pending(self, request, queryset):
         queryset.update(status='pending', completed_at=None)
     mark_pending.short_description = "Mark as Pending"
+
+
+# ========== PointTransaction Admin ==========
+@admin.register(PointTransaction)
+class PointTransactionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user_link', 'amount', 'balance_after', 'transaction_type_display', 'description', 'created_at')
+    list_filter = ('transaction_type', 'created_at')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'description', 'reference')
+    readonly_fields = ('user', 'amount', 'balance_after', 'transaction_type', 'description', 'reference', 'purchase', 'created_at')
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'amount', 'balance_after', 'transaction_type', 'description', 'reference', 'purchase')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        })
+    )
+    # Disable add/delete to preserve audit integrity
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def user_link(self, obj):
+        from django.urls import reverse
+        url = reverse('admin:users_user_change', args=[obj.user.id])
+        display_name = obj.user.get_full_name() or obj.user.email
+        return format_html('<a href="{}">{}</a>', url, display_name)
+    user_link.short_description = 'User'
+    user_link.admin_order_field = 'user__email'
+
+    def transaction_type_display(self, obj):
+        return obj.get_transaction_type_display()
+    transaction_type_display.short_description = 'Type'
+    transaction_type_display.admin_order_field = 'transaction_type'

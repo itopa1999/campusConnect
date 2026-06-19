@@ -8,7 +8,7 @@ from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import AdvertTypeEnum, ListingStatusType, ListingType
+from utils.enums import AdvertTypeEnum, ListingStatusType, ListingType, PointTransactionTypeEnum
 from utils.helpers import UpdatePointsService
 from utils.log_helpers import OperationLogger
 
@@ -18,7 +18,6 @@ class ListingCommand:
     def create_listing(user: User, data: dict) -> BaseResultWithData:
         """
         Create a listing after performing all business validations:
-        - Points ≥ 1
         - At least one hotspot
         - Image size < 3 MB
         - Image extension allowed (jpg, jpeg, png, webp)
@@ -78,7 +77,7 @@ class ListingCommand:
         if current_points < total_points_needed:
             op.fail("Insufficient points")
             return BaseResultWithData(
-                message="Insufficient points. You need at least 1 point to post.",
+                message=f"Insufficient points. You need at least {ConstantHelper.BASE_POINT} point to post.",
                 status_code=400
             )
 
@@ -156,7 +155,15 @@ class ListingCommand:
         try:
             with transaction.atomic():
                 listing = serializer.save(user=user)
-                UpdatePointsService.update_points(user, points=total_points_needed, action='subtract')
+                
+                UpdatePointsService.update_points(
+                    user=user,
+                    points=total_points_needed,
+                    action=ConstantHelper.POINT_SUBTRACTION,
+                    transaction_type=PointTransactionTypeEnum.LISTING_CREATION.value,
+                    description=f"Created listing: {listing.title}",
+                    reference=f"listing_{listing.id}"
+                )
                 op.success(f"Listing created: {listing.id}")
                 return BaseResultWithData(
                     message="Listing created successfully, It will appear in the marketplace within a few minutes.",
@@ -364,17 +371,25 @@ class ListingCommand:
 
             # Check points
             points = UpdatePointsService.check_points(user)
-            if points < 1:
+            if points < ConstantHelper.BASE_POINT:
                 op.fail("Insufficient points")
                 return BaseResultWithData(
-                    message="Insufficient points. You need 1 point to reactivate.",
+                    message=f"Insufficient points. You need {ConstantHelper.BASE_POINT} point to reactivate.",
                     status_code=400
                 )
 
             with transaction.atomic():
                 listing.status = ListingStatusType.ACTIVE.value
                 listing.save(update_fields=['status'])
-                UpdatePointsService.update_points(user, points=1, action='subtract')
+
+                UpdatePointsService.update_points(
+                    user=user,
+                    points=ConstantHelper.BASE_POINT,
+                    action=ConstantHelper.POINT_SUBTRACTION,
+                    transaction_type=PointTransactionTypeEnum.REACTIVATION.value,
+                    description=f"Reactivated listing: {listing.title}",
+                    reference=f"listing_{listing_id}"
+                )
 
             op.success(f"Listing {listing_id} reactivated")
             return BaseResultWithData(
