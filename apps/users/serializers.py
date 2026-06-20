@@ -47,3 +47,9 @@ class ConfirmResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=128, write_only=True, required=True)
     password = serializers.CharField(max_length=128, write_only=True, required=True)
     confirm_password = serializers.CharField(max_length=128, write_only=True, required=True)
+
+class BuyPointSerializer(serializers.Serializer):
+    amount = serializers.IntegerField(required=True)
+    gateway = serializers.CharField(max_length=200, required=True)
+    package_id = serializers.IntegerField(required=True)
+    points = serializers.IntegerField(required=True)

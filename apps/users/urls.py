@@ -17,6 +17,7 @@ urlpatterns = [
 
 
         path("point-packages", PointPackagesView.as_view(), name="point_packages"),
+        path("buy-points-initial", BuyPointView.as_view(), name="buy_points_initial")
     ])),
     path("report/", include([
         path("submit", SubmitReportView.as_view(), name="submit_contact_report"),

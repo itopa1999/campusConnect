@@ -3,7 +3,7 @@ from .base import *
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
-if os.environ.get("DATABASE_TYPE").lower() == "sqlite3":
+if os.environ.get("DATABASE_TYPE") == "sqlite3":
 
     DATABASES = {
         "default": {

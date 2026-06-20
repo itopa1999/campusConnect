@@ -9,3 +9,6 @@ class ConstantHelper:
     POINT_ADDITION = "addition" # add point 
 
 
+    MONNIFY = 'monnify'
+    FLUTTERWAVE = 'flutterwave'
+    PAYSTACK = 'paystack'

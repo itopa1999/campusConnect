@@ -14,6 +14,7 @@ from .serializers import *
 from .BBL.Commands.account_command import AccountCommand
 from .BBL.Commands.auth_command import AuthCommand
 from .BBL.Commands.report_command import ReportCommand
+from .BBL.Commands.buy_points import BuyPointsCommand
 
 
 class CreateAccountView(generics.GenericAPIView):
@@ -215,3 +216,13 @@ class PointPackagesView(APIView):
             'message': 'Data retrieved successfully',
             'data': data
         }, status=200)
+
+class BuyPointView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = BuyPointSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)        
+        result = BuyPointsCommand.execute(request, request.user, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
