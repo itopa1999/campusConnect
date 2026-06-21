@@ -143,7 +143,7 @@ def verify_paystack_payment(reference):
         "success": True,
         "message": "Payment confirmed and points added successfully.",
         "purchase": {
-            "id": purchase.id,
+            "purchase_id": purchase.id,
             "points_awarded": purchase.points_awarded,
             "amount_paid": float(purchase.amount_paid),
         }

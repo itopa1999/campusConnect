@@ -59,6 +59,8 @@ class PointPackagesQueries:
                     'price_per_point': PointPackagesQueries._format_price_per_point(pkg.price_per_point),
                     'savings_percentage': pkg.savings_percentage,
                 },
+                'gateway': purchase.gateway,
+                'payment_reference': purchase.payment_reference,
                 'points_awarded': purchase.points_awarded,
                 'amount_paid': float(purchase.amount_paid),
                 'status': purchase.status,
