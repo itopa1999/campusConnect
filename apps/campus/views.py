@@ -139,4 +139,4 @@ class ApproveClaimView(APIView):
             'message': result.message,
             'is_success': result.is_success
         }
-        return render(request, 'claim_approve.html', context)
+        return render(request, 'claim-approve.html', context)

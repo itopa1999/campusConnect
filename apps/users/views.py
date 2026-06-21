@@ -3,10 +3,12 @@ from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.views import APIView, status
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.shortcuts import render
 
+from apps.users.BBL.Queries.FlutterConfirm import FlutterwaveConfirmQuery
+from apps.users.BBL.Queries.PaystackConfirm import PaystackConfirmQuery
 from apps.users.BBL.Queries.point_packages import PointPackagesQueries
 from utils.base_result import BaseResultWithData
 from utils.helpers import UpdatePointsService
@@ -42,7 +44,7 @@ class VerifyAccountEmailView(generics.GenericAPIView):
             'message': result.message,
             'is_success': result.is_success
         }
-        return render(request, 'email_verification.html', context)
+        return render(request, 'email-verification.html', context)
     
 
 class ResendVerificationEmailView(generics.GenericAPIView):
@@ -71,7 +73,7 @@ class VerifyForgetPasswordEmailView(generics.GenericAPIView):
             'data': result.data,
             'is_success': result.is_success
         }
-        return render(request, 'password_reset_verification.html', context)
+        return render(request, 'password-reset-verification.html', context)
 
 
 class ConfirmResetPasswordView(generics.GenericAPIView):
@@ -225,4 +227,50 @@ class BuyPointView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)        
         result = BuyPointsCommand.execute(request, request.user, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class PaystackPointsConfirmView(APIView):
+    def get(self, request, reference, *args, **kwargs):
+        
+        result =  PaystackConfirmQuery.execute(reference)
+
+        context = {
+            'message': result.message,
+            'data': result.data,
+            'is_success': result.is_success
+        }
+        return render(request, 'payment-confirmation.html', context)
+    
+
+
+class MonnifyPointsConfirmView(APIView):
+    """Handle Monnify payment confirmation"""
+    def get(self, request, reference, *args, **kwargs):
+        # TODO: Implement Monnify validation
+        return Response(
+            {
+                "status": "pending",
+                "message": "Monnify payment confirmation - Implementation in progress",
+                "reference": reference,
+                "gateway": "monnify"
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class FlutterwavePointsConfirmView(APIView):
+    """Handle Flutterwave payment confirmation"""
+    def get(self, request, reference, *args, **kwargs):
+        return FlutterwaveConfirmQuery.execute(reference)
+
+
+class RetryPurchaseView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = RetryPurchaseSerailizer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)        
+        result = BuyPointsCommand.payment_retry(request, request.user, serializer.validated_data)
         return Response(result.to_dict(), status=result.status_code)

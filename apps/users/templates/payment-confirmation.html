@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>CampusConnect UI · Payment Confirmation</title>
+  <!-- Google Fonts + AOS + Particles CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #ffffff;
+      color: #1a2c2e;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    :root {
+      --accent: #2c7a5e;
+      --accent-light: #eaf7f0;
+      --accent-dark: #1f5e48;
+      --warm-gray: #f8f9fa;
+      --card-border: #eef2f0;
+      --text-dark: #1e2a2c;
+      --text-muted: #5a6e6f;
+    }
+
+    #particles-js {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .verification-card {
+      background: white;
+      border-radius: 2rem;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08);
+      max-width: 520px;
+      width: 100%;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      z-index: 1;
+      position: relative;
+      transition: transform 0.25s ease;
+    }
+
+    .icon {
+      font-size: 4rem;
+      width: 100px;
+      height: 100px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .icon.success {
+      color: var(--accent);
+    }
+
+    .icon.error {
+      color: #dc3545;
+    }
+
+    .icon i {
+      font-size: 3rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    h1.success {
+      color: var(--accent-dark);
+    }
+
+    h1.error {
+      color: #b91c2c;
+    }
+
+    .message {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .points-detail {
+      background: var(--warm-gray);
+      border-radius: 1rem;
+      padding: 1rem 1.5rem;
+      display: inline-block;
+      margin: 1rem auto 1.5rem;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+    .points-detail span {
+      color: var(--accent);
+      font-size: 1.2rem;
+    }
+
+    .btn-primary-custom {
+      background-color: var(--accent);
+      border: none;
+      padding: 0.75rem 1.8rem;
+      font-weight: 600;
+      border-radius: 40px;
+      transition: all 0.2s ease;
+      color: white;
+      font-size: 0.95rem;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0 2px 6px rgba(44, 122, 94, 0.15);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary-custom:hover {
+      background-color: var(--accent-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(44, 122, 94, 0.2);
+      color: white;
+    }
+
+    .btn-outline-custom {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 0.75rem 1.8rem;
+      font-weight: 600;
+      border-radius: 40px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 0.5rem;
+      cursor: pointer;
+      border: 1px solid var(--accent);
+    }
+
+    .btn-outline-custom:hover {
+      background: var(--accent-light);
+      color: var(--accent-dark);
+    }
+
+    .btn-outline-custom:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--card-border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #dc3545;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 480px) {
+      .verification-card {
+        padding: 1.8rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+      .icon {
+        width: 80px;
+        height: 80px;
+      }
+      .icon i {
+        font-size: 2.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="particles-js"></div>
+
+<div class="verification-card" data-aos="fade-up" data-aos-duration="800">
+  {% if is_success %}
+    <!-- SUCCESS -->
+    <div class="icon success">
+      <i class="fas fa-check-circle"></i>
+    </div>
+    <h1 class="success">Payment Successful! 🎉</h1>
+    <p class="message">{{ message }}</p>
+    <div class="points-detail">
+      +<span>{{ data.points_awarded }}</span> points added to your account
+    </div>
+    <br>
+    <a href="/dash/main.html" class="btn-primary-custom">
+      <i class="fas fa-home me-2"></i> Go to Dashboard
+    </a>
+  {% else %}
+    <!-- FAILURE -->
+    <div class="icon error">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <h1 class="error">Payment Failed</h1>
+    <p class="message">{{ message }}</p>
+    <br>
+    <button id="retryBtn" class="btn-outline-custom">
+      <i class="fas fa-sync-alt me-2"></i> Retry Payment
+    </button>
+    <br>
+    <a href="/dash/main.html" class="btn-primary-custom mt-3" style="margin-top: 1rem;">
+      <i class="fas fa-arrow-left me-2"></i> Go to Dashboard
+    </a>
+  {% endif %}
+
+  <div class="footer">
+    <p>Need help? <a href="#" style="color: var(--accent); text-decoration: none;">Contact Support</a></p>
+  </div>
+</div>
+
+<!-- Toast for error messages -->
+<div id="toast" class="toast"></div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<script>
+  AOS.init({ duration: 700, once: true, offset: 20 });
+
+  if (typeof particlesJS !== 'undefined') {
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 40, density: { enable: true, value_area: 800 } },
+        color: { value: '#2c7a5e' },
+        shape: { type: 'circle' },
+        opacity: { value: 0.25, random: true },
+        size: { value: 3, random: true },
+        line_linked: { enable: true, distance: 150, color: '#2c7a5e', opacity: 0.15, width: 1 },
+        move: { enable: true, speed: 1, direction: 'none', random: false, straight: false, out_mode: 'out' }
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true }
+      },
+      retina_detect: true
+    });
+  }
+
+  // Retry logic
+  document.addEventListener('DOMContentLoaded', function() {
+    const retryBtn = document.getElementById('retryBtn');
+    if (!retryBtn) return;
+
+    const reference = '{{ data.reference }}';
+    const retryUrl = '/user/api/auth/payment-retry/';  // adjust to your actual endpoint
+
+    retryBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const originalText = retryBtn.innerHTML;
+      retryBtn.disabled = true;
+      retryBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Processing...';
+
+      fetch(retryUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Authorization': 'Bearer ' + getCookie('access_token')  // if using token auth
+        },
+        body: JSON.stringify({ reference_id: reference })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.is_success && data.data && data.data.checkout_url) {
+          // Redirect to new payment gateway
+          window.location.href = data.data.checkout_url;
+        } else {
+          showToast(data.message || 'Failed to initiate retry. Please try again later.');
+          retryBtn.disabled = false;
+          retryBtn.innerHTML = originalText;
+        }
+      })
+      .catch(err => {
+        console.error('Retry error:', err);
+        showToast('Network error. Please check your connection.');
+        retryBtn.disabled = false;
+        retryBtn.innerHTML = originalText;
+      });
+    });
+  });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 4000);
+  }
+</script>
+</body>
+</html>

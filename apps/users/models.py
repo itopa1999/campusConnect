@@ -271,6 +271,13 @@ class PointPurchase(BaseModel):
         help_text="When the purchase was successfully completed"
     )
 
+    gateway = models.CharField(
+        blank=True,
+        max_length=200,
+        null=True,
+        help_text="payment_gateway"
+    )
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = "Point Purchase"

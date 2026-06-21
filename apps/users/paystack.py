@@ -32,6 +32,7 @@ def initiate_paystack(request, user, package):
                 amount_paid=package.price,
                 payment_reference=ref,
                 status=PointPurchaseStatusEnum.PENDING.value,
+                gateway = ConstantHelper.PAYSTACK
             )
     except Exception as e:
         op.fail(f"Failed to create purchase record: {str(e)}")

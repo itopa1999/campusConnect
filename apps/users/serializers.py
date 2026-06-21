@@ -53,3 +53,6 @@ class BuyPointSerializer(serializers.Serializer):
     gateway = serializers.CharField(max_length=200, required=True)
     package_id = serializers.IntegerField(required=True)
     points = serializers.IntegerField(required=True)
+
+class RetryPurchaseSerailizer(serializers.Serializer):
+    reference_id = serializers.CharField(max_length=200, required=True)

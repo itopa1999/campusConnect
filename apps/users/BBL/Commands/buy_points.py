@@ -1,9 +1,10 @@
 from decimal import Decimal
-from apps.users.models import PointPackage
+from apps.users.models import PointPackage, PointPurchase
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
+from utils.enums import PointPurchaseStatusEnum
 from utils.log_helpers import OperationLogger
-from apps.users.paystack import initiate_paystack
+from apps.users.paystack import initiate_paystack, verify_paystack_payment
 from apps.users.flutterwave import initiate_flutterwave
 
 
@@ -99,3 +100,77 @@ class BuyPointsCommand:
             status_code=200,
             message="Payment initialized successfully."
         )
+    
+    @staticmethod
+    def payment_retry(request, user, data: dict) -> BaseResultWithData:
+        """
+        Retry a failed payment or verify a pending payment.
+        """
+        op = OperationLogger("BuyPointsCommand.payment_retry", data=data)
+        op.start()
+
+        reference = data.get('reference_id')
+        if not reference:
+            op.fail("Reference ID missing")
+            return BaseResultWithData(
+                message="Reference ID is required.",
+                status_code=400
+            )
+
+        # Find the purchase
+        purchase = PointPurchase.objects.filter(
+            payment_reference=reference,
+            user=user
+        ).first()
+
+        if not purchase:
+            op.fail("Purchase not found")
+            return BaseResultWithData(
+                message="Purchase not found.",
+                status_code=404
+            )
+
+        # If already completed, return success
+        if purchase.status == PointPurchaseStatusEnum.COMPLETED.value:
+            op.success("Purchase already completed")
+            return BaseResultWithData(
+                message="Purchase already completed.",
+                status_code=200
+            )
+
+        if purchase.status in {
+            PointPurchaseStatusEnum.PENDING.value,
+            PointPurchaseStatusEnum.FAILED.value
+        }:
+            if purchase.gateway == ConstantHelper.PAYSTACK:
+                result = verify_paystack_payment(reference)
+            elif purchase.gateway == ConstantHelper.FLUTTERWAVE:
+                result = verify_paystack_payment(reference)
+            elif purchase.gateway == ConstantHelper.MONNIFY:
+                result = verify_paystack_payment(reference)
+            else:
+                return BaseResultWithData(
+                    message="Gateway not provided.",
+                    status_code=400
+                )
+            if result.get("success"):
+                op.success("Payment verified successfully")
+                return BaseResultWithData(
+                    message=result.get("message", "Payment verified."),
+                    data=result.get("purchase"),
+                    status_code=200
+                )
+            else:
+                # Verification failed – could be network or the user didn't pay
+                # We'll return the error and let the user decide to retry
+                op.fail("Verification failed", extra=result)
+                return BaseResultWithData(
+                    message=result.get("error", "Verification failed."),
+                    status_code=400
+                )
+
+        # If failed, return error
+        return Response({
+            "is_success": False,
+            "message": "Purchase has failed. Please try again.",
+        }, status=400)
