@@ -386,7 +386,7 @@ class PointPackageAdmin(admin.ModelAdmin):
 # ========== PointPurchase Admin ==========
 @admin.register(PointPurchase)
 class PointPurchaseAdmin(admin.ModelAdmin):
-    list_display = ('user_link', 'package_link', 'points_awarded', 'amount_paid', 'status', 'completed_at', 'created_at')
+    list_display = ('user_link', 'package_link', 'points_awarded', 'gateway', 'amount_paid', 'status', 'completed_at', 'created_at')
     list_filter = ('status', 'completed_at', 'created_at')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'package__description', 'payment_reference')
     readonly_fields = ('created_at', 'modified_at', 'points_awarded', 'amount_paid')
@@ -413,7 +413,9 @@ class PointPurchaseAdmin(admin.ModelAdmin):
 
     def package_link(self, obj):
         from django.urls import reverse
-        url = reverse('admin:listings_pointpackage_change', args=[obj.package.id])
+        app_label = obj.package._meta.app_label
+        model_name = obj.package._meta.model_name
+        url = reverse(f'admin:{app_label}_{model_name}_change', args=[obj.package.id])
         return format_html('<a href="{}">{} pts – ₦{}</a>', url, obj.package.points, obj.package.price)
     package_link.short_description = 'Package'
     package_link.admin_order_field = 'package__points'

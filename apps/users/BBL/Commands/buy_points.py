@@ -26,7 +26,7 @@ class BuyPointsCommand:
             if not points: missing.append('points')
             if not amount: missing.append('amount')
             if not gateway: missing.append('gateway')
-            op.fail("Missing required fields", extra={'missing': missing})
+            op.fail("Missing required fields", exc={'missing': missing})
             return BaseResultWithData(
                 message=f"Missing required fields: {', '.join(missing)}",
                 status_code=400
@@ -109,17 +109,17 @@ class BuyPointsCommand:
         op = OperationLogger("BuyPointsCommand.payment_retry", data=data)
         op.start()
 
-        reference = data.get('reference_id')
-        if not reference:
-            op.fail("Reference ID missing")
+        purchase_id = data.get('purchase_id')
+        if not purchase_id:
+            op.fail("purchase_id ID missing")
             return BaseResultWithData(
-                message="Reference ID is required.",
+                message="Purchase ID is required.",
                 status_code=400
             )
 
         # Find the purchase
         purchase = PointPurchase.objects.filter(
-            payment_reference=reference,
+            id=purchase_id,
             user=user
         ).first()
 
@@ -143,11 +143,11 @@ class BuyPointsCommand:
             PointPurchaseStatusEnum.FAILED.value
         }:
             if purchase.gateway == ConstantHelper.PAYSTACK:
-                result = verify_paystack_payment(reference)
+                result = verify_paystack_payment(purchase.payment_reference)
             elif purchase.gateway == ConstantHelper.FLUTTERWAVE:
-                result = verify_paystack_payment(reference)
+                result = verify_paystack_payment(purchase.payment_reference)
             elif purchase.gateway == ConstantHelper.MONNIFY:
-                result = verify_paystack_payment(reference)
+                result = verify_paystack_payment(purchase.payment_reference)
             else:
                 return BaseResultWithData(
                     message="Gateway not provided.",
@@ -163,14 +163,8 @@ class BuyPointsCommand:
             else:
                 # Verification failed – could be network or the user didn't pay
                 # We'll return the error and let the user decide to retry
-                op.fail("Verification failed", extra=result)
+                op.fail("Verification failed", exc=result)
                 return BaseResultWithData(
                     message=result.get("error", "Verification failed."),
                     status_code=400
                 )
-
-        # If failed, return error
-        return Response({
-            "is_success": False,
-            "message": "Purchase has failed. Please try again.",
-        }, status=400)

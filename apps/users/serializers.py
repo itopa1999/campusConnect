@@ -55,4 +55,4 @@ class BuyPointSerializer(serializers.Serializer):
     points = serializers.IntegerField(required=True)
 
 class RetryPurchaseSerailizer(serializers.Serializer):
-    reference_id = serializers.CharField(max_length=200, required=True)
+    purchase_id = serializers.CharField(max_length=200, required=True)
