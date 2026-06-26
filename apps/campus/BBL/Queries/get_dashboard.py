@@ -82,6 +82,9 @@ class DashboardQuery:
         all_listings = []
         for listing in all_listings_qs:
             location = [hs.name for hs in listing.hotspots.all()] or ["Campus"]
+            image_url = None
+            if listing.image:
+                image_url = request.build_absolute_uri(listing.image.url)
             all_listings.append({
                 'id': listing.id,
                 'title': listing.title,
@@ -94,7 +97,7 @@ class DashboardQuery:
                 'lisiting_type': listing.listing_type,
                 'location': location,
                 'status': listing.status,
-                'image': listing.image.url if listing.image else None,
+                'image': image_url,
                 'created_at_humanized': DashboardQuery._humanize_date(listing.created_at),
             })
 

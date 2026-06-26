@@ -6,7 +6,7 @@ from django.db.models import Avg, Count
 
 class GetListingDetailQuery:
     @staticmethod
-    def get_listing_detail(user: User, listing_id: int) -> BaseResultWithData:
+    def get_listing_detail(request, user: User, listing_id: int) -> BaseResultWithData:
         """
         Fetch full details of a listing owned by the user.
         """
@@ -52,7 +52,9 @@ class GetListingDetailQuery:
                     'created_at': rev.created_at.isoformat(),
                 })
 
-
+            image_url = None
+            if listing.image:
+                image_url = request.build_absolute_uri(listing.image.url)
 
             data = {
                 'id': listing.id,
@@ -68,7 +70,7 @@ class GetListingDetailQuery:
                 'lisiting_type': listing.listing_type,
                 'hotspots': hotspot_ids,
                 'hotspot_names': hotspot_names,
-                'image': listing.image.url if listing.image else None,
+                'image': image_url,
                 'created_at': listing.created_at.isoformat(),
                 'modified_at': listing.modified_at.isoformat(),
                 'expires_at': listing.expires_at.isoformat() if listing.expires_at else None,

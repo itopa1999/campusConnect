@@ -19,7 +19,7 @@ class GetIndexDefaultLisitingView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        result = IndexProductsQuery.get_index_product()
+        result = IndexProductsQuery.get_index_product(request)
         return Response(result.to_dict(), status=result.status_code)
 
 class GetDashboardView(APIView):
@@ -53,10 +53,11 @@ class MarkAsSoldView(APIView):
         return Response(result.to_dict(), status=result.status_code)
     
 
-class UploadImageView(APIView):
+class UploadImageView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = UploadLisitingImageSerializer
     def patch(self, request, listing_id):
-        result = ListingCommand.image_upload(request.user, listing_id, )
+        result = ListingCommand.image_upload(request.user, listing_id, request.FILES.get('image'))
         return Response(result.to_dict(), status=result.status_code)
     
 
@@ -64,7 +65,7 @@ class ListingDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, listing_id):
-        result = GetListingDetailQuery.get_listing_detail(request.user, listing_id)
+        result = GetListingDetailQuery.get_listing_detail(request, request.user, listing_id)
         return Response(result.to_dict(), status=result.status_code)
     
     def put(self, request, listing_id):

@@ -179,9 +179,6 @@ class ListingCommand:
         
     @staticmethod
     def update_listing(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
-        """
-        Update a listing. Enforces {ConstantHelper.EDIT_DATE}-day edit restriction for non-status changes.
-        """
         op = OperationLogger("UpdateListingCommand.update_listing", data={'listing_id': listing_id, **data})
         op.start()
 
@@ -199,9 +196,8 @@ class ListingCommand:
                     status_code=404
                 )
 
-            # Check {ConstantHelper.EDIT_DATE} restriction (skip for status change)
+            # Check edit restriction (skip if only status changes – but we don't have status in data)
             fields_to_update = set(data.keys())
-
             if fields_to_update and listing.modified_at:
                 days_since = (timezone.now() - listing.modified_at).days
                 if days_since < ConstantHelper.EDIT_DATE:
@@ -211,24 +207,42 @@ class ListingCommand:
                         status_code=400
                     )
 
+            # ─── 1. Handle category ─────────────────────────────────────
+            # The frontend may send 'category_id' or 'category'
+            if 'category_id' in data:
+                data['category'] = data.pop('category_id')
+            # Ensure category is an integer
             if 'category' in data:
-                data['category_id'] = data.pop('category')
+                try:
+                    data['category'] = int(data['category'])
+                except (ValueError, TypeError):
+                    op.fail("Invalid category ID")
+                    return BaseResultWithData(
+                        message="Category must be a valid ID.",
+                        status_code=400
+                    )
 
-            # Handle hotspots: if present,
+            # ─── 2. Handle hotspots ─────────────────────────────────────
+            # Remove 'hotspots' from data so it doesn't reach the serializer
+            hotspot_ids = None
             if 'hotspots' in data:
-                hotspot_ids = data['hotspots']
-                if isinstance(hotspot_ids, str):
+                raw_hotspots = data.pop('hotspots')
+                if isinstance(raw_hotspots, str):
                     try:
-                        hotspot_ids = json.loads(hotspot_ids)
+                        hotspot_ids = json.loads(raw_hotspots)
                     except json.JSONDecodeError:
                         hotspot_ids = None
+                else:
+                    hotspot_ids = raw_hotspots
+
                 if not hotspot_ids or not isinstance(hotspot_ids, list) or len(hotspot_ids) == 0:
                     op.fail("No meeting spots selected")
                     return BaseResultWithData(
                         message="Please select at least one meeting spot.",
                         status_code=400
                     )
-                # Ensure all exist
+
+                # Validate all hotspots exist
                 existing_hotspots = CampusHotspot.objects.filter(id__in=hotspot_ids, is_deleted=False)
                 if existing_hotspots.count() != len(hotspot_ids):
                     op.fail("Invalid hotspot IDs")
@@ -236,8 +250,8 @@ class ListingCommand:
                         message="One or more meeting spots are invalid.",
                         status_code=400
                     )
-                data['_hotspots'] = hotspot_ids
 
+            # ─── 3. Price parsing ──────────────────────────────────────
             if 'price' in data:
                 raw_price = data['price']
                 if raw_price is None or raw_price == '':
@@ -258,6 +272,7 @@ class ListingCommand:
                             status_code=400
                         )
 
+            # ─── 4. Listing type validation ────────────────────────────
             if 'listing_type' in data and data['listing_type'] not in ListingType.values():
                 op.fail("Invalid listing type")
                 return BaseResultWithData(
@@ -273,8 +288,9 @@ class ListingCommand:
                         status_code=400
                     )
 
-            # --- Serializer validation ---
-            serializer = ListingSerializer(listing, data=data, partial=partial, context={'user': user})
+            # ─── 5. Serializer validation ──────────────────────────────
+            # Always use partial=True so missing fields are allowed
+            serializer = ListingSerializer(listing, data=data, partial=True, context={'user': user})
             try:
                 serializer.is_valid(raise_exception=True)
             except serializers.ValidationError as e:
@@ -285,10 +301,12 @@ class ListingCommand:
                     status_code=400
                 )
 
+            # ─── 6. Save within transaction ────────────────────────────
             with transaction.atomic():
                 updated_listing = serializer.save()
-                if '_hotspots' in data:
-                    updated_listing.hotspots.set(data['_hotspots'])
+                # Handle hotspots if provided
+                if hotspot_ids is not None:
+                    updated_listing.hotspots.set(hotspot_ids)
                     updated_listing.save(update_fields=['modified_at'])
 
                 op.success(f"Listing {listing_id} updated")

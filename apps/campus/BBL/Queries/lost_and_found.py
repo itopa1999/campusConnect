@@ -7,7 +7,7 @@ from utils.log_helpers import OperationLogger
 
 class GetLostItemsQuery:
     @staticmethod
-    def get_items(page: int = 1, page_size: int = 10) -> BaseResultWithData:
+    def get_items(request, page: int = 1, page_size: int = 10) -> BaseResultWithData:
         """
         Fetch paginated lost items (excludes answer1 and answer2).
         """
@@ -30,6 +30,9 @@ class GetLostItemsQuery:
             # Build safe data list (exclude answers)
             items_data = []
             for item in items_page:
+                image_url = None
+                if item.image:
+                    image_url = request.build_absolute_uri(item.image.url)
                 items_data.append({
                     'id': item.id,
                     'item_name': item.item_name,
@@ -39,7 +42,7 @@ class GetLostItemsQuery:
                     'status': item.status,
                     'verification1': item.verification1,   # question 1 (safe)
                     'verification2': item.verification2,   # question 2 (safe)
-                    'image': item.image.url if item.image else None,
+                    'image': image_url,
                     'created_at': item.created_at.isoformat(),
                     'modified_at': item.modified_at.isoformat(),
                     # answer1 and answer2 are intentionally omitted

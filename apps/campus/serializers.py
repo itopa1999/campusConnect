@@ -54,3 +54,7 @@ class ClaimSerializer(serializers.ModelSerializer):
             'full_name', 'email', 'phone'
         ]
         read_only_fields = ['id']
+
+
+class UploadLisitingImageSerializer(serializers.Serializer):
+    image = serializers.ImageField()

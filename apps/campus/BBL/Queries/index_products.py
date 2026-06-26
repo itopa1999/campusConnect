@@ -5,7 +5,7 @@ from utils.enums import ListingStatusType
 
 class IndexProductsQuery:
     @staticmethod
-    def get_index_product(limit=6):
+    def get_index_product(request, limit=6):
         """Return the 6 most recent active listings for the homepage."""
         now = timezone.now()
 
@@ -18,7 +18,9 @@ class IndexProductsQuery:
         listings_data = []
         for listing in queryset:
             location = listing.hotspots.first().name if listing.hotspots.exists() else "Campus"
-
+            image_url = None
+            if listing.image:
+                image_url = request.build_absolute_uri(listing.image.url)
             listings_data.append({
                 'id': listing.id,
                 'title': listing.title,
@@ -28,7 +30,7 @@ class IndexProductsQuery:
                 'description': listing.description or "",
                 'badge': listing.badge,
                 'type': listing.listing_type,
-                'image': listing.image.url if listing.image else None,
+                'image': image_url
             })
 
         return BaseResultWithData(
