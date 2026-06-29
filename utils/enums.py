@@ -172,6 +172,7 @@ class PointPurchaseStatusEnum(Enum):
     
 
 class PointTransactionTypeEnum(Enum):
+    ACCOUNT_CREATION_BONUS = 'account_creation_bonus'
     PURCHASE = 'purchase'
     LISTING_CREATION = 'listing_creation'
     REACTIVATION = 'reactivation'
@@ -181,6 +182,18 @@ class PointTransactionTypeEnum(Enum):
     TRANSFER = 'transfer'
     REFUND = 'refund'
     OTHER = 'other'
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+    
+class FeatureFlagEnum(Enum):
+    FREE_BANNER = "free_banner"
+    ACCOUNT_CREATION_BONUS= "account_creation_bonus"
 
     @classmethod
     def choices(cls):

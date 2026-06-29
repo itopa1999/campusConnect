@@ -41,7 +41,7 @@ class User(BaseModel, AbstractUser):
         null=True,
         help_text="Upload a profile picture that will appear on all your product listings"
     )
-    points = models.PositiveIntegerField(validators=[MinValueValidator(0)],null=True)
+    points = models.PositiveIntegerField(validators=[MinValueValidator(0)],null=True, default=0)
     matric_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
     student_id_photo = models.ImageField(upload_to='student_ids/', null =True, blank=True)
     student_id_verified = models.BooleanField(default=False)
@@ -340,3 +340,20 @@ class PointTransaction(BaseModel):
     def __str__(self):
         sign = '+' if self.amount > 0 else ''
         return f"{self.user.email}: {sign}{self.amount} points ({self.transaction_type})"
+    
+
+class FeatureFlag(BaseModel):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    users = models.ManyToManyField(User,
+        blank=True)
+
+    class Meta:
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['name', 'is_active', 'is_deleted']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({'active' if self.is_active else 'inactive'})"

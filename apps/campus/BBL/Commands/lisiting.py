@@ -74,6 +74,7 @@ class ListingCommand:
 
         # --- 1. Points check ---
         current_points = UpdatePointsService.check_points(user)
+        print(current_points, total_points_needed)
         if current_points < total_points_needed:
             op.fail("Insufficient points")
             return BaseResultWithData(

@@ -335,5 +335,23 @@
       "is_best_value": false,
       "sort_order": 4
     }
+  ],
+  "featureflag": [
+    {
+      "id": 1,
+      "name": "account_creation_bonus",
+      "description": "Grants 3 bonus points to users upon successful account creation.",
+      "is_active": true,
+      "users": [],
+      "is_deleted": false
+    },
+    {
+      "id": 2,
+      "name": "free_banner",
+      "description": "Allows eligible users to promote their listing with a free banner (no point deduction).",
+      "is_active": false,
+      "users": [],
+      "is_deleted": false
+    }
   ]
 }

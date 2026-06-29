@@ -1,9 +1,11 @@
 from apps.users.models import User, VerificationToken
 from utils.Tasks.emailService import background_task_send_account_verify_email, background_task_send_verification_email
 from utils.base_result import BaseResult, BaseResultWithData
-from utils.enums import BadgeChoiceEnum, DefaultPointEnum, TokenType
+from utils.constant_helper import ConstantHelper
+from utils.enums import BadgeChoiceEnum, DefaultPointEnum, FeatureFlagEnum, PointTransactionTypeEnum, TokenType
 from utils.emails_helper import EmailHelper
-from utils.helpers import BadgeService, validate_ui_email, normalize_nigerian_phone
+from utils.featureflag import is_feature_active
+from utils.helpers import BadgeService, UpdatePointsService, validate_ui_email, normalize_nigerian_phone
 from django.db import transaction
 from utils.log_helpers import logger, OperationLogger
 from celery.exceptions import OperationalError
@@ -61,10 +63,20 @@ class AccountCommand:
                     first_name=validated_data.get('first_name'),
                     last_name=validated_data.get('last_name'),
                     password=password,
-                    points = 3,
                     is_active=True,
                     email_verified=False
                 )
+
+                if is_feature_active(FeatureFlagEnum.ACCOUNT_CREATION_BONUS.value):
+                    UpdatePointsService.update_points(
+                        user=user,
+                        points=3,
+                        action=ConstantHelper.POINT_ADDITION,
+                        transaction_type=PointTransactionTypeEnum.ACCOUNT_CREATION_BONUS.value,
+                        description=f"Account Creation Bouns",
+                        reference=f"user_id: {user.id}"
+                    )
+
                 BadgeService.set(user, [BadgeChoiceEnum.UN_VERIFIED.value])
 
                 verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)

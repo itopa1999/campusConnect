@@ -10,12 +10,12 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.campus.models import CampusHotspot, Category, Listing, ListingHotspot
-from apps.users.models import Badge, PointPackage, User
+from apps.users.models import Badge, FeatureFlag, PointPackage, User
 from utils.enums import BadgeListingType, GroupNames, ListingStatusType, ListingType
 
 
 class Command(BaseCommand):
-    help = "Seed categories, campus hotspots, badges, and sample listings from utils/lookups.json"
+    help = "Seed categories, campus hotspots, badges, feature flags, point packages, and sample listings from utils/lookups.json"
 
     def handle(self, *args, **options):
         # ------------------- 1. Create default groups -------------------
@@ -77,6 +77,7 @@ class Command(BaseCommand):
         badges = lookup_data.get("badges", [])
         listings_data = lookup_data.get("listings", [])
         points_data = lookup_data.get("points", [])
+        feature_flags_data = lookup_data.get("featureflag", [])
 
         created = {
             "categories": 0,
@@ -84,16 +85,18 @@ class Command(BaseCommand):
             "badges": 0,
             "listings_created": 0,
             "listings_updated": 0,
-            "point_packages": 0
+            "point_packages": 0,
+            "feature_flags": 0,
         }
         updated = {
             "categories": 0,
             "hotspots": 0,
             "badges": 0,
-            "point_packages": 0
+            "point_packages": 0,
+            "feature_flags": 0,
         }
 
-        # ------------------- 4. Seed categories, hotspots, badges -------------------
+        # ------------------- 4. Seed categories, hotspots, badges, feature flags -------------------
         with transaction.atomic():
             for category in categories:
                 defaults = {
@@ -140,10 +143,28 @@ class Command(BaseCommand):
                 else:
                     updated["badges"] += 1
 
+            # ------------------- Feature Flags -------------------
+            for flag_data in feature_flags_data:
+                defaults = {
+                    "description": flag_data.get("description", ""),
+                    "is_active": flag_data.get("is_active", True),
+                    "is_deleted": False,
+                }
+                obj, was_created = FeatureFlag.objects.update_or_create(
+                    name=flag_data.get("name"),
+                    defaults=defaults,
+                )
+                # users ManyToMany is left empty by default
+                if was_created:
+                    created["feature_flags"] += 1
+                else:
+                    updated["feature_flags"] += 1
+
         self.stdout.write(self.style.SUCCESS(
             f"Seed complete: {created['categories']} categories created, {updated['categories']} updated; "
             f"{created['hotspots']} hotspots created, {updated['hotspots']} updated; "
-            f"{created['badges']} badges created, {updated['badges']} updated."
+            f"{created['badges']} badges created, {updated['badges']} updated; "
+            f"{created['feature_flags']} feature flags created, {updated['feature_flags']} updated."
         ))
 
         # ------------------- 5. Seed sample listings with create-or-update -------------------
@@ -164,7 +185,6 @@ class Command(BaseCommand):
             category = random.choice(Category.objects.all())
             badge = random.choice(badge_choices)
 
-            # Create or update listing
             listing, was_created = Listing.objects.update_or_create(
                 title=title,
                 user=admin_user,
@@ -185,14 +205,6 @@ class Command(BaseCommand):
             else:
                 created["listings_updated"] += 1
 
-            # --- Handle hotspots: clear existing and assign new ones ---
-            # Option 1: clear all existing hotspot relations and reassign
-            # ListingHotspot.objects.filter(listing=listing).delete()
-            # selected_hotspots = random.sample(list(CampusHotspot.objects.all()), min(2, CampusHotspot.objects.count()))
-            # for hotspot in selected_hotspots:
-            #     ListingHotspot.objects.create(listing=listing, hotspot=hotspot)
-
-            # Option 2: use get_or_create to avoid duplicates (if unique_together exists)
             all_hotspots = list(CampusHotspot.objects.all())
             if len(all_hotspots) >= 2:
                 selected = random.sample(all_hotspots, 2)

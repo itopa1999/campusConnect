@@ -154,7 +154,7 @@ class VerificationTokenAdmin(admin.ModelAdmin):
             'fields': ('is_used',)
         }),
         ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
+            'fields': ('created_at', 'modified_at'),
             'classes': ('collapse',)
         }),
     )
@@ -469,3 +469,59 @@ class PointTransactionAdmin(admin.ModelAdmin):
         return obj.get_transaction_type_display()
     transaction_type_display.short_description = 'Type'
     transaction_type_display.admin_order_field = 'transaction_type'
+
+
+from django.utils.translation import gettext_lazy as _
+
+@admin.register(FeatureFlag)
+class FeatureFlagAdmin(admin.ModelAdmin):
+    """
+    Admin interface for FeatureFlag.
+    """
+    list_display = (
+        'name',
+        'is_active',
+        'users_count',
+        'created_at',
+        'modified_at',
+    )
+    list_filter = (
+        'is_active',
+        'is_deleted',   
+    )
+    search_fields = ('name', 'description')
+    readonly_fields = ('created_at', 'modified_at')
+    filter_horizontal = ('users',) 
+
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'description', 'is_active', 'users')
+        }),
+        (_('System Fields'), {
+            'fields': ('created_at', 'modified_at', 'is_deleted'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    actions = ['activate_features', 'deactivate_features']
+
+    def get_queryset(self, request):
+        """Exclude soft‑deleted records by default."""
+        qs = super().get_queryset(request)
+        return qs.filter(is_deleted=False)
+
+    def users_count(self, obj):
+        """Return the number of users assigned to this flag."""
+        return obj.users.count()
+    users_count.short_description = _('Users')
+    users_count.admin_order_field = 'users__count'
+
+    @admin.action(description=_('Activate selected features'))
+    def activate_features(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, _('{0} features activated.').format(updated))
+
+    @admin.action(description=_('Deactivate selected features'))
+    def deactivate_features(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, _('{0} features deactivated.').format(updated))

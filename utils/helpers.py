@@ -171,7 +171,7 @@ class UpdatePointsService:
     @staticmethod
     def check_points(user):
         """Return current points balance."""
-        return user.points    
+        return user.points or 0  
 
 def convert_to_webp(instance, field_name, quality=30):
     """Convert an ImageField to WebP if not already WebP."""
