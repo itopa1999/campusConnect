@@ -1,18 +1,22 @@
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from django.conf import settings
 
 
 class EmailHelper:    
     @staticmethod
-    def send_email(subject, message, recipient_list, fail_silently=False):
+    def send_email(subject, message, recipient_list, html_message=None, fail_silently=False):
         try:
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                recipient_list,
-                fail_silently=fail_silently,
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=message,           
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=recipient_list,
             )
+            if html_message:
+                email.attach_alternative(html_message, "text/html")
+            email.send(fail_silently=fail_silently)
             return True
         except Exception as e:
             print(f"Error sending email: {str(e)}")
@@ -21,8 +25,14 @@ class EmailHelper:
     @staticmethod
     def send_verification_email(email, first_name, verification_link):
         try:
-            subject = "Verify Your Campus Connect Email"
-            message = f"""
+            context = {
+                'first_name': first_name,
+                'verification_link': verification_link,
+            }
+
+            html_content = render_to_string('verification_email.html', context)
+
+            plain_text  = f"""
 Hello {first_name},
 
 Welcome to Campus Connect! Please verify your email by clicking the link below:
@@ -38,10 +48,12 @@ Campus Connect Team
             """
             
             # Send email
+            subject = "Verify Your Campus Connect Email"
             return EmailHelper.send_email(
                 subject=subject,
-                message=message,
+                message=plain_text,
                 recipient_list=[email],
+                html_message = html_content,
                 fail_silently=False
             )
         except Exception as e:
