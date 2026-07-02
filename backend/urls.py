@@ -11,8 +11,6 @@ from django.views.generic import RedirectView
 from backend.schema import BothHttpAndHttpsSchemaGenerator, swagger_protect
 
   
-
-  
 schema_view = get_schema_view(
     openapi.Info(
         title="CampusConnect Backend API",

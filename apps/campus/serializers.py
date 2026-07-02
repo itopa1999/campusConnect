@@ -58,3 +58,8 @@ class ClaimSerializer(serializers.ModelSerializer):
 
 class UploadLisitingImageSerializer(serializers.Serializer):
     image = serializers.ImageField()
+
+
+class UpdateAdsViewSerializer(serializers.Serializer):
+    is_ads_banner = serializers.BooleanField()
+    is_hot_sales = serializers.BooleanField()

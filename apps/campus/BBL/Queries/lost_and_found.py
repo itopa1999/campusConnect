@@ -1,7 +1,6 @@
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from apps.campus.models import LostAndFound
 from utils.base_result import BaseResultWithData
-from utils.enums import LostAndFoundStatusEnum
 from utils.log_helpers import OperationLogger
 
 

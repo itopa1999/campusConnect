@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
 from django.urls import reverse
-from django.db.models import Count, Avg, Prefetch
+from django.db.models import Avg
 
 from .models import *
 

@@ -81,6 +81,17 @@ class ListingDetailView(APIView):
         return Response(result.to_dict(), status=result.status_code)
     
 
+class UpdateAdsView(generics.GenericAPIView):
+    serializer_class = UpdateAdsViewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, listing_id):
+        result = ListingCommand.update_ads(request.user, listing_id, request.data, partial=False)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+
+
 class LostAndFoundView(generics.GenericAPIView):
     serializer_class = LostAndFoundSerializer
     permission_classes = [AllowAny]

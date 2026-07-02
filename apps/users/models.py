@@ -49,6 +49,7 @@ class User(BaseModel, AbstractUser):
     faculty = models.CharField(max_length=100, blank=True, null=True)
     level = models.PositiveIntegerField(blank=True, null=True)
     average_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0.00)
+    sold_items = models.PositiveIntegerField(blank=True, null=True, default=0)
     email_verified = models.BooleanField(
         default=False,
         help_text="Email verification status"

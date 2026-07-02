@@ -448,6 +448,9 @@ class ListingCommand:
                 listing.status = ListingStatusType.SOLD.value
                 listing.save(update_fields=['status'])
 
+                user.sold_items =+ 1
+                user.save(update_fields=['sold_items'])
+
             op.success(f"Listing {listing_id} mark as sold")
             return BaseResultWithData(
                 message="Listing mark as sold successfully.",
@@ -507,6 +510,124 @@ class ListingCommand:
                 data={'id': listing.id},
                 status_code=200
             )
+
+        except Exception as e:
+            op.fail("Unexpected error", exc=e)
+            return BaseResultWithData(
+                message=f"An unexpected error occurred: {str(e)}",
+                status_code=500
+            )
+
+
+    @staticmethod
+    def update_ads(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
+        op = OperationLogger("UpdateListingCommand.update_ads", data={'listing_id': listing_id, **data})
+        op.start()
+
+        try:
+            listing = Listing.objects.filter(
+                id=listing_id,
+                user=user,
+                is_deleted=False
+            ).first()
+
+            if not listing:
+                op.fail("Listing not found")
+                return BaseResultWithData(
+                    message="Listing not found or you do not have permission.",
+                    status_code=404
+                )
+
+            # Parse boolean values
+            def parse_bool(val):
+                if isinstance(val, bool):
+                    return val
+                if isinstance(val, str):
+                    return val.lower() == 'true'
+                return False
+
+            updating_banner = 'is_ads_banner' in data
+            updating_hot = 'is_hot_sales' in data
+
+            if not updating_banner and not updating_hot:
+                op.fail("No valid fields to update")
+                return BaseResultWithData(
+                    message="No valid fields to update. Provide 'is_ads_banner' or 'is_hot_sales'.",
+                    status_code=400
+                )
+
+            with transaction.atomic():
+                total_points_to_deduct = 0
+                update_fields = []
+                description_parts = []
+
+                # Handle banner update
+                if updating_banner:
+                    new_banner_value = parse_bool(data['is_ads_banner'])
+                    
+                    if new_banner_value and not listing.is_ads_banner:
+                        points_needed = AdvertTypeEnum.BANNER.points
+                        current_points = UpdatePointsService.check_points(user)
+                        
+                        if current_points < points_needed:
+                            op.fail("Insufficient points for banner")
+                            return BaseResultWithData(
+                                message=f"Insufficient points. You need {points_needed} points to enable banner.",
+                                status_code=400
+                            )
+                        
+                        total_points_to_deduct += points_needed
+                        description_parts.append(f"banner enabled")
+                    
+                    listing.is_ads_banner = new_banner_value
+                    update_fields.append('is_ads_banner')
+
+                # Handle hot sales update
+                if updating_hot:
+                    new_hot_value = parse_bool(data['is_hot_sales'])
+                    
+                    # Only deduct points if enabling hot sales (not disabling)
+                    if new_hot_value and not listing.is_hot_sales:
+                        points_needed = AdvertTypeEnum.HOT_SALE.points
+                        current_points = UpdatePointsService.check_points(user)
+                        
+                        if current_points < points_needed:
+                            op.fail("Insufficient points for hot sales")
+                            return BaseResultWithData(
+                                message=f"Insufficient points. You need {points_needed} points to enable hot sales.",
+                                status_code=400
+                            )
+                        
+                        total_points_to_deduct += points_needed
+                        description_parts.append(f"hot sales enabled")
+                    
+                    listing.is_hot_sales = new_hot_value
+                    update_fields.append('is_hot_sales')
+
+                # Deduct points if any
+                if total_points_to_deduct > 0:
+                    UpdatePointsService.update_points(
+                        user=user,
+                        points=total_points_to_deduct,
+                        action=ConstantHelper.POINT_SUBTRACTION,
+                        transaction_type=PointTransactionTypeEnum.LISTING_UPDATE.value,
+                        description=f"{listing.title} ({', '.join(description_parts)})",
+                        reference=f"listing_{listing_id}"
+                    )
+
+                # Save the listing
+                listing.save(update_fields=update_fields)
+
+                op.success(f"Listing {listing_id} ads updated")
+                return BaseResultWithData(
+                    message="Listing ads updated successfully.",
+                    data={
+                        'id': listing.id,
+                        'is_ads_banner': listing.is_ads_banner,
+                        'is_hot_sales': listing.is_hot_sales
+                    },
+                    status_code=200
+                )
 
         except Exception as e:
             op.fail("Unexpected error", exc=e)

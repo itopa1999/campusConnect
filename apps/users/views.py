@@ -32,7 +32,7 @@ class CreateAccountView(generics.GenericAPIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
-class VerifyAccountEmailView(generics.GenericAPIView):
+class VerifyAccountEmailView(APIView):
     """Verify user email using verification token"""
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -60,7 +60,7 @@ class ResendVerificationEmailView(generics.GenericAPIView):
 
 
 
-class VerifyForgetPasswordEmailView(generics.GenericAPIView):
+class VerifyForgetPasswordEmailView(APIView):
     """Verify user email for forgot password using verification token"""
     permission_classes = [AllowAny]
     authentication_classes = []

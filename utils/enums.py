@@ -175,6 +175,7 @@ class PointTransactionTypeEnum(Enum):
     ACCOUNT_CREATION_BONUS = 'account_creation_bonus'
     PURCHASE = 'purchase'
     LISTING_CREATION = 'listing_creation'
+    LISTING_UPDATE = 'listing_update'
     REACTIVATION = 'reactivation'
     BADGE_UPGRADE = 'badge_upgrade'
     PROMOTION = 'promotion'

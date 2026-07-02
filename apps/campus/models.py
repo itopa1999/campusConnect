@@ -1,10 +1,8 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 import datetime
 
 from apps.users.models import User
-from apps.users.manager import SoftDeleteManager
 from utils.enums import BadgeListingType, ListingType, ListingStatusType, LostAndFoundStatusEnum
 from utils.base_model import BaseModel
 

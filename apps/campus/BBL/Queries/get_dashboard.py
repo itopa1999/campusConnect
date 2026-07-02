@@ -1,8 +1,7 @@
 from datetime import timedelta
 from django.utils import timezone
-from decimal import Decimal
 
-from apps.campus.models import Listing, Review, ListingHotspot
+from apps.campus.models import Listing, Review
 from utils.base_result import BaseResultWithData
 from utils.enums import ListingStatusType
 
@@ -23,12 +22,6 @@ class DashboardQuery:
         total_expired = Listing.objects.filter(
             user=user,
             status=ListingStatusType.EXPIRED.value,
-            is_deleted=False
-        ).count()
-
-        total_sold = Listing.objects.filter(
-            user=user,
-            status=ListingStatusType.SOLD.value,
             is_deleted=False
         ).count()
 
@@ -123,7 +116,7 @@ class DashboardQuery:
             'first_name': first_name,
             'total_active': total_active,
             'total_expired': total_expired,
-            'total_sold': total_sold,
+            'total_sold': user.sold_items,
             'trust_score': trust_score,
             'profile_completion': profile_completion,
             'points_balance': points_balance,
