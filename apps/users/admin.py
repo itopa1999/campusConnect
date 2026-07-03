@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Avg, Prefetch
 from .models import *
-
+from django.utils.safestring import mark_safe
 
 class UserAdmin(admin.ModelAdmin):
     list_display = (
@@ -13,6 +13,7 @@ class UserAdmin(admin.ModelAdmin):
         'email_verified_badge',
         'badges_display',
         'average_rating',
+        'sold_items',
         'is_active',
         'date_joined'
     )
@@ -40,7 +41,8 @@ class UserAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Account Information', {
-            'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'hall_verified', 'points')
+            'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'hall_verified', 'points',
+                       'notification', 'visibility')
         }),
         ('Student Verification (Trust Core)', {
             'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified')
@@ -86,8 +88,8 @@ class UserAdmin(admin.ModelAdmin):
     
     def email_verified_badge(self, obj):
         if obj.email_verified:
-            return format_html('<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">✓ Email</span>')
-        return format_html('<span style="background-color: #ffc107; padding: 3px 8px; border-radius: 4px; color: black;">⏳ Email</span>')
+            return mark_safe('<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">✓ Email</span>')
+        return mark_safe('<span style="background-color: #ffc107; padding: 3px 8px; border-radius: 4px; color: black;">⏳ Email</span>')
     email_verified_badge.short_description = "Email"
 
     def badges_display(self, obj):
@@ -99,8 +101,8 @@ class UserAdmin(admin.ModelAdmin):
     
     def student_id_verified_badge(self, obj):
         if obj.student_id_verified:
-            return format_html('<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">✓ ID Verified</span>')
-        return format_html('<span style="background-color: #dc3545; padding: 3px 8px; border-radius: 4px; color: white;">✗ ID Pending</span>')
+            return mark_safe('<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">✓ ID Verified</span>')
+        return mark_safe('<span style="background-color: #dc3545; padding: 3px 8px; border-radius: 4px; color: white;">✗ ID Pending</span>')
     student_id_verified_badge.short_description = "ID Status"
     
     def average_rating_display(self, obj):
@@ -135,10 +137,10 @@ class UserAdmin(admin.ModelAdmin):
     deactivate_users.short_description = "Deactivate selected users"
     
     def get_queryset(self, request):
-        # Optimize with prefetch_related for many-to-many and reverse foreign keys
         queryset = super().get_queryset(request)
         queryset = queryset.prefetch_related('user_badges', 'groups', 'user_permissions')
         return queryset
+    
 
 class VerificationTokenAdmin(admin.ModelAdmin):
     list_display = ('user_email', 'token_type', 'status_badge', 'created_at')
@@ -165,13 +167,12 @@ class VerificationTokenAdmin(admin.ModelAdmin):
     
     def status_badge(self, obj):
         if obj.is_used:
-            return format_html('<span style="background-color: #808080; padding: 5px 10px; border-radius: 5px; color: white;">Used</span>')
+            return mark_safe('<span style="background-color: #808080; padding: 5px 10px; border-radius: 5px; color: white;">Used</span>')
         else:
-            return format_html('<span style="background-color: #28a745; padding: 5px 10px; border-radius: 5px; color: white;">Valid</span>')
+            return mark_safe('<span style="background-color: #28a745; padding: 5px 10px; border-radius: 5px; color: white;">Valid</span>')
     status_badge.short_description = "Status"
     
     def get_queryset(self, request):
-        # Optimize with select_related for foreign key
         queryset = super().get_queryset(request)
         queryset = queryset.select_related('user')
         return queryset

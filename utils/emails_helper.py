@@ -24,6 +24,8 @@ class EmailHelper:
     
     @staticmethod
     def send_verification_email(email, first_name, verification_link):
+        print("link is here" ,verification_link)
+
         try:
             context = {
                 'first_name': first_name,

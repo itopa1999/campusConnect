@@ -90,6 +90,14 @@ class UpdateAdsView(generics.GenericAPIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
+class ListingAutoActivation(generics.GenericAPIView):
+    serializer_class = ListingAutoActivationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, listing_id):
+        result = ListingCommand.lisiting_auto_reactivation(request.user, listing_id, request.data, partial=False)
+        return Response(result.to_dict(), status=result.status_code)
+
 
 
 class LostAndFoundView(generics.GenericAPIView):

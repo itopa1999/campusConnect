@@ -42,9 +42,11 @@ class User(BaseModel, AbstractUser):
         help_text="Upload a profile picture that will appear on all your product listings"
     )
     points = models.PositiveIntegerField(validators=[MinValueValidator(0)],null=True, default=0)
-    matric_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    matric_number = models.CharField(max_length=50, null=True, blank=True)
+
     student_id_photo = models.ImageField(upload_to='student_ids/', null =True, blank=True)
     student_id_verified = models.BooleanField(default=False)
+    
     department = models.CharField(max_length=100, blank=True, null=True)
     faculty = models.CharField(max_length=100, blank=True, null=True)
     level = models.PositiveIntegerField(blank=True, null=True)
@@ -60,6 +62,10 @@ class User(BaseModel, AbstractUser):
         blank=True,
         related_name="users_with_badge"
     )
+
+    notification = models.BooleanField(default=True)
+    visibility = models.BooleanField(default=True)
+
     def save(self, *args, **kwargs):
         self.first_name = self.first_name.capitalize()
         self.last_name = self.last_name.capitalize()

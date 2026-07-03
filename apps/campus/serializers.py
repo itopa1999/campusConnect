@@ -63,3 +63,7 @@ class UploadLisitingImageSerializer(serializers.Serializer):
 class UpdateAdsViewSerializer(serializers.Serializer):
     is_ads_banner = serializers.BooleanField()
     is_hot_sales = serializers.BooleanField()
+
+
+class ListingAutoActivationSerializer(serializers.Serializer):
+    auto_reactivate = serializers.BooleanField()

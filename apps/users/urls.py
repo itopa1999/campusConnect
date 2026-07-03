@@ -15,6 +15,10 @@ urlpatterns = [
         path("logout-user", LogoutUserView.as_view(), name="logout_user"),
         path("refresh-token", RefreshTokenView.as_view(), name="refresh_token"),
 
+        path('profile', ProfileView.as_view(), name='profile'),
+        path('profile-picture', UploadProfilePictureView.as_view(), name='profile_picture'),
+        path('upload-student-id', UploadStudentIdView.as_view(), name='upload-student-id'),
+
 
         path("point-packages", PointPackagesView.as_view(), name="point_packages"),
         path("buy-points-initial", BuyPointView.as_view(), name="buy_points_initial"),

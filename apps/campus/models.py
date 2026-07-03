@@ -83,6 +83,7 @@ class Listing(BaseModel):
     is_ads_banner = models.BooleanField(default=False)
     is_ads_banner_expires_at = models.DateTimeField(null=True, blank=True)
     
+    auto_reactivate = models.BooleanField(default=False)
 
     class Meta:
         indexes = [

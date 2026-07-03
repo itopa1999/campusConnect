@@ -1,4 +1,6 @@
 
+from apps.users.BBL.Commands.profile import ProfileCommand
+from apps.users.BBL.Queries.profile import ProfileQuery
 from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -273,4 +275,49 @@ class RetryPurchaseView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)        
         result = BuyPointsCommand.payment_retry(request, request.user, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class ProfileView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        # Use the appropriate serializer based on the HTTP method
+        if self.request.method == 'PUT':
+            return ProfileUpdateSerializer
+        return ProfileSerializer
+
+    def get(self, request, *args, **kwargs):
+        result = ProfileQuery.get_profile_detail(request, request.user)
+        return Response(result.to_dict(), status=result.status_code)
+    
+    def put(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        result = ProfileCommand.update_profile(request, request.user, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class UploadProfilePictureView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfilePictureSerializer
+
+    def patch(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        result = ProfileCommand.update_profile_picture(request, request.user, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class UploadStudentIdView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UploadStudentIdSerializer
+
+    def patch(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        result = ProfileCommand.upload_student_id(request, request.user, serializer.validated_data)
         return Response(result.to_dict(), status=result.status_code)

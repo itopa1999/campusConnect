@@ -198,3 +198,31 @@ def convert_to_webp(instance, field_name, quality=30):
     except Exception as e:
         print(f"Error converting {field_name}: {e}")
         return False
+    
+
+def parse_bool(val):
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.lower() == 'true'
+    return False
+
+
+def calculate_profile_completion(user):
+    """
+    Calculate the profile completion percentage for a given user.
+    """
+    profile_fields = {
+        'phone': user.phone,
+        'profile_picture': user.profile_picture,
+        'matric_number': user.matric_number,
+        'department': user.department,
+        'faculty': user.faculty,
+        'level': user.level,
+        'student_id_verified': user.student_id_verified,
+        'hall_verified': user.hall_verified,
+        'email_verified': user.email_verified,
+    }
+    total_fields = len(profile_fields)
+    filled_fields = sum(1 for value in profile_fields.values() if value)
+    return int((filled_fields / total_fields) * 100) if total_fields else 0

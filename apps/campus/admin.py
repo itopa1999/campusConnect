@@ -129,7 +129,7 @@ class ListingAdmin(admin.ModelAdmin):
         'status', 'expires_at', 'is_expired',
         'created_at',
         'is_hot_sales', 'is_hot_sales_expires_at',
-        'is_ads_banner', 'is_ads_banner_expires_at'
+        'is_ads_banner', 'is_ads_banner_expires_at', 'auto_reactivate'
     )
     list_filter = (
         'listing_type', 'status', 'category', 'is_deleted',
@@ -150,7 +150,7 @@ class ListingAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {
-            'fields': ('user', 'category', 'title', 'description', 'price', 'listing_type', 'status', 'image')
+            'fields': ('user', 'category', 'title', 'description', 'price', 'listing_type', 'status', 'image', 'auto_reactivate')
         }),
         ('Expiry', {
             'fields': ('expires_at',)

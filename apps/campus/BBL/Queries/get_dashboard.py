@@ -4,6 +4,7 @@ from django.utils import timezone
 from apps.campus.models import Listing, Review
 from utils.base_result import BaseResultWithData
 from utils.enums import ListingStatusType
+from utils.helpers import calculate_profile_completion
 
 class DashboardQuery:
     @staticmethod
@@ -29,23 +30,10 @@ class DashboardQuery:
         points_balance = user.points if user.points is not None else 0
 
         # Trust score (average rating)
-        trust_score = float(user.average_rating) if user.average_rating else 0.0
+        trust_score = round((float(user.average_rating) / 5.0) * 100, 1) if user.average_rating else 0.0
 
         # Profile completion calculation
-        profile_fields = {
-            'phone': user.phone,
-            'profile_picture': user.profile_picture,
-            'matric_number': user.matric_number,
-            'department': user.department,
-            'faculty': user.faculty,
-            'level': user.level,
-            'student_id_verified': user.student_id_verified,
-            'hall_verified': user.hall_verified,
-            'email_verified': user.email_verified,
-        }
-        total_fields = len(profile_fields)
-        filled_fields = sum(1 for value in profile_fields.values() if value)
-        profile_completion = int((filled_fields / total_fields) * 100) if total_fields else 0
+        profile_completion = calculate_profile_completion(user)
 
         # --- Upcoming expirations (next 7 days) ---
         upcoming_expiring = Listing.objects.filter(
@@ -63,7 +51,8 @@ class DashboardQuery:
                 'title': listing.title,
                 'description': listing.description or "",
                 'expires_at_humanized': f"Expires in {days_left} day{'s' if days_left != 1 else ''}",
-                'hostpost_names': [hs.name for hs in listing.hotspots.all()[:2]]
+                'hostpost_names': [hs.name for hs in listing.hotspots.all()[:2]],
+                'auto_reactivate': listing.auto_reactivate,
             })
 
         # --- All listings (full details) ---
@@ -88,6 +77,7 @@ class DashboardQuery:
                 'is_hot_sale': listing.is_hot_sales,
                 'is_ads_banner': listing.is_ads_banner,
                 'lisiting_type': listing.listing_type,
+                'auto_reactivate': listing.auto_reactivate,
                 'location': location,
                 'status': listing.status,
                 'image': image_url,

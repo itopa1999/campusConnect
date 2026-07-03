@@ -9,9 +9,10 @@ from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
 from utils.enums import AdvertTypeEnum, ListingStatusType, ListingType, PointTransactionTypeEnum
-from utils.helpers import UpdatePointsService
+from utils.helpers import UpdatePointsService, parse_bool
 from utils.log_helpers import OperationLogger
-
+from PIL import Image
+from django.core.files.storage import default_storage
 
 class ListingCommand:
     @staticmethod
@@ -56,12 +57,7 @@ class ListingCommand:
                 )
         data['price'] = price
 
-        def parse_bool(val):
-            if isinstance(val, bool):
-                return val
-            if isinstance(val, str):
-                return val.lower() == 'true'
-            return False
+        
 
         is_banner = parse_bool(data.get('is_ads_banner', False))
         is_hot = parse_bool(data.get('is_hot_sales', False))
@@ -105,6 +101,7 @@ class ListingCommand:
         # --- 3. Image validation (if provided) ---
         image = data.get('image')
         if image:
+    
             if image.size > ConstantHelper.IMAGE_SIZE:
                 op.fail("Image too large")
                 return BaseResultWithData(
@@ -197,9 +194,8 @@ class ListingCommand:
                     status_code=404
                 )
 
-            # Check edit restriction (skip if only status changes – but we don't have status in data)
             fields_to_update = set(data.keys())
-            if fields_to_update and listing.modified_at:
+            if ConstantHelper.EDIT_DATE > 0 and fields_to_update and listing.modified_at:
                 days_since = (timezone.now() - listing.modified_at).days
                 if days_since < ConstantHelper.EDIT_DATE:
                     op.fail("Edit restriction")
@@ -499,8 +495,26 @@ class ListingCommand:
                     message="Only JPG, PNG, and WEBP images are allowed.",
                     status_code=400
                 )
+            
+            try:
+                img = Image.open(image_file)
+                img.verify()
+            except Exception:
+                op.fail("Invalid image file")
+                return BaseResultWithData(
+                    is_success=False,
+                    message="The uploaded file is not a valid image.",
+                    status_code=400
+                )
 
             with transaction.atomic():
+                if listing.image and listing.image.name:
+                    try:
+                        print("reaches here", listing.image.path)
+                        default_storage.delete(listing.image.path)
+                    except Exception as e:
+                        op.warning(f"Could not delete old picture: {e}")
+
                 listing.image = image_file
                 listing.save(update_fields=['image'])
 
@@ -538,14 +552,6 @@ class ListingCommand:
                     status_code=404
                 )
 
-            # Parse boolean values
-            def parse_bool(val):
-                if isinstance(val, bool):
-                    return val
-                if isinstance(val, str):
-                    return val.lower() == 'true'
-                return False
-
             updating_banner = 'is_ads_banner' in data
             updating_hot = 'is_hot_sales' in data
 
@@ -553,6 +559,13 @@ class ListingCommand:
                 op.fail("No valid fields to update")
                 return BaseResultWithData(
                     message="No valid fields to update. Provide 'is_ads_banner' or 'is_hot_sales'.",
+                    status_code=400
+                )
+            
+            if listing.status != ListingStatusType.ACTIVE.value:
+                op.fail("Invalid listing status")
+                return BaseResultWithData(
+                    message="Ads can only be set for active listings.",
                     status_code=400
                 )
 
@@ -629,6 +642,63 @@ class ListingCommand:
                     status_code=200
                 )
 
+        except Exception as e:
+            op.fail("Unexpected error", exc=e)
+            return BaseResultWithData(
+                message=f"An unexpected error occurred: {str(e)}",
+                status_code=500
+            )
+        
+
+    @staticmethod
+    def lisiting_auto_reactivation(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
+        op = OperationLogger("UpdateListingCommand.lisiting_auto_reactivation", data={'listing_id': listing_id, **data})
+        op.start()
+
+        try:
+            listing = Listing.objects.filter(
+                id=listing_id,
+                user=user,
+                is_deleted=False
+            ).first()
+
+            if not listing:
+                op.fail("Listing not found")
+                return BaseResultWithData(
+                    message="Listing not found or you do not have permission.",
+                    status_code=404
+                )
+
+            
+            auto_reactivate = parse_bool(data.get('auto_reactivate', False))
+
+            if listing.status not in [ListingStatusType.ACTIVE.value, ListingStatusType.EXPIRED.value]:
+                op.fail("Invalid listing status")
+                return BaseResultWithData(
+                    message="Auto-reactivation can only be set for active or expired listings.",
+                    status_code=400
+                )
+            
+            if auto_reactivate:
+                current_points = UpdatePointsService.check_points(user)
+                if current_points < 1:
+                    op.fail("Insufficient points")
+                    return BaseResultWithData(
+                        message="You need at least 1 point to enable auto-reactivation.",
+                        status_code=400
+                    )
+                
+            with transaction.atomic():
+                listing.auto_reactivate = auto_reactivate
+                listing.save(update_fields=['auto_reactivate'])
+
+            op.success(f"Auto-reactivation toggled to {auto_reactivate} for listing {listing_id}")
+            return BaseResultWithData(
+                message=f"Auto-reactivation {'enabled' if auto_reactivate else 'disabled'} successfully.",
+                data={'auto_reactivate': listing.auto_reactivate},
+                status_code=200
+            )
+        
         except Exception as e:
             op.fail("Unexpected error", exc=e)
             return BaseResultWithData(

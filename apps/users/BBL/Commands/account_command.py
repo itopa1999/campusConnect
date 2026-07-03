@@ -82,6 +82,7 @@ class AccountCommand:
                 verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)
                 
                 verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
+
             try:
                 background_task_send_verification_email.delay(user.email, user.first_name, verification_link)
             except OperationalError as e:
