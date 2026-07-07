@@ -8,12 +8,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView, status
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.shortcuts import render
-
+from django.conf import settings
 from apps.users.BBL.Queries.FlutterConfirm import FlutterwaveConfirmQuery
 from apps.users.BBL.Queries.PaystackConfirm import PaystackConfirmQuery
 from apps.users.BBL.Queries.point_packages import PointPackagesQueries
 from utils.base_result import BaseResultWithData
+from utils.enums import GroupNames
 from utils.helpers import UpdatePointsService
+from utils.permissions import ConstantPermission
 from .serializers import *
 from .BBL.Commands.account_command import AccountCommand
 from .BBL.Commands.auth_command import AuthCommand
@@ -44,7 +46,8 @@ class VerifyAccountEmailView(APIView):
         result = AccountCommand.VerifyEmail(request, token)
         context = {
             'message': result.message,
-            'is_success': result.is_success
+            'is_success': result.is_success,
+            'BASE_FRONTEND_URL': settings.BASE_FRONTEND_URL
         }
         return render(request, 'email-verification.html', context)
     
@@ -117,7 +120,7 @@ class ForgotPasswordView(generics.GenericAPIView):
 
 class ChangePasswordView(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -139,7 +142,7 @@ class RefreshTokenView(generics.GenericAPIView):
 
 class LogoutUserView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -167,7 +170,7 @@ class SubmitReportView(generics.GenericAPIView):
 
 
 class RefreshPointBalanceView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def get(self, request):
         points = UpdatePointsService.check_points(request.user)
@@ -180,7 +183,7 @@ class RefreshPointBalanceView(APIView):
     
 
 class PointPackagesView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def get(self, request):
         is_transaction = request.query_params.get('is_transaction', 'false')
@@ -222,7 +225,7 @@ class PointPackagesView(APIView):
         }, status=200)
 
 class BuyPointView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     serializer_class = BuyPointSerializer
 
     def post(self, request, *args, **kwargs):
@@ -240,7 +243,8 @@ class PaystackPointsConfirmView(APIView):
         context = {
             'message': result.message,
             'data': result.data,
-            'is_success': result.is_success
+            'is_success': result.is_success,
+            'BASE_FRONTEND_URL': settings.BASE_FRONTEND_URL
         }
         return render(request, 'payment-confirmation.html', context)
     
@@ -264,11 +268,18 @@ class MonnifyPointsConfirmView(APIView):
 class FlutterwavePointsConfirmView(APIView):
     """Handle Flutterwave payment confirmation"""
     def get(self, request, reference, *args, **kwargs):
-        return FlutterwaveConfirmQuery.execute(reference)
+        result = FlutterwaveConfirmQuery.execute(reference)
+        context = {
+            'message': result.message,
+            'data': result.data,
+            'is_success': result.is_success,
+            'BASE_FRONTEND_URL': settings.BASE_FRONTEND_URL
+        }
+        return render(request, 'payment-confirmation.html', context)
 
 
 class RetryPurchaseView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     serializer_class = RetryPurchaseSerailizer
 
     def post(self, request, *args, **kwargs):
@@ -279,7 +290,7 @@ class RetryPurchaseView(generics.GenericAPIView):
     
 
 class ProfileView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     
     def get_serializer_class(self):
         # Use the appropriate serializer based on the HTTP method
@@ -300,7 +311,7 @@ class ProfileView(generics.GenericAPIView):
     
 
 class UploadProfilePictureView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     serializer_class = ProfilePictureSerializer
 
     def patch(self, request, *args, **kwargs):
@@ -312,7 +323,7 @@ class UploadProfilePictureView(generics.GenericAPIView):
 
 
 class UploadStudentIdView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     serializer_class = UploadStudentIdSerializer
 
     def patch(self, request, *args, **kwargs):

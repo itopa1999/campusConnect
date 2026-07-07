@@ -2,7 +2,7 @@ from apps.users.models import User, VerificationToken
 from utils.Tasks.emailService import background_task_send_account_verify_email, background_task_send_verification_email
 from utils.base_result import BaseResult, BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import BadgeChoiceEnum, DefaultPointEnum, FeatureFlagEnum, PointTransactionTypeEnum, TokenType
+from utils.enums import BadgeChoiceEnum, DefaultPointEnum, FeatureFlagEnum, GroupNames, PointTransactionTypeEnum, TokenType
 from utils.emails_helper import EmailHelper
 from utils.featureflag import is_feature_active
 from utils.helpers import BadgeService, UpdatePointsService, validate_ui_email, normalize_nigerian_phone
@@ -64,13 +64,14 @@ class AccountCommand:
                     last_name=validated_data.get('last_name'),
                     password=password,
                     is_active=True,
-                    email_verified=False
+                    email_verified=False,
+                    group_name=GroupNames.STUDENT.value
                 )
 
                 if is_feature_active(FeatureFlagEnum.ACCOUNT_CREATION_BONUS.value):
                     UpdatePointsService.update_points(
                         user=user,
-                        points=3,
+                        points=ConstantHelper.ACCOUNT_CREATION_BONUS_POINTS,
                         action=ConstantHelper.POINT_ADDITION,
                         transaction_type=PointTransactionTypeEnum.ACCOUNT_CREATION_BONUS.value,
                         description=f"Account Creation Bouns",

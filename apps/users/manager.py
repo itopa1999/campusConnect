@@ -33,16 +33,19 @@ class SoftDeleteManager(models.Manager):
 class UserManager(SoftDeleteManager, BaseUserManager):
     use_in_migrations = True
     
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, email, password=None, group_name=None, **extra_fields):
         if not email:
             raise ValueError('email is required')
         
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         
-        customer_group, created = Group.objects.get_or_create(name=GroupNames.ADMIN.value)
-        user.save(using=self.db)
-        user.groups.add(customer_group)
+        if group_name is None:
+            group_name = GroupNames.ADMIN.value if extra_fields.get('is_superuser') else GroupNames.STUDENT.value
+
+        group, created = Group.objects.get_or_create(name=group_name)
+        user.save(using=self._db)
+        user.groups.add(group)
         return user
     
     def create_superuser(self, email, password, **extra_fields):

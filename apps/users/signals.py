@@ -1,7 +1,9 @@
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import post_delete, pre_save, post_save
 from django.dispatch import receiver
 
 from apps.users.models import User
+from utils.cache_helper import GlobalCache
+from utils.enums import CacheKeysEnum
 from utils.helpers import convert_to_webp
 
 @receiver(pre_save, sender=User)
@@ -47,3 +49,20 @@ def convert_updated_images_to_webp(sender, instance, created, **kwargs):
         instance._converting_images = True
         instance.save(update_fields=updated_fields)
         instance._converting_images = False
+
+
+
+# for cache
+
+@receiver(post_save, sender=User)
+@receiver(post_delete, sender=User)
+def user_profile_changed(sender, instance, **kwargs):
+    invalidate_profile_cache(instance.id)
+
+
+
+def invalidate_profile_cache(user_id):
+    if not user_id:
+        return
+    key = CacheKeysEnum.format(CacheKeysEnum.PROFILE, user_id=user_id)
+    GlobalCache.delete(key)

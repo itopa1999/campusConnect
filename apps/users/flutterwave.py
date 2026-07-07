@@ -6,6 +6,10 @@ from django.urls import reverse
 import requests as req
 from django.db import transaction
 
+from apps.users.models import PointPurchase
+from utils.constant_helper import ConstantHelper
+from utils.enums import PointPurchaseStatusEnum, PointTransactionTypeEnum
+from utils.helpers import UpdatePointsService
 from utils.log_helpers import OperationLogger
 
 # from apps.aso.models import Cart, Order, OrderItem, OrderTracking
@@ -14,124 +18,79 @@ from utils.log_helpers import OperationLogger
 # from utils.log_helpers import OperationLogger
 
 
-def initiate_flutterwave(request, user, cart_id, data, order_id=None):
+def initiate_flutterwave(request, user, package):
     """
     Initialize Flutterwave payment
     """
-    op = OperationLogger(
-        "FlutterwaveInitiate",
-        user=user.id if user else "Anonymous",
-        cart_id=cart_id,
-        order_id=order_id,
-        data=data
-    )
+    op = OperationLogger("FlutterwavePayment", user=user.id, package_id=package.id)
     op.start()
+
+    ref = secrets.token_urlsafe(15)
     
-    with transaction.atomic():    
-        ref = secrets.token_urlsafe(15)
-        
-        # If order_id is provided (retry), fetch existing order
-        if order_id:
-            try:
-                order = Order.objects.get(id=order_id, is_deleted=False)
-                amount = float(order.total)
-            except Order.DoesNotExist:
-                op.fail("Order not found for retry")
-                return None
-        else:
-            # New order flow
-            amount = float(data["total"])
-        
-        redirect_url = request.build_absolute_uri(
-            reverse('flutterwave-confirm', kwargs={"reference": ref})
-        )
-            
-        flutterwave_data = {
-            "tx_ref": ref,
-            "amount": amount,
-            "currency": "NGN",
-            "customer": {
-                "email": user.email,
-                "phonenumber": data.get("phone", "") if data else "",
-                "name": f"{data.get('first_name', '') if data else ''} {data.get('last_name', '') if data else ''}"
-            },
-            "customizations": {
-                "title": "Esther's Fabrics Order Payment",
-                "description": f"Payment for order {ref}",
-                "logo": ""
-            },
-            "meta": {
-                "cart_id": cart_id,
-            },
-            "redirect_url": redirect_url,
-        }
-        
-        headers = {
-            "Authorization": f"Bearer {settings.FLUTTERWAVE_SECRET_KEY}",
-            "Content-Type": "application/json",
-        }
-
-        flutterwave_url = f"{settings.FLUTTERWAVE_INITIALIZE_URL}"
-        response = req.post(flutterwave_url, headers=headers, json=flutterwave_data)
-
-        if response.status_code == 200:
-            response_data = response.json()
-            if response_data.get("status") == "success":
-                
-                # If retry (order_id provided), just update reference and return URL
-                if order_id:
-                    order.payment_reference = ref
-                    order.payment_status = PaymentStatus.PENDING.name.lower()
-                    order.save(update_fields=['payment_reference', 'payment_status'])
-                    op.success(f"Flutterwave retry initialized for order {order.order_number}")
-                    return response_data["data"]["link"]
-                
-                # New order flow
-                 # Fetch cart and create order + order items immediately
-                cart = Cart.objects.get(id=cart_id, is_deleted=False)
-                
-                order = Order.objects.create(
-                    user=user,
-                    subtotal=cart.subtotal(),
-                    shipping_fee=cart.shipping_cost(),
-                    discount=cart.discount(),
-                    total=cart.total(),
-                    other_info=data.get("otherInfo"),
-                    payment_status=PaymentStatus.PENDING.name.lower(),
-                    payment_reference=ref,
-                    payment_method=PaymentGateway.FLUTTERWAVE.value,
-                )
-                
-                # Create order items from cart items
-                for cart_item in cart.items.all():
-                    OrderItem.objects.create(
-                        order=order,
-                        product=cart_item.product,
-                        quantity=cart_item.quantity,
-                        price=cart_item.product.current_price,
-                        desc=cart_item.desc
-                    )
-                    
-                try:
-                    shipping_data = data
-                    
-                    process_paystack_order(order.id, ref, shipping_data)
-                    
-                    # Delete Cart and Items
-                    cart.items.all().delete()
-                    cart.delete()
-            
-                    op.success(f"Flutterwave initialization successful, order {order.order_number} created and processing")
-                except Exception as e:
-                    order.payment_status = PaymentStatus.FAILED.name.lower()
-                    order.save(update_fields=['payment_status'])
-                    op.fail(f"Order processing failed: {str(e)}")
-                    return None
-                
-                return response_data["data"]["link"]
-        
-        op.fail("Flutterwave initialization failed")
+    try:
+        with transaction.atomic():
+            purchase = PointPurchase.objects.create(
+                user=user,
+                package=package,
+                points_awarded=package.points,
+                amount_paid=package.price,
+                payment_reference=ref,
+                status=PointPurchaseStatusEnum.PENDING.value,
+                gateway = ConstantHelper.FLUTTERWAVE
+            )
+    except Exception as e:
+        op.fail(f"Failed to create purchase record: {str(e)}")
         return None
+
+    
+    amount = float(package.price)
+    
+    redirect_url = request.build_absolute_uri(
+        reverse('flutterwave-points-confirm', kwargs={"reference": ref})
+    )
+        
+    flutterwave_data = {
+        "tx_ref": ref,
+        "amount": amount,
+        "currency": "NGN",
+        "customer": {
+            "email": user.email,
+            "phonenumber": user.phone if user.phone else "",
+            "name": f"{user.first_name if user.first_name else ''} {user.last_name if user.last_name else ''}"
+        },
+        "customizations": {
+            "title": "Point Purchase Payment",
+            "description": f"Payment for order {ref}",
+            "logo": ""
+        },
+        "meta": {
+            "purchase_id": purchase.id,
+            "package_id": package.id,
+            "user_id": user.id,
+        },
+        "redirect_url": redirect_url,
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {settings.FLUTTERWAVE_SECRET_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    flutterwave_url = f"{settings.FLUTTERWAVE_INITIALIZE_URL}"
+
+    try:
+        response = req.post(flutterwave_url, headers=headers, json=flutterwave_data)
+        result = response.json()
+    except Exception as e:
+        op.fail(f"Flutterwave initialization error: {str(e)}")
+        return None
+    
+    if response.status_code == 200 and result.get("status") == "success":
+        op.success(f"Flutterwave initialized, reference: {ref}")
+        return result["data"]["link"]
+    
+    op.fail("Flutterwave initialization failed")
+    return None
             
 
 def validate(reference):
@@ -151,77 +110,55 @@ def validate(reference):
         url = f"{settings.FLUTTERWAVE_VERIFY_URL}?tx_ref={reference}"
         response = req.get(url, headers=headers)
         result = response.json()
-        
-        print("Flutterwave validation response:", result)
-        
-        # Check if verification is successful
-        if response.status_code != 200 or result["status"] != "success":
-            op.fail("Flutterwave verification failed")
-            return {"success": False, "error": "Invalid or unsuccessful transaction."}
-        
-        transaction_data = result["data"]
-        
-        # Verify payment was successful
-        if transaction_data.get("status") != "successful":
-            op.fail("Transaction status is not successful")
-            return {"success": False, "error": "Transaction not successful."}
-        
-        meta = transaction_data.get("meta", {})
-
-                
-        with transaction.atomic():
-            # Find existing order by payment reference
-            order = Order.objects.filter(
-                payment_reference=reference,
-                payment_method=PaymentGateway.FLUTTERWAVE.value
-            ).first()
-            
-            if not order:
-                op.fail("Order not found for this payment reference")
-                return {"success": False, "error": "Order not found for this payment reference."}
-            
-            # If order already confirmed, return it
-            if order.payment_status == PaymentStatus.CONFIRMED.name.lower():
-                op.success("Order already confirmed for this reference (retry)")
-                return {
-                    "success": True,
-                    "message": "Payment already confirmed.",
-                    "order": {
-                        "id": order.id,
-                        "order_number": order.order_number,
-                        "amount": float(order.total),
-                        "created_at": order.created_at
-                    }
-                }
-            
-            # Update order status to confirmed and process
-            try:
-                OrderTracking.objects.create(
-                    order = order,
-                    date = timezone.now(),
-                    description = "Order has been placed and ready for processing."
-                )
-                order.payment_status = PaymentStatus.CONFIRMED.name.lower()
-                order.save(update_fields=['payment_status'])
-                op.success("Order confirmed")
-            except Exception as e:
-                order.payment_status = PaymentStatus.FAILED.name.lower()
-                order.save(update_fields=['payment_status'])
-                op.fail(f"Status update failed: {str(e)}")
-                return {"success": False, "error": f"Order status update failed: {str(e)}"}
-            
-        op.success("Transaction validated and order confirmed")
-        return {
-            "success": True,
-            "message": "Payment confirmed successfully.",
-            "order": {
-                "id": order.id,
-                "order_number": order.order_number,
-                "amount": float(order.total),
-                "created_at": order.created_at
-            }
-        }
-        
     except Exception as e:
-        op.fail(f"Flutterwave validation error: {str(e)}")
+        op.fail(f"Flutterwave verification request error: {str(e)}")
         return {"success": False, "error": str(e)}
+        
+    # Check if verification is successful
+    if response.status_code != 200 or result["status"] != "success":
+        op.fail("Flutterwave verification failed")
+        return {"success": False, "error": "Invalid or unsuccessful transaction."}
+    
+    transaction_data = result["data"]
+    
+    # Verify payment was successful
+    if transaction_data.get("status") != "successful":
+        op.fail("Transaction status is not successful")
+        return {"success": False, "error": "Transaction not successful."}
+    
+    try:
+        with transaction.atomic():
+            purchase = PointPurchase.objects.select_for_update().get(
+                payment_reference=reference,
+                status=PointPurchaseStatusEnum.PENDING.value
+            )
+    except PointPurchase.DoesNotExist:
+        op.fail("Purchase not found or already processed")
+        return {"success": False, "error": "Purchase not found or already processed"}
+        
+    # Mark as completed
+    purchase.status = PointPurchaseStatusEnum.COMPLETED.value
+    purchase.completed_at = timezone.now()
+    purchase.save(update_fields=['status', 'completed_at'])
+        
+    # Add points to user
+    points_awarded = purchase.points_awarded
+    UpdatePointsService.update_points(
+        user=purchase.user,
+        points=points_awarded,
+        action=ConstantHelper.POINT_ADDITION,
+        transaction_type=PointTransactionTypeEnum.PURCHASE.value,
+        description=f"Purchased {points_awarded} points via flutterwave",
+        reference=purchase.payment_reference,
+        purchase=purchase,
+    )
+    op.success("Transaction validated and order confirmed")
+    return {
+        "success": True,
+        "message": "Payment confirmed successfully.",
+        "purchase": {
+            "purchase_id": purchase.id,
+            "points_awarded": purchase.points_awarded,
+            "amount_paid": float(purchase.amount_paid),
+            }
+    }

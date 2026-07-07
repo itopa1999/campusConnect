@@ -169,3 +169,6 @@ dump.rdb
 
 backups/
 logs/
+
+.pytest_cache
+pytest_cache/

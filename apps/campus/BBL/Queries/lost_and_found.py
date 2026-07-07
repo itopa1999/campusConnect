@@ -1,7 +1,8 @@
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from apps.campus.models import LostAndFound
 from utils.base_result import BaseResultWithData
-from utils.log_helpers import OperationLogger
+from utils.cache_helper import GlobalCache
+from utils.enums import CacheKeysEnum
 
 
 class GetLostItemsQuery:
@@ -10,8 +11,15 @@ class GetLostItemsQuery:
         """
         Fetch paginated lost items (excludes answer1 and answer2).
         """
-        op = OperationLogger("GetLostItemsQuery.get_items", data={'page': page, 'page_size': page_size})
-        op.start()
+        cache_key = CacheKeysEnum.format(CacheKeysEnum.LOST_ITEMS, page=page, page_size=page_size)
+
+        cached_data = GlobalCache.get(cache_key)
+        if cached_data:
+            return BaseResultWithData(
+                message="Lost items retrieved from cache",
+                data=cached_data,
+                status_code=200
+            )
 
         try:
             # Base queryset – only non‑deleted items, ordered newest first
@@ -61,7 +69,8 @@ class GetLostItemsQuery:
                 }
             }
 
-            op.success(f"Retrieved {len(items_data)} items (page {page})")
+            GlobalCache.set(cache_key, response_data)  
+
             return BaseResultWithData(
                 message="Lost items retrieved successfully.",
                 data=response_data,
@@ -69,7 +78,6 @@ class GetLostItemsQuery:
             )
 
         except Exception as e:
-            op.fail("Unexpected error", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500

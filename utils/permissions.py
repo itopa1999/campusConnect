@@ -27,3 +27,20 @@ class IsAuthenticatedAndVerified(BasePermission):
             return False
             
         return True
+
+
+
+
+def ConstantPermission(*groups):
+    class _GroupPermission(BasePermission):
+        message = "You do not have permission to access this resource."
+
+        def has_permission(self, request, view):
+            user = request.user
+
+            if not user or not user.is_authenticated:
+                return False
+
+            return user.groups.filter(name__in=groups).exists()
+
+    return _GroupPermission

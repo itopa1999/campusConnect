@@ -7,10 +7,13 @@ from apps.campus.BBL.Queries.get_dashboard import DashboardQuery
 from apps.campus.BBL.Queries.get_lookup import LookUpQuery
 from apps.campus.BBL.Queries.index_products import IndexProductsQuery
 from apps.campus.BBL.Commands.lisiting import ListingCommand
-from apps.campus.BBL.Queries.listing import GetListingDetailQuery
+from apps.campus.BBL.Queries.listing import ListingQuery
 from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
 from apps.campus.serializers import *
 from django.shortcuts import render
+from django.conf import settings
+from utils.enums import GroupNames
+from utils.permissions import ConstantPermission
 
 # Create your views here.
 
@@ -23,15 +26,15 @@ class GetIndexDefaultLisitingView(APIView):
         return Response(result.to_dict(), status=result.status_code)
 
 class GetDashboardView(APIView):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    # throttle_classes = [CustomRate(1, 20, "second", "auth")]
     def get(self, request):
         result = DashboardQuery.get_dashboard(request)
         return Response(result.to_dict(), status=result.status_code)
     
 
 class GetLookUpView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def get(self, request):
         result = LookUpQuery.get_lookup(request)
@@ -40,21 +43,21 @@ class GetLookUpView(APIView):
 
 class ListingView(generics.GenericAPIView):
     serializer_class = ListingSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def post(self, request):
         result = ListingCommand.create_listing(request.user, request.data)
         return Response(result.to_dict(), status=result.status_code)
 
 class MarkAsSoldView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     def patch(self, request, listing_id):
         result = ListingCommand.mark_sold(request.user, listing_id)
         return Response(result.to_dict(), status=result.status_code)
     
 
 class UploadImageView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     serializer_class = UploadLisitingImageSerializer
     def patch(self, request, listing_id):
         result = ListingCommand.image_upload(request.user, listing_id, request.FILES.get('image'))
@@ -62,10 +65,10 @@ class UploadImageView(generics.GenericAPIView):
     
 
 class ListingDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def get(self, request, listing_id):
-        result = GetListingDetailQuery.get_listing_detail(request, request.user, listing_id)
+        result = ListingQuery.get_listing_detail(request, request.user, listing_id)
         return Response(result.to_dict(), status=result.status_code)
     
     def put(self, request, listing_id):
@@ -83,7 +86,7 @@ class ListingDetailView(APIView):
 
 class UpdateAdsView(generics.GenericAPIView):
     serializer_class = UpdateAdsViewSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def patch(self, request, listing_id):
         result = ListingCommand.update_ads(request.user, listing_id, request.data, partial=False)
@@ -92,7 +95,7 @@ class UpdateAdsView(generics.GenericAPIView):
 
 class ListingAutoActivation(generics.GenericAPIView):
     serializer_class = ListingAutoActivationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
 
     def patch(self, request, listing_id):
         result = ListingCommand.lisiting_auto_reactivation(request.user, listing_id, request.data, partial=False)
@@ -157,6 +160,27 @@ class ApproveClaimView(APIView):
         result = LostandFoundCommand.approve_claim(request, claim_id, email)
         context = {
             'message': result.message,
-            'is_success': result.is_success
+            'is_success': result.is_success,
+            'BASE_FRONTEND_URL': settings.BASE_FRONTEND_URL
         }
         return render(request, 'claim-approve.html', context)
+    
+
+class CategorizedListingsView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+
+    def get(self, request):
+        section = request.GET.get('section')
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 8))
+
+        result = ListingQuery.get_categorized_listings(request, request.user, section, page, per_page)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class ListingDetailsView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+
+    def get(self, request, listing_id):
+        result = ListingQuery.listing_details(request, listing_id)
+        return Response(result.to_dict(), status=result.status_code)

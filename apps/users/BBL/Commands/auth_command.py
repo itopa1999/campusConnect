@@ -67,9 +67,9 @@ class AuthCommand:
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
             op.success("Login successful")
-
+            
             if user.profile_picture and hasattr(user.profile_picture, 'url'):
-                profile_pic_url = user.profile_picture.url
+                profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
             else:
                 profile_pic_url = None
             
@@ -311,7 +311,7 @@ class AuthCommand:
                 return BaseResultWithData(
                     message="Invalid or expired refresh token",
                     data=None,
-                    status_code=401
+                    status_code=400
                 )
 
             user_id = old_refresh.payload.get('user_id')
@@ -352,12 +352,23 @@ class AuthCommand:
             new_refresh = RefreshToken.for_user(user)
             new_access = new_refresh.access_token
 
+            if user.profile_picture and hasattr(user.profile_picture, 'url'):
+                profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
+            else:
+                profile_pic_url = None
+
             data = {
                 'access_token': str(new_access),
                 'refresh_token': str(new_refresh),
                 'user_id': user.id,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email': user.email,
+                'profile_pic': profile_pic_url,
+                'point_bal': user.points if user.points else 0,
+                'trusting_score': user.average_rating,
                 'is_email_verified': user.email_verified,
-                'is_hall_verified': user.hall_verified,
+                'is_hall_verified' : user.hall_verified
             }
 
             op.success("Token refreshed and old token blacklisted")

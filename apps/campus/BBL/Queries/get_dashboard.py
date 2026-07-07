@@ -3,13 +3,23 @@ from django.utils import timezone
 
 from apps.campus.models import Listing, Review
 from utils.base_result import BaseResultWithData
-from utils.enums import ListingStatusType
+from utils.cache_helper import GlobalCache
+from utils.enums import CacheKeysEnum, ListingStatusType
 from utils.helpers import calculate_profile_completion
 
 class DashboardQuery:
     @staticmethod
     def get_dashboard(request):
         user = request.user
+        cache_key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user.id)
+        cached_data = GlobalCache.get(cache_key)
+        if cached_data:
+            return BaseResultWithData(
+                message="Dashboard data retrieved successfully",
+                data=cached_data,
+                status_code=200
+            )
+            
         now = timezone.now()
 
         # --- Basic counts ---
@@ -25,9 +35,6 @@ class DashboardQuery:
             status=ListingStatusType.EXPIRED.value,
             is_deleted=False
         ).count()
-
-        # Points balance (direct field on User)
-        points_balance = user.points if user.points is not None else 0
 
         # Trust score (average rating)
         trust_score = round((float(user.average_rating) / 5.0) * 100, 1) if user.average_rating else 0.0
@@ -109,17 +116,19 @@ class DashboardQuery:
             'total_sold': user.sold_items,
             'trust_score': trust_score,
             'profile_completion': profile_completion,
-            'points_balance': points_balance,
             'upcoming_expiring_listings': upcoming_expiring_listings,
             'all_listings': all_listings,
             'all_reviews': all_reviews,
         }
+
+        GlobalCache.set(cache_key, data)
 
         return BaseResultWithData(
             message="Dashboard data retrieved successfully",
             data=data,
             status_code=200
         )
+        
 
     @staticmethod
     def _humanize_date(date):

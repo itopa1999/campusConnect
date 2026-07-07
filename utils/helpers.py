@@ -1,8 +1,9 @@
 import re
 from django.db import transaction
 from apps.users.models import Badge, PointTransaction
+from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
-from utils.enums import BadgeChoiceEnum, PointTransactionTypeEnum
+from utils.enums import BadgeChoiceEnum, CacheKeysEnum, PointTransactionTypeEnum
 from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
@@ -170,8 +171,14 @@ class UpdatePointsService:
 
     @staticmethod
     def check_points(user):
-        """Return current points balance."""
-        return user.points or 0  
+        cache_key = CacheKeysEnum.format(CacheKeysEnum.GET_POINTS_BALANCE, user_id=user.id)
+        cached_data = GlobalCache.get(cache_key)
+        if cached_data:
+            return cached_data
+        else:
+            points_balance = user.points or 0
+            GlobalCache.set(cache_key, points_balance)
+            return points_balance
 
 def convert_to_webp(instance, field_name, quality=30):
     """Convert an ImageField to WebP if not already WebP."""

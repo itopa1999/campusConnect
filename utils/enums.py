@@ -203,3 +203,32 @@ class FeatureFlagEnum(Enum):
     @classmethod
     def values(cls):
         return [item.value for item in cls]
+    
+
+class CacheKeysEnum(Enum):
+    """
+    Centralized cache key names for consistency across the project.
+    Always use CacheKeys.KEY_NAME.value when accessing cache.
+    """
+
+    DASHBOARD = "get_dashboard_{user_id}"
+    GET_POINTS_BALANCE = "get_points_balance_{user_id}"
+    LOOKUP_DATA = "lookup_data"
+    INDEX_PRODUCTS = "index_products"
+    LISTING_DETAIL = "listing_detail_{user_id}_{listing_id}"
+    CATEGORIZED_LISTINGS = "categorized_listings_{user_id}_{section}_{page}"
+    LOST_ITEMS = "lost_items_{page}_{page_size}"
+    POINT_PACKAGES = "point_packages"
+    PURCHASES = "purchases_{user_id}_{page}"
+    TRANSACTIONS = "transactions_{user_id}_{page}"
+    PROFILE = "profile_{user_id}"
+
+
+    @classmethod
+    def format(cls, key, **kwargs):
+        """
+        Helper method to fill in placeholders for formatted keys.
+        Example:
+            CacheKeys.format(CacheKeys.USER_PROFILE, user_id=5)
+        """
+        return key.value.format(**kwargs)

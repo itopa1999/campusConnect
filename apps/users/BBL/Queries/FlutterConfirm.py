@@ -4,7 +4,7 @@ from django.shortcuts import redirect
 # from apps.aso.flutterwave import validate
 from utils.base_result import BaseResultWithData
 from django.core.mail import send_mail
-
+from apps.users.flutterwave import validate
 class FlutterwaveConfirmQuery:
     @staticmethod
     def execute(reference):
@@ -17,29 +17,23 @@ class FlutterwaveConfirmQuery:
 
         result = validate(reference)
         if result.get("success"):
-            order = result.get("order")
-            if order:
-                redirect_url = (
-                    f"{settings.BASE_URL}/order-success.html"
-                    f"?order_id={order['id']}"
-                    f"&order_number={order['order_number']}"
-                    f"&amount={order['amount']}"
-                    f"&created_at={order['created_at']}"
-                )                
+            purchase = result.get("purchase")
 
-                return redirect(redirect_url)
-            else:
-                redirect_url = (
-                    f"{settings.BASE_URL}/order-failed.html"
-                    f"?reference={reference}"
-                    f"&error=Order data missing"
-                )
-                return redirect(redirect_url)
-        else:
-            redirect_url = (
-                f"{settings.BASE_URL}/order-failed.html"
-                f"?reference={reference}"
-                f"&error={result.get('error', 'Transaction failed')}"
+            return BaseResultWithData(
+                message=result.get("message"),
+                data={
+                    "reference": reference,
+                    "purchase_id": {purchase['purchase_id']},
+                    "points_awarded": {purchase['points_awarded']},
+                    "amount_paid": {purchase['amount_paid']},
+                },
+                status_code=200
             )
-            
-            return redirect(redirect_url)
+        else:
+            return BaseResultWithData(
+                message=result.get("error"),
+                data={
+                    "reference": reference
+                },
+                status_code=400
+            )

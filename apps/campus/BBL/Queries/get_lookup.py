@@ -1,6 +1,7 @@
 from apps.campus.models import Category, CampusHotspot
 from utils.base_result import BaseResultWithData
-from utils.enums import AdvertTypeEnum, BadgeListingType, ListingType
+from utils.cache_helper import GlobalCache
+from utils.enums import AdvertTypeEnum, BadgeListingType, CacheKeysEnum, ListingType
 
 class LookUpQuery:
     @staticmethod
@@ -12,6 +13,15 @@ class LookUpQuery:
         - badge choices (value, label)
         - Type choices (value, label)
         """
+        
+        cache_key = CacheKeysEnum.LOOKUP_DATA.value
+        cached_data = GlobalCache.get(cache_key)
+        if cached_data:
+            return BaseResultWithData(
+                message="Lookup data retrieved successfully",
+                data=cached_data,
+                status_code=200
+            )
         # Fetch categories (active, not deleted) – one query, no N+1
         categories_qs = Category.objects.filter(is_deleted=False).order_by('sort_order', 'name')
         categories = [
@@ -54,6 +64,8 @@ class LookUpQuery:
             'type_choices': type_choices,
             'advert_type': AdvertTypeEnum.choices()
         }
+
+        GlobalCache.set(cache_key, data)
 
         return BaseResultWithData(
             message="Lookup data retrieved successfully",

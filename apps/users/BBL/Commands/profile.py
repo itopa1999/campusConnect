@@ -165,6 +165,12 @@ class ProfileCommand:
         op = OperationLogger("ProfileCommand.upload_student_id", data={'user_id': user.id})
         op.start()
 
+        if user.student_id_verified:
+            return BaseResultWithData(
+                message="Student ID already verified.",
+                status_code=400
+            )
+
         # 1. Extract the uploaded file
         image_file = validated_data.get('student_id')
         if not image_file:

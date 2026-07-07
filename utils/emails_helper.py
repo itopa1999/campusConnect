@@ -203,7 +203,7 @@ CampusConnect Team
         """.strip()
 
         try:
-            return send_mail(
+            return EmailHelper.send_email(
                 subject=subject,
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -247,7 +247,7 @@ CampusConnect Team
         """
 
         try:
-            return send_mail(
+            return EmailHelper.send_email(
                 subject=subject,
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,

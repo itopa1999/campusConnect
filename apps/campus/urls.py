@@ -19,6 +19,8 @@ urlpatterns = [
                 path('listing-upload-image/<int:listing_id>', UploadImageView.as_view(), name='listing_upload_image'),
                 path('listing-update-ads/<int:listing_id>', UpdateAdsView.as_view(), name='listing_update_ads'),
                 path('listing-auto-reactivate/<int:listing_id>', ListingAutoActivation.as_view(), name='listing_auto_reactivate'),
+                path('listings/categorized', CategorizedListingsView.as_view(), name='categorized_listings'),
+                path('listing-details/<int:listing_id>', ListingDetailsView.as_view(), name='listing_details'),
 
 
                 path("report-lost-item", LostAndFoundView.as_view(), name="report_lost_item"),

@@ -93,23 +93,22 @@ WSGI_APPLICATION = "backend.wsgi.application"
 DATABASES = {}
 
 # Redis Cache Configuration
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1"),
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#             "PARSER_KWARGS": {"encoding": "utf8"},
-#             "SOCKET_CONNECT_TIMEOUT": 5,
-#             "SOCKET_TIMEOUT": 5,
-#             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-#             "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
-#         },
-#     }
-# }
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PARSER_KWARGS": {"encoding": "utf8"},
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+        },
+    }
+}
 
-# Cache TTL (Time To Live) in seconds - 1 day default
-CACHE_TTL = int(os.environ.get("CACHE_TTL", 60 * 60 * 24))
+DEFAULT_CACHE_TTL = int(os.environ.get("DEFAULT_CACHE_TTL", 60 * 60 * 24))
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -144,10 +143,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Default email setup (override in prod/staging)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# CORS
-CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:8000").split(",")
-CORS_ALLOW_CREDENTIALS = True
-
 APPLEND_SLASH = True
 
 
@@ -170,8 +165,8 @@ CELERY_TASK_DEFAULT_MAX_RETRIES = 3
 
 # JWT Settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=10),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=3),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -224,14 +219,11 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.AnonRateThrottle',
-        "rest_framework.throttling.ScopedRateThrottle",
+        'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'user': '20000/hour',     
+        'user': '20000/hour',
         'anon': '20000/hour',
-        "login": "5/min",
-        "password_reset": "1/min",
-        "email_verify": "10/min"
     },
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
 
@@ -364,14 +356,3 @@ LOGGING = {
         },
     },
 }
-
-
-# Payment Gateway Keys
-PAYSTACK_SECRET_KEY=os.getenv('PAYSTACK_SECRET_KEY')
-PAYSTACK_INITIALIZE_URL=os.getenv('PAYSTACK_INITIALIZE_URL')
-PAYSTACK_VERIFY_URL=os.getenv('PAYSTACK_VERIFY_URL')
-
-# Flutterwave Gateway Keys
-FLUTTERWAVE_SECRET_KEY=os.getenv('FLUTTERWAVE_SECRET_KEY')
-FLUTTERWAVE_INITIALIZE_URL=os.getenv('FLUTTERWAVE_INITIALIZE_URL')
-FLUTTERWAVE_VERIFY_URL=os.getenv('FLUTTERWAVE_VERIFY_URL')
