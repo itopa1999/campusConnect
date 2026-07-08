@@ -137,12 +137,16 @@ class ListingQuery:
             qs = base_qs.filter(is_hot_sales=True)
         elif section == 'departmental':
             if not user.department:
-                return {
-                    'items': [],
-                    'page': 1,
-                    'total_pages': 0,
-                    'total_items': 0
-                }
+                return BaseResultWithData(
+                    message="No departmental listings available",
+                    data={
+                        'items': [],
+                        'page': 1,
+                        'total_pages': 0,
+                        'total_items': 0
+                    },
+                    status_code=200
+                )
             qs = base_qs.filter(user__department__icontains=user.department)
         elif section == 'for_you':
             banner_ids = base_qs.filter(is_ads_banner=True).values_list('id', flat=True)

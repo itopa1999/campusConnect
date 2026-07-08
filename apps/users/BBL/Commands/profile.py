@@ -159,6 +159,9 @@ class ProfileCommand:
                 op.success(f"Profile picture updated for user {user.id}")
                 return BaseResultWithData(
                     message="Profile picture updated successfully.",
+                    data = {
+                        'profile_picture_url': request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
+                    },
                     status_code=200
                 )
  
@@ -233,7 +236,7 @@ class ProfileCommand:
 
                 op.success(f"Id Uploaded for user {user.id}")
                 return BaseResultWithData(
-                    message="Id Uploaded successfully. We review and updata you the progress",
+                    message="Id Uploaded successfully. We review and update you on the progress",
                     status_code=200
                 )
  
