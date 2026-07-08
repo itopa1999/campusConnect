@@ -1,3 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.vscode/
+.idea/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+logs/
+*.log
+
+# Media & Static (optional for development)
+media/
+staticfiles/
+
+# Environment
 .env
-.venv
-venv/                                       
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Misc
+*.sqlite3
