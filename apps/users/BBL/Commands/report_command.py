@@ -18,7 +18,7 @@ class ReportCommand:
         op.start()
         try:
             if not reporter_name:
-                logger.warning("[ReportCommand.Add] Reporter name is required")
+                op.fail("[ReportCommand.Add] Reporter name is required")
                 return BaseResultWithData(
                     message="Reporter name is required.",
                     data=None,
@@ -26,7 +26,7 @@ class ReportCommand:
                 )
 
             if not reporter_email:
-                logger.warning("[ReportCommand.Add] Reporter email is required")
+                op.fail("[ReportCommand.Add] Reporter email is required")
                 return BaseResultWithData(
                     message="Reporter email is required.",
                     data=None,
@@ -35,7 +35,7 @@ class ReportCommand:
 
             # is_valid, message = validate_ui_email(reporter_email)
             # if not is_valid:
-            #     logger.warning(f"[ReportCommand.Add] Invalid reporter email: {reporter_email}")
+            #     op.fail(f"[ReportCommand.Add] Invalid reporter email: {reporter_email}")
             #     return BaseResultWithData(
             #         message=message,
             #         data=None,
@@ -43,7 +43,7 @@ class ReportCommand:
             #     )
             allowed_types = [choice[0] for choice in IssueTypeEnum.choices()]
             if not issue_type or issue_type not in allowed_types:
-                logger.warning(f"[ReportCommand.Add] Invalid issue type: {issue_type}")
+                op.fail(f"[ReportCommand.Add] Invalid issue type: {issue_type}")
                 return BaseResultWithData(
                     message="Invalid or missing issue type.",
                     data=None,
@@ -51,14 +51,14 @@ class ReportCommand:
                 )
 
             if issue_type == IssueTypeEnum.REPORT_LISTING.value and not listing_identifier:
-                logger.warning("[ReportCommand.Add] Missing listing identifier for listing report")
+                op.fail("[ReportCommand.Add] Missing listing identifier for listing report")
                 return BaseResultWithData(
                     message="Listing URL or title is required when reporting a listing.",
                     data=None,
                     status_code=400
                 )
             if issue_type == IssueTypeEnum.REPORT_USER.value and not reported_user_email:
-                logger.warning("[ReportCommand.Add] Missing reported user email for user report")
+                op.fail("[ReportCommand.Add] Missing reported user email for user report")
                 return BaseResultWithData(
                     message="Email of the reported user is required.",
                     data=None,
@@ -66,7 +66,7 @@ class ReportCommand:
                 )
 
             if not message:
-                logger.warning("[ReportCommand.Add] Report message cannot be empty")
+                op.fail("[ReportCommand.Add] Report message cannot be empty")
                 return BaseResultWithData(
                     message="Message cannot be empty.",
                     data=None,
@@ -85,7 +85,7 @@ class ReportCommand:
             try:
                 background_task_send_report_recieved_email.delay(reporter_email, reporter_name, issue_type)
             except Exception as e:
-                logger.error(f"Error queuing report received email: {str(e)}")
+                op.fail(f"Error queuing report received email: {str(e)}")
             else:
                 op.success("Report submitted successfully")
             return BaseResultWithData(

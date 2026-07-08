@@ -28,7 +28,8 @@ class IndexProductsQuery:
 
         listings_data = []
         for listing in queryset:
-            location = listing.hotspots.first().name if listing.hotspots.exists() else "Campus"
+            hotspots = list(listing.hotspots.all())
+            location = hotspots[0].name if hotspots else "Campus"
             image_url = None
             if listing.image:
                 image_url = request.build_absolute_uri(listing.image.url)

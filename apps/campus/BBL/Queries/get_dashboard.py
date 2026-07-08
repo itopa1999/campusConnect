@@ -6,6 +6,7 @@ from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum, ListingStatusType
 from utils.helpers import calculate_profile_completion
+from django.db.models import Count, Q
 
 class DashboardQuery:
     @staticmethod
@@ -22,19 +23,13 @@ class DashboardQuery:
             
         now = timezone.now()
 
-        # --- Basic counts ---
-        total_active = Listing.objects.filter(
-            user=user,
-            status=ListingStatusType.ACTIVE.value,
-            is_deleted=False,
-            expires_at__gt=now
-        ).count()
-
-        total_expired = Listing.objects.filter(
-            user=user,
-            status=ListingStatusType.EXPIRED.value,
-            is_deleted=False
-        ).count()
+        # --- Basic counts (combined aggregate to avoid multiple DB hits) ---
+        counts = Listing.objects.filter(user=user, is_deleted=False).aggregate(
+            total_active=Count('id', filter=Q(status=ListingStatusType.ACTIVE.value, expires_at__gt=now)),
+            total_expired=Count('id', filter=Q(status=ListingStatusType.EXPIRED.value)),
+        )
+        total_active = counts.get('total_active') or 0
+        total_expired = counts.get('total_expired') or 0
 
         # Trust score (average rating)
         trust_score = round((float(user.average_rating) / 5.0) * 100, 1) if user.average_rating else 0.0
@@ -49,7 +44,7 @@ class DashboardQuery:
             is_deleted=False,
             expires_at__gt=now,
             expires_at__lte=now + timedelta(days=7)
-        ).order_by('expires_at')[:5]
+        ).select_related('category').prefetch_related('hotspots').order_by('expires_at')[:5]
 
         upcoming_expiring_listings = []
         for listing in upcoming_expiring:

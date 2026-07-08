@@ -20,7 +20,7 @@ class AccountCommand:
         try:
             normalized_phone = normalize_nigerian_phone(raw_phone)
             if not normalized_phone:
-                logger.warning(f"[AccountCommand.Execute] Invalid phone format: {raw_phone}")
+                op.fail(f"[AccountCommand.Execute] Invalid phone format: {raw_phone}")
                 return BaseResult(
                     message="Invalid Nigerian phone number format.",
                     status_code=400
@@ -28,7 +28,7 @@ class AccountCommand:
             
             # is_valid, message = validate_ui_email(email)
             # if not is_valid:
-            #     logger.warning(f"[AccountCommand.Execute] Invalid email: {email}")
+            #     op.fail(f"[AccountCommand.Execute] Invalid email: {email}")
             #     return BaseResultWithData(
             #         message=message,
             #         data=None,
@@ -36,14 +36,14 @@ class AccountCommand:
             #     )
 
             if User.objects.filter(email=email, is_deleted=False).exists():
-                logger.warning(f"[AccountCommand.Execute] Email already registered: {email}")
+                op.fail(f"[AccountCommand.Execute] Email already registered: {email}")
                 return BaseResult(
                     message="Email already registered.",
                     status_code=400
                 )
 
             if User.objects.filter(phone=normalized_phone, is_deleted=False).exists():
-                logger.warning(f"[AccountCommand.Execute] Phone already registered: {normalized_phone}")
+                op.fail(f"[AccountCommand.Execute] Phone already registered: {normalized_phone}")
                 return BaseResult(
                     message="Phone already registered with.",
                     status_code=400
@@ -51,7 +51,7 @@ class AccountCommand:
             
             password = validated_data.get('password')
             if not password or len(password) < 8:
-                logger.warning(f"[AccountCommand.Execute] Weak password provided for email: {email}")
+                op.fail(f"[AccountCommand.Execute] Weak password provided for email: {email}")
                 return BaseResult(
                     message="Password must be at least 8 characters long.",
                     status_code=400
@@ -116,7 +116,7 @@ class AccountCommand:
         try:
             is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.EMAIL_VERIFICATION.value)
             if not is_valid:
-                logger.warning(f"[AccountCommand.VerifyEmail] Token verification failed: {result}")
+                op.fail(f"[AccountCommand.VerifyEmail] Token verification failed: {result}")
                 return BaseResult(
                     message=result,
                     status_code=400
@@ -216,7 +216,7 @@ class AccountCommand:
         op.start()
 
         if not token:
-            logger.warning("[AccountCommand._verify_token] Token is required")
+            op.fail("[AccountCommand._verify_token] Token is required")
             return False, "Token is required"
         
         verification_token = VerificationToken.objects.filter(
@@ -226,11 +226,11 @@ class AccountCommand:
         ).first()
         
         if not verification_token:
-            logger.warning(f"[AccountCommand._verify_token] Invalid token: {token}")
+            op.fail(f"[AccountCommand._verify_token] Invalid token: {token}")
             return False, "Invalid token"
         
         if not verification_token.is_valid():
-            logger.warning(f"[AccountCommand._verify_token] Token invalid or expired: {token}")
+            op.fail(f"[AccountCommand._verify_token] Token invalid or expired: {token}")
             return False, "Token has already been used or has expired"
         
         verification_token.is_used = True

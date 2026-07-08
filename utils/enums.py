@@ -222,6 +222,7 @@ class CacheKeysEnum(Enum):
     PURCHASES = "purchases_{user_id}_{page}"
     TRANSACTIONS = "transactions_{user_id}_{page}"
     PROFILE = "profile_{user_id}"
+    PUBLIC_LISTING_DETAILS = "public_listing_details_{listing_id}"
 
 
     @classmethod

@@ -1,9 +1,9 @@
-from apps.campus.models import Listing
+from apps.campus.models import Listing, Review
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Prefetch, Q
 from django.core.paginator import Paginator
 from utils.enums import CacheKeysEnum, GroupNames, ListingStatusType
 
@@ -30,11 +30,18 @@ class ListingQuery:
             )
         
         try:
+            # Prefetch reviews (only active) and seller badges to avoid per-item queries
             listing = Listing.objects.filter(
                 id=listing_id,
                 user=user,
                 is_deleted=False
-            ).select_related('category').prefetch_related('hotspots').first()
+            ).select_related('category').prefetch_related(
+                'hotspots',
+                Prefetch('reviews', queryset=Review.objects.filter(is_deleted=False).select_related('from_user'))
+            ).annotate(
+                review_count=Count('reviews', filter=Q(reviews__is_deleted=False)),
+                avg_rating=Avg('reviews__rating', filter=Q(reviews__is_deleted=False))
+            ).first()
 
             if not listing:
                 return BaseResultWithData(
@@ -42,21 +49,17 @@ class ListingQuery:
                     status_code=404
                 )
 
-            # Prepare hotspot IDs and names
-            hotspot_ids = list(listing.hotspots.values_list('id', flat=True))
-            hotspot_names = list(listing.hotspots.values_list('name', flat=True))
+            # Prepare hotspot IDs and names using prefetched hotspots
+            hotspots = list(listing.hotspots.all())
+            hotspot_ids = [h.id for h in hotspots]
+            hotspot_names = [h.name for h in hotspots]
 
-            # --- Reviews for this listing (only active, not deleted) ---
-            reviews_qs = listing.reviews.filter(is_deleted=False).select_related('from_user')
-            review_stats = reviews_qs.aggregate(
-                review_count=Count('id'),
-                avg_rating=Avg('rating')
-            )
-            review_count = review_stats['review_count'] or 0
-            avg_rating = review_stats['avg_rating'] or 0.0
+            # --- Reviews for this listing (prefetched) ---
+            review_count = getattr(listing, 'review_count', 0) or 0
+            avg_rating = getattr(listing, 'avg_rating', 0.0) or 0.0
 
             reviews_list = []
-            for rev in reviews_qs:
+            for rev in list(listing.reviews.all()):
                 reviews_list.append({
                     'from_user': rev.from_user.get_full_name() or rev.from_user.email,
                     'rating': rev.rating,
@@ -130,6 +133,8 @@ class ListingQuery:
             is_deleted=False,
             user__is_active=True
         ).exclude(user__groups__name=GroupNames.ADMIN.value).select_related('user', 'category')
+        # Prefetch hotspots to avoid per-listing queries when iterating
+        base_qs = base_qs.prefetch_related('hotspots')
 
         if section == 'banner':
             qs = base_qs.filter(is_ads_banner=True)
@@ -149,14 +154,20 @@ class ListingQuery:
                 )
             qs = base_qs.filter(user__department__icontains=user.department)
         elif section == 'for_you':
-            banner_ids = base_qs.filter(is_ads_banner=True).values_list('id', flat=True)
-            hot_ids = base_qs.filter(is_hot_sales=True).values_list('id', flat=True)
-            dept_ids = []
+            qs = base_qs.exclude(is_ads_banner=True).exclude(is_hot_sales=True)
             if user.department:
-                dept_ids = base_qs.filter(user__department__icontains=user.department).values_list('id', flat=True)
-            qs = base_qs.exclude(id__in=banner_ids).exclude(id__in=hot_ids).exclude(id__in=dept_ids)
+                qs = qs.exclude(user__department__icontains=user.department)
         else:
-            return {'items': [], 'page': 1, 'total_pages': 0, 'total_items': 0}
+            return BaseResultWithData(
+                message="No valid listings available",
+                data={
+                    'items': [],
+                    'page': 1,
+                    'total_pages': 0,
+                    'total_items': 0
+                },
+                status_code=200
+            )
 
         qs = qs.order_by('-created_at')
 
@@ -165,15 +176,19 @@ class ListingQuery:
 
         items = []
         for listing in page_obj:
+            image_url = None
             if listing.image:
                 image_url = request.build_absolute_uri(listing.image.url)
+            # Use prefetched hotspots to avoid extra queries
+            hotspots = list(listing.hotspots.all())
             items.append({
                 'id': listing.id,
                 'title': listing.title,
                 'price': float(listing.price) if listing.price else 0,
                 'category': listing.category.name if listing.category else '',
                 'image': image_url if listing.image else None,
-                'badge': listing.listing_type
+                'badge': listing.listing_type,
+                'hotspots': [h.name for h in hotspots]
             })
 
         response_data = {
@@ -203,22 +218,29 @@ class ListingQuery:
                 status_code=400
             )
 
-        # Optional: add caching for public listing details (keyed by listing_id only)
-        # cache_key = f"public_listing_{listing_id}"
-        # cached_data = GlobalCache.get(cache_key)
-        # if cached_data:
-        #     return BaseResultWithData(
-        #         message="Listing details retrieved successfully",
-        #         data=cached_data,
-        #         status_code=200
-        #     )
+        cache_key = CacheKeysEnum.format(CacheKeysEnum.PUBLIC_LISTING_DETAILS, listing_id=listing_id)
+        cached_data = GlobalCache.get(cache_key)
+        if cached_data:
+            return BaseResultWithData(
+                message="Listing details retrieved successfully",
+                data=cached_data,
+                status_code=200
+            )
 
         try:
             listing = Listing.objects.filter(
                 id=listing_id,
                 is_deleted=False,
                 status=ListingStatusType.ACTIVE.value
-            ).select_related('user', 'category').prefetch_related('hotspots').first()
+            ).select_related('user',
+             'category').prefetch_related(
+                'hotspots',
+                Prefetch('reviews', queryset=Review.objects.filter(is_deleted=False).select_related('from_user')),
+                Prefetch('user__user_badges')
+            ).annotate(
+                review_count=Count('reviews', filter=Q(reviews__is_deleted=False)),
+                avg_rating=Avg('reviews__rating', filter=Q(reviews__is_deleted=False))
+            ).first()
 
             if not listing:
                 return BaseResultWithData(
@@ -233,19 +255,14 @@ class ListingQuery:
             if listing.image:
                 image_url = request.build_absolute_uri(listing.image.url)
 
-            hotspots = list(listing.hotspots.values_list('name', flat=True))
+            hotspots = [h.name for h in list(listing.hotspots.all())]
 
-            # ─── Reviews for this listing ──────────────────────────
-            reviews_qs = listing.reviews.filter(is_deleted=False).select_related('from_user')
-            review_stats = reviews_qs.aggregate(
-                review_count=Count('id'),
-                avg_rating=Avg('rating')
-            )
-            review_count = review_stats['review_count'] or 0
-            avg_rating = review_stats['avg_rating'] or 0.0
+            # ─── Reviews for this listing (prefetched and annotated) ──────────────────────────
+            review_count = getattr(listing, 'review_count', 0) or 0
+            avg_rating = getattr(listing, 'avg_rating', 0.0) or 0.0
 
             reviews_list = []
-            for rev in reviews_qs:
+            for rev in list(listing.reviews.all()):
                 reviews_list.append({
                     'from': rev.from_user.get_full_name() or rev.from_user.email,
                     'rating': rev.rating,
@@ -299,8 +316,7 @@ class ListingQuery:
                 'avg_rating': float(avg_rating),
             }
 
-            # Optionally cache the response
-            # GlobalCache.set(cache_key, data)
+            GlobalCache.set(cache_key, data)
 
             return BaseResultWithData(
                 message="Listing details retrieved successfully",

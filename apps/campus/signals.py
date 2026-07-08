@@ -82,6 +82,11 @@ def review_changed(sender, instance, **kwargs):
     if user_id:
         invalidate_dashboard_cache(user_id)
 
+    cache_key = CacheKeysEnum.format(CacheKeysEnum.LISTING_DETAIL, user_id=user_id, listing_id=instance.listing_id)
+    cache_key2 = CacheKeysEnum.format(CacheKeysEnum.PUBLIC_LISTING_DETAILS, listing_id=instance.listing_id)
+    GlobalCache.delete(cache_key)
+    GlobalCache.delete(cache_key2)
+
 
 @receiver(post_save, sender=Category)
 @receiver(post_delete, sender=Category)

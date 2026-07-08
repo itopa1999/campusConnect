@@ -22,7 +22,7 @@ class AuthCommand:
         try:
             # is_valid, message = validate_ui_email(email)
             # if not is_valid:
-            #     logger.warning(f"[AuthCommand.Execute] Invalid email: {email}")
+            #     op.fail(f"[AuthCommand.Execute] Invalid email: {email}")
             #     return BaseResultWithData(
             #         message=message,
             #         data=None,
@@ -32,7 +32,7 @@ class AuthCommand:
             user = User.objects.filter(email=email, is_deleted=False).first()
             
             if not user:
-                logger.warning(f"[AuthCommand.Execute] Login failed for email: {email}")
+                op.fail(f"[AuthCommand.Execute] Login failed for email: {email}")
                 return BaseResultWithData(
                     message="Invalid email or password",
                     data=None,
@@ -40,7 +40,7 @@ class AuthCommand:
                 )
             
             if not user.check_password(password):
-                logger.warning(f"[AuthCommand.Execute] Invalid password attempt for email: {email}")
+                op.fail(f"[AuthCommand.Execute] Invalid password attempt for email: {email}")
                 return BaseResultWithData(
                     message="Invalid email or password",
                     data=None,
@@ -48,7 +48,7 @@ class AuthCommand:
                 )
             
             if not is_email_verified(user):
-                logger.warning(f"[AuthCommand.Execute] Email not verified for user_id: {user.id}")
+                op.fail(f"[AuthCommand.Execute] Email not verified for user_id: {user.id}")
                 return BaseResultWithData(
                     message="Email not verified. Please check your inbox for the verification email.",
                     data=None,
@@ -56,7 +56,7 @@ class AuthCommand:
                 )
 
             if not user.is_active:
-                logger.warning(f"[AuthCommand.Execute] Inactive account login attempt: user_id={user.id}")
+                op.fail(f"[AuthCommand.Execute] Inactive account login attempt: user_id={user.id}")
                 return BaseResultWithData(
                     message="Your account has been deactivated. Please contact support for assistance.",
                     data=None,
@@ -108,7 +108,7 @@ class AuthCommand:
         try:
             # is_valid, message = validate_ui_email(email)
             # if not is_valid:
-            #     logger.warning(f"[AuthCommand.ForgotPassword] Invalid email: {email}")
+            #     op.fail(f"[AuthCommand.ForgotPassword] Invalid email: {email}")
             #     return BaseResultWithData(
             #         message=message,
             #         data=None,
@@ -118,7 +118,7 @@ class AuthCommand:
             user = User.objects.filter(email=email, is_deleted=False).first()
             
             if not user:
-                logger.warning(f"[AuthCommand.ForgotPassword] No account found for email: {email}")
+                op.fail(f"[AuthCommand.ForgotPassword] No account found for email: {email}")
                 return BaseResultWithData(
                     message="Account with email doesn't exists",
                     data=None,
@@ -126,7 +126,7 @@ class AuthCommand:
                 )
 
             if not is_email_verified(user):
-                logger.warning(f"[AuthCommand.ForgotPassword] Email not verified for user_id: {user.id}")
+                op.fail(f"[AuthCommand.ForgotPassword] Email not verified for user_id: {user.id}")
                 return BaseResultWithData(
                     message="Email not verified.",
                     data=None,
@@ -163,7 +163,7 @@ class AuthCommand:
         try:
             is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.PASSWORD_RESET.value)
             if not is_valid:
-                logger.warning(f"[AuthCommand.VerifyForgetPasswordEmail] Token verification failed: {result}")
+                op.fail(f"[AuthCommand.VerifyForgetPasswordEmail] Token verification failed: {result}")
                 return BaseResultWithData(
                     message=result,
                     data=None,
@@ -201,7 +201,7 @@ class AuthCommand:
         op.start()
         try:
             if password != confirm_password:
-                logger.warning(f"[AuthCommand.ConfirmResetPassword] Password mismatch for user_id: {user_id}")
+                op.fail(f"[AuthCommand.ConfirmResetPassword] Password mismatch for user_id: {user_id}")
                 return BaseResultWithData(
                     message="Password and confirm password do not match",
                     data=None,
@@ -211,7 +211,7 @@ class AuthCommand:
             user = User.objects.filter(id=user_id, email=email, is_active=True, is_deleted=False).first()
             
             if not user:
-                logger.warning(f"[AuthCommand.ConfirmResetPassword] Invalid user or inactive account: {user_id}")
+                op.fail(f"[AuthCommand.ConfirmResetPassword] Invalid user or inactive account: {user_id}")
                 return BaseResultWithData(
                     message="Account has issues. Please contact support for assistance.",
                     data=None,
@@ -253,7 +253,7 @@ class AuthCommand:
             new_password = validated_data.get('new_password')
             
             if not user.check_password(current_password):
-                logger.warning(f"[AuthCommand.ChangePassword] Incorrect current password for user_id: {user.id}")
+                op.fail(f"[AuthCommand.ChangePassword] Incorrect current password for user_id: {user.id}")
                 return BaseResultWithData(
                     message="Current password is incorrect",
                     data=None,
@@ -261,7 +261,7 @@ class AuthCommand:
                 )
             
             if len(new_password) < 8:
-                logger.warning(f"[AuthCommand.ChangePassword] New password too short for user_id: {user.id}")
+                op.fail(f"[AuthCommand.ChangePassword] New password too short for user_id: {user.id}")
                 return BaseResultWithData(
                     message="New password must be at least 8 characters long",
                     data=None,
@@ -307,7 +307,7 @@ class AuthCommand:
             try:
                 old_refresh = RefreshToken(refresh_token_str)
             except (TokenError, InvalidToken) as e:
-                logger.warning(f"Invalid refresh token: {e}")
+                op.fail(f"Invalid refresh token: {e}")
                 return BaseResultWithData(
                     message="Invalid or expired refresh token",
                     data=None,
@@ -316,7 +316,7 @@ class AuthCommand:
 
             user_id = old_refresh.payload.get('user_id')
             if not user_id:
-                logger.warning("Missing user_id in token payload")
+                op.fail("Missing user_id in token payload")
                 return BaseResultWithData(
                     message="Invalid token payload",
                     data=None,
@@ -332,7 +332,7 @@ class AuthCommand:
                     is_deleted=False
                 )
             except User.DoesNotExist:
-                logger.warning(f"User {user_id} not found or not eligible")
+                op.fail(f"User {user_id} not found or not eligible")
                 return BaseResultWithData(
                     message="User account not found or not verified",
                     data=None,
@@ -344,9 +344,9 @@ class AuthCommand:
                 try:
                     old_refresh.blacklist()
                 except AttributeError:
-                    logger.warning("Blacklist method not available – ensure token_blacklist is installed")
+                    op.fail("Blacklist method not available – ensure token_blacklist is installed")
                 except Exception as e:
-                    logger.error(f"Failed to blacklist old token: {e}")
+                    op.fail(f"Failed to blacklist old token: {e}")
 
             # 4. Create brand new tokens
             new_refresh = RefreshToken.for_user(user)

@@ -180,6 +180,13 @@ class ListingCommand:
         op = OperationLogger("UpdateListingCommand.update_listing", data={'listing_id': listing_id, **data})
         op.start()
 
+        if listing_id is None:
+            op.fail("Listing ID is required")
+            return BaseResultWithData(
+                message="Listing ID is required.",
+                status_code=400
+            )
+
         try:
             listing = Listing.objects.filter(
                 id=listing_id,
@@ -326,6 +333,13 @@ class ListingCommand:
         op = OperationLogger("DeleteListingCommand.delete_listing", data={'listing_id': listing_id})
         op.start()
 
+        if listing_id is None:
+            op.fail("Listing ID is required")
+            return BaseResultWithData(
+                message="Listing ID is required.",
+                status_code=400
+            )
+
         try:
             listing = Listing.objects.filter(
                 id=listing_id,
@@ -362,6 +376,13 @@ class ListingCommand:
     def reactivate_listing(user: User, listing_id: int) -> BaseResultWithData:
         op = OperationLogger("ReactivateListingCommand.reactivate_listing", data={'listing_id': listing_id})
         op.start()
+
+        if listing_id is None:
+            op.fail("Listing ID is required")
+            return BaseResultWithData(
+                message="Listing ID is required.",
+                status_code=400
+            )
 
         try:
             listing = Listing.objects.filter(
@@ -426,6 +447,13 @@ class ListingCommand:
         op = OperationLogger("ReactivateListingCommand.mark_sold", data={'listing_id': listing_id})
         op.start()
 
+        if listing_id is None:
+            op.fail("Listing ID is required")
+            return BaseResultWithData(
+                message="Listing ID is required.",
+                status_code=400
+            )
+
         try:
             listing = Listing.objects.filter(
                 id=listing_id,
@@ -444,7 +472,7 @@ class ListingCommand:
                 listing.status = ListingStatusType.SOLD.value
                 listing.save(update_fields=['status'])
 
-                user.sold_items =+ 1
+                user.sold_items += 1
                 user.save(update_fields=['sold_items'])
 
             op.success(f"Listing {listing_id} mark as sold")
@@ -466,6 +494,13 @@ class ListingCommand:
     def image_upload(user: User, listing_id: int, image_file) -> BaseResultWithData:
         op = OperationLogger("ListingCommand.image_upload", data={'listing_id': listing_id})
         op.start()
+
+        if listing_id is None:
+            op.fail("Listing ID is required")
+            return BaseResultWithData(
+                message="Listing ID is required.",
+                status_code=400
+            )
 
         try:
             listing = Listing.objects.filter(
@@ -536,6 +571,13 @@ class ListingCommand:
     def update_ads(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
         op = OperationLogger("UpdateListingCommand.update_ads", data={'listing_id': listing_id, **data})
         op.start()
+
+        if listing_id is None:
+            op.fail("Listing ID is required")
+            return BaseResultWithData(
+                message="Listing ID is required.",
+                status_code=400
+            )
 
         try:
             listing = Listing.objects.filter(
@@ -653,6 +695,13 @@ class ListingCommand:
     def lisiting_auto_reactivation(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
         op = OperationLogger("UpdateListingCommand.lisiting_auto_reactivation", data={'listing_id': listing_id, **data})
         op.start()
+
+        if listing_id is None:
+            op.fail("Listing ID is required")
+            return BaseResultWithData(
+                message="Listing ID is required.",
+                status_code=400
+            )
 
         try:
             listing = Listing.objects.filter(

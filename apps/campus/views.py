@@ -136,7 +136,7 @@ class LostAndFoundListView(APIView):
         if page_size > 100:
             page_size = 100
 
-        result = GetLostItemsQuery.get_items(page, page_size)
+        result = GetLostItemsQuery.get_items(request, page, page_size)
         return Response(result.to_dict(), status=result.status_code)
 
 

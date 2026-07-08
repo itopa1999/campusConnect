@@ -57,7 +57,7 @@ class ClaimSerializer(serializers.ModelSerializer):
 
 
 class UploadLisitingImageSerializer(serializers.Serializer):
-    image = serializers.ImageField()
+    image = serializers.ImageField(required=True)
 
 
 class UpdateAdsViewSerializer(serializers.Serializer):
