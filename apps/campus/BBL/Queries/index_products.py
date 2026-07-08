@@ -23,7 +23,7 @@ class IndexProductsQuery:
             status=ListingStatusType.ACTIVE.value,
             is_deleted=False,
             expires_at__gt=now,
-            user__groups=GroupNames.ADMIN.value
+            user__groups__name=GroupNames.ADMIN.value
         ).select_related('category', 'user').prefetch_related('hotspots').order_by('-created_at')[:limit]
 
         listings_data = []

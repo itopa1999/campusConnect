@@ -1,0 +1,228 @@
+import pytest
+from unittest.mock import patch, MagicMock, ANY
+from datetime import datetime, timedelta
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
+from django.test import RequestFactory
+from django.core.paginator import Paginator
+
+from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
+from apps.campus.models import LostAndFound
+from utils.enums import LostAndFoundStatusEnum
+from utils.base_result import BaseResultWithData
+
+
+# ── Fixtures ──────────────────────────────────────────────────────────
+
+@pytest.fixture
+def mock_cache():
+    with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache") as mock:
+        yield mock
+
+@pytest.fixture
+def request_factory():
+    return RequestFactory()
+
+@pytest.fixture
+def lost_items(db):
+    """Create 15 lost items with various dates and statuses."""
+    now = timezone.now()
+    items = []
+    for i in range(15):
+        status = LostAndFoundStatusEnum.OPEN.value if i % 2 == 0 else LostAndFoundStatusEnum.CLAIMED.value
+        item = LostAndFound.objects.create(
+            item_name=f"Item {i}",
+            description=f"Description {i}",
+            location=f"Location {i}",
+            date_found=now - timedelta(days=i),
+            verification1=f"Question 1 for {i}",
+            answer1=f"Answer 1 for {i}",
+            verification2=f"Question 2 for {i}",
+            answer2=f"Answer 2 for {i}",
+            full_name=f"Finder {i}",
+            email=f"finder{i}@example.com",
+            department="Computer Science",
+            phone="08012345678",
+            status=status,
+        )
+        items.append(item)
+    return items
+
+@pytest.fixture
+def lost_item_with_image(db):
+    """Create a lost item with an image."""
+    image_file = SimpleUploadedFile("test.jpg", b"file_content", content_type="image/jpeg")
+    now = timezone.now()
+    item = LostAndFound.objects.create(
+        item_name="Item with Image",
+        description="Has image",
+        location="Campus",
+        date_found=now,
+        verification1="Color?",
+        answer1="Red",
+        verification2="Size?",
+        answer2="Medium",
+        full_name="Finder",
+        email="finder@example.com",
+        department="Science",
+        image=image_file,
+    )
+    return item
+
+
+# ── Tests ─────────────────────────────────────────────────────────────
+
+class TestGetLostItemsQuery:
+
+    def test_get_items_cache_hit(self, mock_cache, request_factory):
+        """Return cached data if available."""
+        cached_data = {"items": [{"id": 1}], "pagination": {"current_page": 1}}
+        mock_cache.get.return_value = cached_data
+        request = request_factory.get("/")
+        result = GetLostItemsQuery.get_items(request, page=1, page_size=10)
+        assert result.is_success is True
+        assert result.status_code == 200
+        assert result.data == cached_data
+        mock_cache.get.assert_called_once()
+        mock_cache.set.assert_not_called()
+
+    def test_get_items_success(self, mock_cache, request_factory, lost_items):
+        """Retrieve paginated lost items with default parameters."""
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page=1, page_size=10)
+        assert result.is_success is True
+        assert result.status_code == 200
+        data = result.data
+
+        items = data["items"]
+        pagination = data["pagination"]
+
+        assert len(items) == 10
+        assert items[0]["item_name"] == lost_items[-1].item_name
+        assert "answer1" not in items[0]
+        assert "answer2" not in items[0]
+        assert "verification1" in items[0]
+        assert "verification2" in items[0]
+
+        assert pagination["current_page"] == 1
+        assert pagination["total_pages"] == 2
+        assert pagination["total_items"] == 15
+        assert pagination["page_size"] == 10
+        assert pagination["has_next"] is True
+        assert pagination["has_previous"] is False
+        assert pagination["next_page_number"] == 2
+        assert pagination["previous_page_number"] is None
+
+        mock_cache.set.assert_called_once_with("lost_items_1_10", data)
+
+    def test_get_items_page_2(self, mock_cache, request_factory, lost_items):
+        """Retrieve second page of results."""
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page=2, page_size=10)
+        data = result.data
+        items = data["items"]
+        pagination = data["pagination"]
+
+        assert len(items) == 5
+        assert items[0]["item_name"] == lost_items[-11].item_name
+        assert pagination["current_page"] == 2
+        assert pagination["has_next"] is False
+        assert pagination["has_previous"] is True
+        assert pagination["next_page_number"] is None
+        assert pagination["previous_page_number"] == 1
+
+    def test_get_items_custom_page_size(self, mock_cache, request_factory, lost_items):
+        """Test custom page_size parameter."""
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page=1, page_size=5)
+        data = result.data
+        items = data["items"]
+        pagination = data["pagination"]
+
+        assert len(items) == 5
+        assert pagination["total_pages"] == 3
+        assert pagination["page_size"] == 5
+
+    def test_get_items_invalid_page(self, mock_cache, request_factory, lost_items):
+        """Invalid page (string) should default to page 1."""
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page="invalid", page_size=10)
+        data = result.data
+        assert data["pagination"]["current_page"] == 1
+
+    def test_get_items_page_beyond_last(self, mock_cache, request_factory, lost_items):
+        """Page beyond total should return last page."""
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page=999, page_size=10)
+        data = result.data
+        assert data["pagination"]["current_page"] == 2
+        assert len(data["items"]) == 5
+
+    def test_get_items_image_url(self, mock_cache, request_factory, lost_item_with_image):
+        """Test that image URL is built correctly when image exists."""
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page=1, page_size=10)
+        data = result.data
+        for item in data["items"]:
+            if item["item_name"] == "Item with Image":
+                assert item["image"] == "http://testserver/media/test.jpg"
+                break
+        else:
+            pytest.fail("Item with image not found in result")
+
+    def test_get_items_image_url_null(self, mock_cache, request_factory, lost_items):
+        """When no image, image field should be None."""
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page=1, page_size=10)
+        for item in result.data["items"]:
+            assert item["image"] is None
+
+    def test_get_items_excludes_answers(self, mock_cache, request_factory, lost_items):
+        """Ensure answer1 and answer2 are never included in the response."""
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page=1, page_size=10)
+        for item in result.data["items"]:
+            assert "answer1" not in item
+            assert "answer2" not in item
+
+    def test_get_items_exception(self, mock_cache, request_factory):
+        """Return 500 on unexpected database error."""
+        mock_cache.get.return_value = None
+        with patch("apps.campus.BBL.Queries.lost_and_found.LostAndFound.objects.filter", side_effect=Exception("DB error")):
+            request = request_factory.get("/")
+            result = GetLostItemsQuery.get_items(request, page=1, page_size=10)
+            assert result.is_success is False
+            assert result.status_code == 500
+            assert "An unexpected error occurred" in result.message
+
+    def test_get_items_empty_result(self, mock_cache, request_factory, db):
+        """When no items exist, return empty list with pagination metadata."""
+        # Ensure the database is empty for this test
+        LostAndFound.objects.all().delete()
+        mock_cache.get.return_value = None
+        request = request_factory.get("/")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+            result = GetLostItemsQuery.get_items(request, page=1, page_size=10)
+        data = result.data
+        assert data["items"] == []
+        pagination = data["pagination"]
+        assert pagination["total_items"] == 0
+        assert pagination["total_pages"] == 1
+        assert pagination["has_next"] is False
+        assert pagination["has_previous"] is False

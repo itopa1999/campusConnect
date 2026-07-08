@@ -193,7 +193,7 @@ class AuthCommand:
         
     @staticmethod
     def ConfirmResetPassword(request, validated_data):
-        user_id = validated_data.get('user_id', '').strip()
+        user_id = validated_data.get('user_id', '')
         email = validated_data.get('email', '').strip()
         password = validated_data.get('password', '').strip()
         confirm_password = validated_data.get('confirm_password', '').strip()

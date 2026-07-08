@@ -67,8 +67,8 @@ class User(BaseModel, AbstractUser):
     visibility = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
-        self.first_name = self.first_name.capitalize()
-        self.last_name = self.last_name.capitalize()
+        self.first_name = self.first_name.title()
+        self.last_name = self.last_name.title()
                     
         super().save(*args, **kwargs)  
 

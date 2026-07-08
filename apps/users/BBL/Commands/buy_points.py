@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from apps.users.models import PointPackage, PointPurchase
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
@@ -46,7 +46,7 @@ class BuyPointsCommand:
         try:
             points = int(points)
             amount = Decimal(str(amount))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             op.fail("Invalid points or amount format")
             return BaseResultWithData(
                 message="Invalid points or amount format.",

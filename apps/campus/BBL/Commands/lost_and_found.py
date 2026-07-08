@@ -210,7 +210,7 @@ class LostandFoundCommand:
 
     @staticmethod
     def approve_claim(request, claim_id, email) -> BaseResultWithData:
-        op = OperationLogger("ClaimCommand.create_claim", data=claim_id + ' and ' + email)
+        op = OperationLogger("ClaimCommand.create_claim",  data={'claim_id': claim_id, 'email': email})
         op.start()
         if not claim_id or not email:
             return BaseResultWithData(
@@ -218,9 +218,8 @@ class LostandFoundCommand:
                 status_code=400
             )
         
-        try:
-            claim = Claim.objects.filter(id=claim_id, email=email).first()
-        except Claim.DoesNotExist:
+        claim = Claim.objects.filter(id=claim_id, email=email).first()
+        if not claim:
             return BaseResultWithData(
                 message="Claim not found",
                 status_code=400

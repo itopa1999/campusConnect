@@ -55,11 +55,21 @@ class ProfileCommand:
                             message="Matric number already in use by another user.",
                             status_code=400
                         )
+                    
+                # ─── Validate level range ─────────
+                level = validated_data.get('level')
+                if level is not None:
+                    if level < 1 or level > 7:
+                        op.fail("Invalid level. Please enter a value between 1 and 7.")
+                        return BaseResultWithData(
+                            message="Invalid level. Please enter a value between 1 and 7.",
+                            status_code=400
+                        )
 
                 # ─── Handle full_name ──────────────────────────
                 full_name = validated_data.pop('full_name', None)
                 if full_name:
-                    parts = full_name.split(' ', 1)
+                    parts = full_name.title().split(' ', 1)
                     user.first_name = parts[0]
                     user.last_name = parts[1] if len(parts) > 1 else ''
 
@@ -140,7 +150,7 @@ class ProfileCommand:
                     try:
                         default_storage.delete(user.profile_picture.path)
                     except Exception as e:
-                        op.warning(f"Could not delete old picture: {e}")
+                        op.fail(f"Could not delete old picture: {e}")
 
                 user.profile_picture = image_file
 
@@ -213,7 +223,7 @@ class ProfileCommand:
                     try:
                         default_storage.delete(user.student_id_photo.path)
                     except Exception as e:
-                        op.warning(f"Could not delete old picture: {e}")
+                        op.fail(f"Could not delete old picture: {e}")
 
                 user.student_id_photo = image_file
 

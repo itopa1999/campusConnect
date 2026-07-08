@@ -502,7 +502,6 @@ class ListingCommand:
             except Exception:
                 op.fail("Invalid image file")
                 return BaseResultWithData(
-                    is_success=False,
                     message="The uploaded file is not a valid image.",
                     status_code=400
                 )
@@ -513,7 +512,7 @@ class ListingCommand:
                         print("reaches here", listing.image.path)
                         default_storage.delete(listing.image.path)
                     except Exception as e:
-                        op.warning(f"Could not delete old picture: {e}")
+                        op.fail(f"Could not delete old picture: {e}")
 
                 listing.image = image_file
                 listing.save(update_fields=['image'])

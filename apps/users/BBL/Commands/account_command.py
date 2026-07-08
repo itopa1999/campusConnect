@@ -153,10 +153,8 @@ class AccountCommand:
         email = validated_data.get('email', '').strip()
         op = OperationLogger("AccountCommand.ResendEmail", email=email)
         op.start()
-        try:
-            user = User.objects.get(email=email, email_verified=False, is_active=True)
-        except User.DoesNotExist:
-            op.fail("User not found")
+        user = User.objects.filter(email=email, email_verified=False, is_active=True).first()
+        if not user:
             return BaseResult(
                 message="If this email is registered, a verification link has been sent.",
                 status_code=200
@@ -167,7 +165,7 @@ class AccountCommand:
         try:
             background_task_send_verification_email.delay(user.email, user.first_name, verification_link)
         except OperationalError as e:
-            op.success("Verification email successfully, but failed to queue verification email", exc =e)
+            op.success("Verification email successfully, but failed to queue verification email")
         else:
             op.success("Verification email queued successfully")
         
