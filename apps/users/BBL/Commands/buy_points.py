@@ -74,7 +74,7 @@ class BuyPointsCommand:
         elif gateway == ConstantHelper.FLUTTERWAVE:
             checkout_url = initiate_flutterwave(request, user, package)
         elif gateway == ConstantHelper.MONNIFY:
-            # TODO: Implement Flutterwave integration
+            # TODO: Implement monnify integration
             op.fail("Monnify not implemented yet")
             return BaseResultWithData(
                 message="Monnify is currently not available.",

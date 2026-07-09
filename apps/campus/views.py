@@ -29,6 +29,7 @@ class GetDashboardView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     # throttle_classes = [CustomRate(1, 20, "second", "auth")]
     def get(self, request):
+        print(request.COOKIES)
         result = DashboardQuery.get_dashboard(request)
         return Response(result.to_dict(), status=result.status_code)
     

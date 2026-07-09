@@ -103,6 +103,36 @@ class LoginView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         result = AuthCommand.Execute(request, serializer.validated_data)
         return Response(result.to_dict(), status=result.status_code)
+        # response = Response(
+        #     {
+        #         "is_success": result.is_success,
+        #         "message": result.message,
+        #         "data": result.data["user"]
+        #     },
+        #     status=result.status_code
+        # )
+
+        # response.set_cookie(
+        #     key="access_token",
+        #     value=result.data["access_token"],
+        #     httponly=True,
+        #     secure=False,
+        #     samesite="Lax",
+        #     max_age=60 * 60,
+        #     path="/"
+        # )
+
+        # response.set_cookie(
+        #     key="refresh_token",
+        #     value=result.data["refresh_token"],
+        #     httponly=True,
+        #     secure=False,
+        #     samesite="Lax",
+        #     max_age=60 * 60 * 24 * 7,
+        #     path="/"
+        # )
+
+        # return response
 
 
 

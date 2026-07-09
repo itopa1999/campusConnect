@@ -233,3 +233,5 @@ class CacheKeysEnum(Enum):
             CacheKeys.format(CacheKeys.USER_PROFILE, user_id=5)
         """
         return key.value.format(**kwargs)
+    
+

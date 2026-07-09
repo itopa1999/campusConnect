@@ -86,6 +86,7 @@ class LostandFoundCommand:
                     data={'id': item.id},
                     status_code=201
                 )
+            # Todo: Consider sending a confirmation email to the user here if needed.
         except Exception as e:
             op.fail("Unexpected error during creation", exc=e)
             return BaseResultWithData(

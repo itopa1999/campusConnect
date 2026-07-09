@@ -72,21 +72,23 @@ class AuthCommand:
                 profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
             else:
                 profile_pic_url = None
+
+            
             
             return BaseResultWithData(
                 message="Login successful",
                 data={
                     'access_token': access_token,
                     'refresh_token': refresh_token,
-                    'user_id': user.id,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'email': user.email,
-                    'profile_pic': profile_pic_url,
-                    'point_bal': user.points if user.points else 0,
-                    'trusting_score': user.average_rating,
-                    'is_email_verified': user.email_verified,
-                    'is_hall_verified' : user.hall_verified
+                    "user_id": user.id,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "email": user.email,
+                    "profile_pic": profile_pic_url,
+                    "point_bal": user.points or 0,
+                    "trusting_score": user.average_rating,
+                    "is_email_verified": user.email_verified,
+                    "is_hall_verified": user.hall_verified,
                 },
                 status_code=200
             )
