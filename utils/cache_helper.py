@@ -4,41 +4,48 @@ from django.conf import settings
 from utils.log_helpers import OperationLogger
 
 CACHE_TTL = settings.DEFAULT_CACHE_TTL 
-
+CACHE_PREFIX = "campusconnect"
 
 class GlobalCache:
     @staticmethod
+    def _key(key: str):
+        return f"{CACHE_PREFIX}:{key}"
+    
+    @staticmethod
     def get(key):
-        op = OperationLogger("get_cache", data={"cache_key": key})
+        build_key = GlobalCache._key(key)
+        op = OperationLogger("get_cache", data={"cache_key": build_key})
         op.start()
 
         try:
-            return cache.get(key)
+            return cache.get(build_key)
         except Exception as e:
-            op.fail(f"Failed to get cache key '{key}': {e}")
+            op.fail(f"Failed to get cache key '{build_key}': {e}")
             return None
 
     @staticmethod
     def set(key, value, timeout=CACHE_TTL):
         """Store data globally"""
-        op = OperationLogger("set_cache", data={"cache_key": key})
+        build_key = GlobalCache._key(key)
+        op = OperationLogger("set_cache", data={"cache_key": build_key})
         op.start()
 
         try:
-            cache.set(key, value, timeout)
+            cache.set(build_key, value, timeout)
         except Exception as e:
-            op.fail(f"Failed to set cache key '{key}': {e}")
+            op.fail(f"Failed to set cache key '{build_key}': {e}")
 
     @staticmethod
     def delete(key):
         """Delete a single cache key"""
-        op = OperationLogger("delete_cache", data={"cache_key": key})
+        build_key = GlobalCache._key(key)
+        op = OperationLogger("delete_cache", data={"cache_key": build_key})
         op.start()
 
         try:
-            cache.delete(key)
+            cache.delete(build_key)
         except Exception as e:
-            op.fail(f"Failed to delete cache key '{key}': {e}")
+            op.fail(f"Failed to delete cache key '{build_key}': {e}")
 
     @staticmethod
     def clear():
@@ -57,10 +64,11 @@ class GlobalCache:
         Delete all cache keys starting with a given prefix.
         Works with Redis and LocMemCache (if keys() supported).
         """
-        op = OperationLogger("delete_cache_prefix", data={"prefix": prefix})
+        build_key = GlobalCache._key(prefix)
+        op = OperationLogger("delete_cache_prefix", data={"prefix": build_key})
         op.start()
         
-        pattern = f"{prefix}*"
+        pattern = f"{build_key}*"
         try:
             # For RedisCache (supports delete_pattern)
             if hasattr(cache, "delete_pattern"):
@@ -74,5 +82,5 @@ class GlobalCache:
                 op.fail("⚠️ Cache backend doesn't support prefix delete — cleared all cache.")
             return True
         except Exception as e:
-            op.fail(f"Failed to delete prefix '{prefix}' from cache: {e}")
+            op.fail(f"Failed to delete prefix '{build_key}' from cache: {e}")
             return False

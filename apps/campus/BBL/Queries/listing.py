@@ -275,7 +275,6 @@ class ListingQuery:
                 'id': seller.id,
                 'name': seller.get_full_name() if visibility else None,
                 'profile_picture': request.build_absolute_uri(seller.profile_picture.url) if seller.profile_picture and visibility else None,
-                'email': seller.email if visibility else None,
                 'phone': seller.phone if visibility else None,
                 'department': seller.department if visibility else None,
                 'level': seller.level if visibility else None,
