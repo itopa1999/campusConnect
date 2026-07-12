@@ -1,5 +1,7 @@
 
+from apps.users.BBL.Commands.notification import NotificationCommand
 from apps.users.BBL.Commands.profile import ProfileCommand
+from apps.users.BBL.Queries.notification import NotificationQueries
 from apps.users.BBL.Queries.profile import ProfileQuery
 from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
@@ -361,4 +363,54 @@ class UploadStudentIdView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         result = ProfileCommand.upload_student_id(request, request.user, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class GetAllNotificationsView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+
+    def get(self, request, *args, **kwargs):
+        page = request.query_params.get('page', 1)
+        per_page = request.query_params.get('per_page', 10)
+        result = NotificationQueries.get_notification(request, request.user, page=page, per_page=per_page)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class GetNotificationsHeaderView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+
+    def get(self, request, *args, **kwargs):
+        result = NotificationQueries.get_notifications_header(request, request.user)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class NotificationMarkAsReadView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+
+    def put(self, request, notification_id):
+        result = NotificationCommand.mark_as_read(request.user, notification_id)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class MarkAllNotificationAsReadView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+
+    def put(self, request):
+        result = NotificationCommand.mark_all_as_read(request.user)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class NotificationDeleteView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+
+    def delete(self, request, notification_id):
+        result = NotificationCommand.delete_notification(request.user, notification_id)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class DeleteAllNotificationView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+
+    def delete(self, request):
+        result = NotificationCommand.delete_all_notifications(request.user)
         return Response(result.to_dict(), status=result.status_code)

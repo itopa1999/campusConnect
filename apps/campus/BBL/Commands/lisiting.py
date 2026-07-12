@@ -8,8 +8,8 @@ from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import AdvertTypeEnum, ListingStatusType, ListingType, PointTransactionTypeEnum
-from utils.helpers import UpdatePointsService, parse_bool
+from utils.enums import AdvertTypeEnum, ListingStatusType, ListingType, NotificationEnum, PointTransactionTypeEnum
+from utils.helpers import UpdatePointsService, create_notification, parse_bool
 from utils.log_helpers import OperationLogger
 from PIL import Image
 from django.core.files.storage import default_storage
@@ -26,7 +26,7 @@ class ListingCommand:
         - Freebie listings must have price = 0 or null
         - Basic field validations via serializer
         """
-        op = OperationLogger("ListingCommand.create_listing", data=data)
+        op = OperationLogger(f"ListingCommand.create_listing for user: {user.first_name or user.email}", data=data)
         op.start()
 
         if hasattr(data, 'dict'):
@@ -44,13 +44,13 @@ class ListingCommand:
             try:
                 price = Decimal(str(raw_price))
             except (ValueError, TypeError):
-                op.fail("Invalid price format")
+                op.fail(f"Invalid price format for listing: {data.get('title')}")
                 return BaseResultWithData(
                     message="Price must be a valid number.",
                     status_code=400
                 )
             if price < 0:
-                op.fail("Negative price")
+                op.fail(f"Negative price for listing: {data.get('title')}")
                 return BaseResultWithData(
                     message="Price cannot be negative.",
                     status_code=400
@@ -72,7 +72,7 @@ class ListingCommand:
         current_points = UpdatePointsService.check_points(user)
         print(current_points, total_points_needed)
         if current_points < total_points_needed:
-            op.fail("Insufficient points")
+            op.fail(f"Insufficient points for listing: {data.get('title')}")
             return BaseResultWithData(
                 message=f"Insufficient points. You need at least {ConstantHelper.BASE_POINT} point to post.",
                 status_code=400
@@ -87,7 +87,7 @@ class ListingCommand:
                 hotspot_ids = None
 
         if not hotspot_ids or not isinstance(hotspot_ids, list) or len(hotspot_ids) == 0:
-            op.fail("No meeting spots selected")
+            op.fail(f"No meeting spots selected for listing: {data.get('title')}")
             return BaseResultWithData(
                 message="Please select at least one meeting spot.",
                 status_code=400
@@ -103,14 +103,14 @@ class ListingCommand:
         if image:
     
             if image.size > ConstantHelper.IMAGE_SIZE:
-                op.fail("Image too large")
+                op.fail(f"Image too large for listing: {data.get('title')}")
                 return BaseResultWithData(
                     message=f"Image file size must not exceed {ConstantHelper.IMAGE_SIZE} MB.",
                     status_code=400
                 )
             allowed_extensions = ('.jpg', '.jpeg', '.png', '.webp')
             if not image.name.lower().endswith(allowed_extensions):
-                op.fail("Invalid image format")
+                op.fail(f"Invalid image format for listing: {data.get('title')}")
                 return BaseResultWithData(
                     message="Only JPG, PNG, and WEBP images are allowed.",
                     status_code=400
@@ -121,7 +121,7 @@ class ListingCommand:
         # --- 5. Freebie specific rule ---
         listing_type = data.get('listing_type')
         if listing_type == ListingType.FREEBIE.value and price not in (None, 0):
-            op.fail(f"{ListingType.FREEBIE.value} price must be 0")
+            op.fail(f"{ListingType.FREEBIE.value} price must be 0 for listing: {data.get('title')}")
             return BaseResultWithData(
                 message=f"{ListingType.FREEBIE.value} must have price set to 0.",
                 status_code=400
@@ -131,7 +131,7 @@ class ListingCommand:
         #     and the serializer expects 'category', so no mapping needed.
         #     However, we ensure it exists.
         if not data.get('category'):
-            op.fail("Category missing")
+            op.fail(f"Category missing for listing: {data.get('title')}")
             return BaseResultWithData(
                 message="Category is required.",
                 status_code=400
@@ -142,7 +142,7 @@ class ListingCommand:
         try:
             serializer.is_valid(raise_exception=True)
         except serializers.ValidationError as e:
-            op.fail("Serializer validation failed", exc={'errors': e.detail})
+            op.fail(f"Listing: {data.get('title')}, Serializer validation failed", exc={'errors': e.detail})
             return BaseResultWithData(
                 message="Validation failed.",
                 data={'errors': e.detail},
@@ -162,14 +162,23 @@ class ListingCommand:
                     description=f"Created listing: {listing.title}",
                     reference=f"listing_{listing.id}"
                 )
-                op.success(f"Listing created: {listing.id}")
+
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.LISTING.value,
+                    title="Listing Created",
+                    message=f"Your listing '{listing.title}' has been successfully created.",
+                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                )
+
+                op.success(f"Listing created: {listing.id} for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Listing created successfully, It will appear in the marketplace within a few minutes.",
                     data={'listing_id': listing.id},
                     status_code=201
                 )
         except Exception as e:
-            op.fail("Unexpected error during creation", exc=e)
+            op.fail(f"Listing: {data.get('title')}Unexpected error during creation", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -177,11 +186,11 @@ class ListingCommand:
         
     @staticmethod
     def update_listing(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
-        op = OperationLogger("UpdateListingCommand.update_listing", data={'listing_id': listing_id, **data})
+        op = OperationLogger(f"UpdateListingCommand.update_listing for user: {user.first_name or user.email}", data={'listing_id': listing_id, **data})
         op.start()
 
         if listing_id is None:
-            op.fail("Listing ID is required")
+            op.fail(f"user: {user.first_name or user.email} Listing ID is required")
             return BaseResultWithData(
                 message="Listing ID is required.",
                 status_code=400
@@ -195,9 +204,9 @@ class ListingCommand:
             ).select_related('category').first()
 
             if not listing:
-                op.fail("Listing not found")
+                op.fail(f"Listing not found for listing: {listing_id}")
                 return BaseResultWithData(
-                    message="Listing not found or you do not have permission.",
+                    message="Listing not found",
                     status_code=404
                 )
 
@@ -205,7 +214,7 @@ class ListingCommand:
             if ConstantHelper.EDIT_DATE > 0 and fields_to_update and listing.modified_at:
                 days_since = (timezone.now() - listing.modified_at).days
                 if days_since < ConstantHelper.EDIT_DATE:
-                    op.fail("Edit restriction")
+                    op.fail(f"Edit restriction for listing: {listing.title}")
                     return BaseResultWithData(
                         message=f"You can only edit this listing once every {ConstantHelper.EDIT_DATE} days. Last edit was {listing.modified_at.strftime('%Y-%m-%d')}.",
                         status_code=400
@@ -220,7 +229,7 @@ class ListingCommand:
                 try:
                     data['category'] = int(data['category'])
                 except (ValueError, TypeError):
-                    op.fail("Invalid category ID")
+                    op.fail(f"Invalid category ID for listing: {listing.title}")
                     return BaseResultWithData(
                         message="Category must be a valid ID.",
                         status_code=400
@@ -240,7 +249,7 @@ class ListingCommand:
                     hotspot_ids = raw_hotspots
 
                 if not hotspot_ids or not isinstance(hotspot_ids, list) or len(hotspot_ids) == 0:
-                    op.fail("No meeting spots selected")
+                    op.fail(f"No meeting spots selected for listing: {listing.title}")
                     return BaseResultWithData(
                         message="Please select at least one meeting spot.",
                         status_code=400
@@ -249,7 +258,7 @@ class ListingCommand:
                 # Validate all hotspots exist
                 existing_hotspots = CampusHotspot.objects.filter(id__in=hotspot_ids, is_deleted=False)
                 if existing_hotspots.count() != len(hotspot_ids):
-                    op.fail("Invalid hotspot IDs")
+                    op.fail(f"Invalid hotspot IDs for listing: {listing.title}")
                     return BaseResultWithData(
                         message="One or more meeting spots are invalid.",
                         status_code=400
@@ -264,13 +273,13 @@ class ListingCommand:
                     try:
                         data['price'] = Decimal(str(raw_price))
                     except (ValueError, TypeError):
-                        op.fail("Invalid price")
+                        op.fail(f"Invalid price for listing: {listing.title}")
                         return BaseResultWithData(
                             message="Price must be a valid number.",
                             status_code=400
                         )
                     if data['price'] < 0:
-                        op.fail("Negative price")
+                        op.fail(f"Negative price from listing: {listing.title}")
                         return BaseResultWithData(
                             message="Price cannot be negative.",
                             status_code=400
@@ -278,7 +287,7 @@ class ListingCommand:
 
             # ─── 4. Listing type validation ────────────────────────────
             if 'listing_type' in data and data['listing_type'] not in ListingType.values():
-                op.fail("Invalid listing type")
+                op.fail(f"Invalid listing type for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Invalid listing type.",
                     status_code=400
@@ -286,7 +295,7 @@ class ListingCommand:
 
             if data.get('listing_type') == ListingType.FREEBIE.value:
                 if 'price' in data and data['price'] not in (None, 0):
-                    op.fail("Freebie price must be 0")
+                    op.fail(f"Freebie price must be 0 for listing: {listing.title}")
                     return BaseResultWithData(
                         message="Freebie listings must have price set to 0.",
                         status_code=400
@@ -298,7 +307,7 @@ class ListingCommand:
             try:
                 serializer.is_valid(raise_exception=True)
             except serializers.ValidationError as e:
-                op.fail("Serializer validation failed", exc={'errors': e.detail})
+                op.fail(f"Listing: {listing.title}, Serializer validation failed", exc={'errors': e.detail})
                 return BaseResultWithData(
                     message="Validation failed.",
                     data={'errors': e.detail},
@@ -313,7 +322,15 @@ class ListingCommand:
                     updated_listing.hotspots.set(hotspot_ids)
                     updated_listing.save(update_fields=['modified_at'])
 
-                op.success(f"Listing {listing_id} updated")
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.LISTING.value,
+                    title="Listing Updated",
+                    message=f"Your listing '{updated_listing.title}' has been successfully Updated.",
+                    action_url=f"/dash/my-listing-details.html?id={updated_listing.id}&title={updated_listing.title}"
+                )
+
+                op.success(f"Listing: {listing_id} updated for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Listing updated successfully.",
                     data={'id': updated_listing.id},
@@ -321,7 +338,7 @@ class ListingCommand:
                 )
 
         except Exception as e:
-            op.fail("Unexpected error", exc=e)
+            op.fail(f"Listing: {listing_id}: Unexpected error", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -330,11 +347,11 @@ class ListingCommand:
     
     @staticmethod
     def delete_listing(user: User, listing_id: int) -> BaseResultWithData:
-        op = OperationLogger("DeleteListingCommand.delete_listing", data={'listing_id': listing_id})
+        op = OperationLogger(f"DeleteListingCommand.delete_listing for user: {user.first_name or user.email}", data={'listing_id': listing_id})
         op.start()
 
         if listing_id is None:
-            op.fail("Listing ID is required")
+            op.fail(f"user: {user.first_name or user.email} Listing ID is required")
             return BaseResultWithData(
                 message="Listing ID is required.",
                 status_code=400
@@ -348,9 +365,9 @@ class ListingCommand:
             ).first()
 
             if not listing:
-                op.fail("Listing not found")
+                op.fail(f"Listing not found for listing: {listing_id}")
                 return BaseResultWithData(
-                    message="Listing not found or you do not have permission.",
+                    message="Listing not found",
                     status_code=404
                 )
 
@@ -358,14 +375,22 @@ class ListingCommand:
                 listing.is_deleted = True
                 listing.save(update_fields=['is_deleted'])
 
-            op.success(f"Listing {listing_id} deleted")
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.LISTING.value,
+                    title="Listing Deleted",
+                    message=f"Your listing '{listing.title}' has been successfully Deleted.",
+                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                )
+
+            op.success(f"Listing: {listing_id} deleted for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Listing deleted successfully.",
                 status_code=200
             )
 
         except Exception as e:
-            op.fail("Unexpected error", exc=e)
+            op.fail(f"Unexpected error for listing: {listing_id}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -374,11 +399,11 @@ class ListingCommand:
     
     @staticmethod
     def reactivate_listing(user: User, listing_id: int) -> BaseResultWithData:
-        op = OperationLogger("ReactivateListingCommand.reactivate_listing", data={'listing_id': listing_id})
+        op = OperationLogger(f"ReactivateListingCommand.reactivate_listing for user: {user.first_name or user.email}", data={'listing_id': listing_id})
         op.start()
 
         if listing_id is None:
-            op.fail("Listing ID is required")
+            op.fail(f"user: {user.first_name or user.email}: Listing ID is required")
             return BaseResultWithData(
                 message="Listing ID is required.",
                 status_code=400
@@ -392,14 +417,14 @@ class ListingCommand:
             ).first()
 
             if not listing:
-                op.fail("Listing not found")
+                op.fail(f"Listing not found for listing: {listing_id}")
                 return BaseResultWithData(
-                    message="Listing not found or you do not have permission.",
+                    message="Listing not found",
                     status_code=404
                 )
 
             if listing.status.lower() != ListingStatusType.SOLD.value.lower() and listing.status.lower() != ListingStatusType.EXPIRED.value.lower():
-                op.fail("Invalid status")
+                op.fail(f"Invalid status for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Only sold or expired listings can be reactivated.",
                     status_code=400
@@ -408,7 +433,7 @@ class ListingCommand:
             # Check points
             points = UpdatePointsService.check_points(user)
             if points < ConstantHelper.BASE_POINT:
-                op.fail("Insufficient points")
+                op.fail(f"Insufficient points for listing: {listing.title}")
                 return BaseResultWithData(
                     message=f"Insufficient points. You need {ConstantHelper.BASE_POINT} point to reactivate.",
                     status_code=400
@@ -427,7 +452,15 @@ class ListingCommand:
                     reference=f"listing_{listing_id}"
                 )
 
-            op.success(f"Listing {listing_id} reactivated")
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.LISTING.value,
+                    title="Reactivated listing",
+                    message=f"Your listing '{listing.title}' has been reactivated successfully.",
+                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                )
+
+            op.success(f"Listing: {listing_id} reactivated for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Listing reactivated successfully.",
                 data={'id': listing.id},
@@ -435,7 +468,7 @@ class ListingCommand:
             )
 
         except Exception as e:
-            op.fail("Unexpected error", exc=e)
+            op.fail(f"Unexpected error for listing ID: {listing_id}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -444,11 +477,11 @@ class ListingCommand:
     
     @staticmethod
     def mark_sold(user: User, listing_id: int) -> BaseResultWithData:
-        op = OperationLogger("ReactivateListingCommand.mark_sold", data={'listing_id': listing_id})
+        op = OperationLogger(f"ReactivateListingCommand.mark_sold for user: {user.first_name or user.email}", data={'listing_id': listing_id})
         op.start()
 
         if listing_id is None:
-            op.fail("Listing ID is required")
+            op.fail(f"user: {user.first_name or user.email}: Listing ID is required")
             return BaseResultWithData(
                 message="Listing ID is required.",
                 status_code=400
@@ -462,9 +495,9 @@ class ListingCommand:
             ).first()
 
             if not listing:
-                op.fail("Listing not found")
+                op.fail(f"Listing not found for listing ID: {listing_id}")
                 return BaseResultWithData(
-                    message="Listing not found or you do not have permission.",
+                    message="Listing not found",
                     status_code=404
                 )
             
@@ -475,7 +508,15 @@ class ListingCommand:
                 user.sold_items += 1
                 user.save(update_fields=['sold_items'])
 
-            op.success(f"Listing {listing_id} mark as sold")
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.LISTING.value,
+                    title="Listing status changed",
+                    message=f"Your listing '{listing.title}' has been mark as sold successfully.",
+                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                )
+
+            op.success(f"Listing: {listing_id} mark as sold for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Listing mark as sold successfully.",
                 data={'id': listing.id},
@@ -483,7 +524,7 @@ class ListingCommand:
             )
 
         except Exception as e:
-            op.fail("Unexpected error", exc=e)
+            op.fail(f"Unexpected error for listing ID: {listing_id}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -492,11 +533,11 @@ class ListingCommand:
     
     @staticmethod
     def image_upload(user: User, listing_id: int, image_file) -> BaseResultWithData:
-        op = OperationLogger("ListingCommand.image_upload", data={'listing_id': listing_id})
+        op = OperationLogger(f"ListingCommand.image_upload for user: {user.first_name or user.email}", data={'listing_id': listing_id})
         op.start()
 
         if listing_id is None:
-            op.fail("Listing ID is required")
+            op.fail(f"user: {user.first_name or user.email}: Listing ID is required")
             return BaseResultWithData(
                 message="Listing ID is required.",
                 status_code=400
@@ -510,22 +551,22 @@ class ListingCommand:
             ).first()
 
             if not listing:
-                op.fail("Listing not found")
+                op.fail(f"Listing not found for listing ID: {listing_id}")
                 return BaseResultWithData(
-                    message="Listing not found or you do not have permission.",
+                    message="Listing not found.",
                     status_code=404
                 )
 
             # Validate image (size, extension)
             if image_file.size > ConstantHelper.IMAGE_SIZE:
-                op.fail("Image too large")
+                op.fail(f"Image too large for listing: {listing.title}")
                 return BaseResultWithData(
                     message=f"Image size must not exceed {ConstantHelper.IMAGE_SIZE} MB.",
                     status_code=400
                 )
             allowed_extensions = ('.jpg', '.jpeg', '.png', '.webp')
             if not image_file.name.lower().endswith(allowed_extensions):
-                op.fail("Invalid image format")
+                op.fail(f"Invalid image format for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Only JPG, PNG, and WEBP images are allowed.",
                     status_code=400
@@ -535,7 +576,7 @@ class ListingCommand:
                 img = Image.open(image_file)
                 img.verify()
             except Exception:
-                op.fail("Invalid image file")
+                op.fail(f"Invalid image file for listing: {listing.title}")
                 return BaseResultWithData(
                     message="The uploaded file is not a valid image.",
                     status_code=400
@@ -547,12 +588,12 @@ class ListingCommand:
                         print("reaches here", listing.image.path)
                         default_storage.delete(listing.image.path)
                     except Exception as e:
-                        op.fail(f"Could not delete old picture: {e}")
+                        op.fail(f"Could not delete old picture for listing: {listing.title}: {e}")
 
                 listing.image = image_file
                 listing.save(update_fields=['image'])
 
-            op.success(f"Image uploaded for listing {listing_id}")
+            op.success(f"Image uploaded for listing: {listing_id}, user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Image uploaded successfully.",
                 data={'id': listing.id},
@@ -560,7 +601,7 @@ class ListingCommand:
             )
 
         except Exception as e:
-            op.fail("Unexpected error", exc=e)
+            op.fail(f"Unexpected error for listing ID: {listing_id}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -569,11 +610,11 @@ class ListingCommand:
 
     @staticmethod
     def update_ads(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
-        op = OperationLogger("UpdateListingCommand.update_ads", data={'listing_id': listing_id, **data})
+        op = OperationLogger(f"UpdateListingCommand.update_ads for user: {user.first_name or user.email}", data={'listing_id': listing_id, **data})
         op.start()
 
         if listing_id is None:
-            op.fail("Listing ID is required")
+            op.fail(f"user: {user.first_name or user.email}: Listing ID is required")
             return BaseResultWithData(
                 message="Listing ID is required.",
                 status_code=400
@@ -587,9 +628,9 @@ class ListingCommand:
             ).first()
 
             if not listing:
-                op.fail("Listing not found")
+                op.fail(f"Listing not found for listing ID: {listing_id}")
                 return BaseResultWithData(
-                    message="Listing not found or you do not have permission.",
+                    message="Listing not found",
                     status_code=404
                 )
 
@@ -597,14 +638,14 @@ class ListingCommand:
             updating_hot = 'is_hot_sales' in data
 
             if not updating_banner and not updating_hot:
-                op.fail("No valid fields to update")
+                op.fail(f"No valid fields to update for listing: {listing.title}")
                 return BaseResultWithData(
                     message="No valid fields to update. Provide 'is_ads_banner' or 'is_hot_sales'.",
                     status_code=400
                 )
             
             if listing.status != ListingStatusType.ACTIVE.value:
-                op.fail("Invalid listing status")
+                op.fail(f"Invalid listing status for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Ads can only be set for active listings.",
                     status_code=400
@@ -624,14 +665,14 @@ class ListingCommand:
                         current_points = UpdatePointsService.check_points(user)
                         
                         if current_points < points_needed:
-                            op.fail("Insufficient points for banner")
+                            op.fail(f"Insufficient points for banner for listing: {listing.title}")
                             return BaseResultWithData(
                                 message=f"Insufficient points. You need {points_needed} points to enable banner.",
                                 status_code=400
                             )
                         
                         total_points_to_deduct += points_needed
-                        description_parts.append(f"banner enabled")
+                        description_parts.append("banner enabled")
                     
                     listing.is_ads_banner = new_banner_value
                     update_fields.append('is_ads_banner')
@@ -646,17 +687,20 @@ class ListingCommand:
                         current_points = UpdatePointsService.check_points(user)
                         
                         if current_points < points_needed:
-                            op.fail("Insufficient points for hot sales")
+                            op.fail(f"Insufficient points for hot sales for listing: {listing.title}")
                             return BaseResultWithData(
                                 message=f"Insufficient points. You need {points_needed} points to enable hot sales.",
                                 status_code=400
                             )
                         
                         total_points_to_deduct += points_needed
-                        description_parts.append(f"hot sales enabled")
+                        description_parts.append("hot sales enabled")
                     
                     listing.is_hot_sales = new_hot_value
                     update_fields.append('is_hot_sales')
+
+                # Save the listing
+                listing.save(update_fields=update_fields)
 
                 # Deduct points if any
                 if total_points_to_deduct > 0:
@@ -669,10 +713,15 @@ class ListingCommand:
                         reference=f"listing_{listing_id}"
                     )
 
-                # Save the listing
-                listing.save(update_fields=update_fields)
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.LISTING.value,
+                    title="Listing Ads updated",
+                    message=f"Your listing '{listing.title}' ({', '.join(description_parts)})",
+                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                )
 
-                op.success(f"Listing {listing_id} ads updated")
+                op.success(f"Listing: {listing_id} ads updated for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Listing ads updated successfully.",
                     data={
@@ -684,7 +733,7 @@ class ListingCommand:
                 )
 
         except Exception as e:
-            op.fail("Unexpected error", exc=e)
+            op.fail(f"Unexpected error for listing ID: {listing_id}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -693,11 +742,11 @@ class ListingCommand:
 
     @staticmethod
     def lisiting_auto_reactivation(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
-        op = OperationLogger("UpdateListingCommand.lisiting_auto_reactivation", data={'listing_id': listing_id, **data})
+        op = OperationLogger(f"UpdateListingCommand.lisiting_auto_reactivation for user: {user.first_name or user.email}", data={'listing_id': listing_id, **data})
         op.start()
 
         if listing_id is None:
-            op.fail("Listing ID is required")
+            op.fail(f"user: {user.first_name or user.email}: Listing ID is required")
             return BaseResultWithData(
                 message="Listing ID is required.",
                 status_code=400
@@ -711,9 +760,9 @@ class ListingCommand:
             ).first()
 
             if not listing:
-                op.fail("Listing not found")
+                op.fail(f"Listing not found for listing ID: {listing_id}")
                 return BaseResultWithData(
-                    message="Listing not found or you do not have permission.",
+                    message="Listing not found",
                     status_code=404
                 )
 
@@ -721,7 +770,7 @@ class ListingCommand:
             auto_reactivate = parse_bool(data.get('auto_reactivate', False))
 
             if listing.status not in [ListingStatusType.ACTIVE.value, ListingStatusType.EXPIRED.value]:
-                op.fail("Invalid listing status")
+                op.fail(f"Invalid listing status for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Auto-reactivation can only be set for active or expired listings.",
                     status_code=400
@@ -730,7 +779,7 @@ class ListingCommand:
             if auto_reactivate:
                 current_points = UpdatePointsService.check_points(user)
                 if current_points < 1:
-                    op.fail("Insufficient points")
+                    op.fail(f"Insufficient points for listing: {listing.title}")
                     return BaseResultWithData(
                         message="You need at least 1 point to enable auto-reactivation.",
                         status_code=400
@@ -740,7 +789,15 @@ class ListingCommand:
                 listing.auto_reactivate = auto_reactivate
                 listing.save(update_fields=['auto_reactivate'])
 
-            op.success(f"Auto-reactivation toggled to {auto_reactivate} for listing {listing_id}")
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.LISTING.value,
+                    title="Listing Auto-reactivation",
+                    message=f"Auto-reactivation {'enabled' if auto_reactivate else 'disabled'} successfully for {listing.title}.",
+                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                )
+
+            op.success(f"Auto-reactivation toggled to {auto_reactivate} for listing: {listing_id}, user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message=f"Auto-reactivation {'enabled' if auto_reactivate else 'disabled'} successfully.",
                 data={'auto_reactivate': listing.auto_reactivate},
@@ -748,7 +805,7 @@ class ListingCommand:
             )
         
         except Exception as e:
-            op.fail("Unexpected error", exc=e)
+            op.fail(f"Unexpected error for listing ID: {listing_id}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500

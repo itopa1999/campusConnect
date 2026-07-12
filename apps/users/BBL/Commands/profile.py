@@ -3,6 +3,8 @@
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
+from utils.enums import NotificationEnum
+from utils.helpers import create_notification
 from utils.log_helpers import OperationLogger
 from django.db import transaction
 from django.utils import timezone
@@ -15,13 +17,13 @@ from django.core.files.base import ContentFile
 class ProfileCommand:
     @staticmethod
     def update_profile(request, user, validated_data) -> BaseResultWithData:
-        op = OperationLogger("ProfileCommand.update_profile", data=validated_data)
+        op = OperationLogger(f"ProfileCommand.update_profile for user: {user.first_name or user.email}", data=validated_data)
         op.start()
 
         if ConstantHelper.USER_EDIT_DAY > 0 and user.modified_at:
             days_since = (timezone.now() - user.modified_at).days
             if days_since < ConstantHelper.USER_EDIT_DAY:
-                op.fail("Edit restriction")
+                op.fail(f"Edit restriction for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message=f"You can only edit once every {ConstantHelper.EDIT_DATE} days. Last edit was {user.modified_at.strftime('%Y-%m-%d')}.",
                     status_code=400
@@ -36,7 +38,7 @@ class ProfileCommand:
                         is_deleted=False
                     ).exclude(id=user.id).exists()
                     if phone_exists:
-                        op.fail("Phone number already in use by another user.")
+                        op.fail(f"Phone {phone} number already in use by another user.")
                         return BaseResultWithData(
                             message="Phone number already in use by another user.",
                             status_code=400
@@ -50,7 +52,7 @@ class ProfileCommand:
                         is_deleted=False
                     ).exclude(id=user.id).exists()
                     if matric_exists:
-                        op.fail("Matric number already in use by another user.")
+                        op.fail(f"Matric number {matric_number} already in use by another user.")
                         return BaseResultWithData(
                             message="Matric number already in use by another user.",
                             status_code=400
@@ -60,7 +62,7 @@ class ProfileCommand:
                 level = validated_data.get('level')
                 if level is not None:
                     if level < 1 or level > 7:
-                        op.fail("Invalid level. Please enter a value between 1 and 7.")
+                        op.fail(f"Invalid level: {level}. Please enter a value between 1 and 7.")
                         return BaseResultWithData(
                             message="Invalid level. Please enter a value between 1 and 7.",
                             status_code=400
@@ -89,6 +91,14 @@ class ProfileCommand:
 
                 user.save()
 
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.ACCOUNT.value,
+                    title="Profile Update",
+                    message="Your profile has been updated successfully",
+                    action_url="/dash/profile.html"
+                )
+
                 op.success(f"Profile updated for user {user.email}")
                 return BaseResultWithData(
                     message="Profile updated successfully.",
@@ -96,7 +106,7 @@ class ProfileCommand:
                 )
 
         except Exception as e:
-            op.fail("Unexpected error during profile update", exc=e)
+            op.fail(f"Unexpected error during profile update for user: {user.first_name or user.email}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -105,20 +115,20 @@ class ProfileCommand:
 
     @staticmethod
     def update_profile_picture(request, user, validated_data) -> BaseResultWithData:
-        op = OperationLogger("ProfileCommand.update_profile_picture", data={'user_id': user.id})
+        op = OperationLogger(f"ProfileCommand.update_profile_picture for user: {user.first_name or user.email}", data={'user_id': user.id})
         op.start()
 
         # 1. Extract the uploaded file
         image_file = validated_data.get('profile_picture')
         if not image_file:
-            op.fail("No image file provided")
+            op.fail(f"No image file provided while update_profile_picture for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="No image file provided.",
                 status_code=400
             )
 
         if image_file.size > ConstantHelper.IMAGE_SIZE:
-            op.fail("Image too large")
+            op.fail(f"Image too large while update_profile_picture for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message=f"Image file size must not exceed {ConstantHelper.IMAGE_SIZE} MB.",
                 status_code=400
@@ -128,7 +138,7 @@ class ProfileCommand:
         allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp']
         ext = os.path.splitext(image_file.name)[1].lower()
         if ext not in allowed_extensions:
-            op.fail("Invalid file type")
+            op.fail(f"Invalid file type while update_profile_picture for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Only JPG, PNG, and WEBP images are allowed.",
                 status_code=400
@@ -138,7 +148,7 @@ class ProfileCommand:
             img = Image.open(image_file)
             img.verify()
         except Exception:
-            op.fail("Invalid image file")
+            op.fail(f"Invalid image file while update_profile_picture for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="The uploaded file is not a valid image.",
                 status_code=400
@@ -150,13 +160,13 @@ class ProfileCommand:
                     try:
                         default_storage.delete(user.profile_picture.path)
                     except Exception as e:
-                        op.fail(f"Could not delete old picture: {e}")
+                        op.fail(f"Could not delete old picture while update_profile_picture for user: {user.first_name or user.email}:  {e}")
 
                 user.profile_picture = image_file
 
                 user.save(update_fields=['profile_picture'])
 
-                op.success(f"Profile picture updated for user {user.id}")
+                op.success(f"Profile picture updated for user {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Profile picture updated successfully.",
                     data = {
@@ -166,7 +176,7 @@ class ProfileCommand:
                 )
  
         except Exception as e:
-            op.fail("Unexpected error during profile picture update", exc=e)
+            op.fail(f"Unexpected error during profile picture update_profile_picture for user: {user.first_name or user.email}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -175,7 +185,7 @@ class ProfileCommand:
 
     @staticmethod
     def upload_student_id(request, user, validated_data) -> BaseResultWithData:
-        op = OperationLogger("ProfileCommand.upload_student_id", data={'user_id': user.id})
+        op = OperationLogger(f"ProfileCommand.upload_student_id for user: {user.first_name or user.email}", data={'user_id': user.id})
         op.start()
 
         if user.student_id_verified:
@@ -187,14 +197,14 @@ class ProfileCommand:
         # 1. Extract the uploaded file
         image_file = validated_data.get('student_id')
         if not image_file:
-            op.fail("No image file provided")
+            op.fail(f"No image file provided while upload_student_id for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="No image file provided.",
                 status_code=400
             )
 
         if image_file.size > ConstantHelper.IMAGE_SIZE:
-            op.fail("Image too large")
+            op.fail(f"Image too large while upload_student_id for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message=f"Image file size must not exceed {ConstantHelper.IMAGE_SIZE} MB.",
                 status_code=400
@@ -204,7 +214,7 @@ class ProfileCommand:
         allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp']
         ext = os.path.splitext(image_file.name)[1].lower()
         if ext not in allowed_extensions:
-            op.fail("Invalid file type")
+            op.fail(f"Invalid file type while upload_student_id for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Only JPG, PNG, and WEBP images are allowed.",
                 status_code=400
@@ -214,7 +224,7 @@ class ProfileCommand:
             img = Image.open(image_file)
             img.verify()
         except Exception:
-            op.fail("Invalid image file")
+            op.fail(f"Invalid image file while upload_student_id for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="The uploaded file is not a valid image.",
                 status_code=400
@@ -226,22 +236,30 @@ class ProfileCommand:
                     try:
                         default_storage.delete(user.student_id_photo.path)
                     except Exception as e:
-                        op.fail(f"Could not delete old picture: {e}")
+                        op.fail(f"Could not delete old picture while upload_student_id for user: {user.first_name or user.email}: {e}")
 
                 user.student_id_photo = image_file
 
                 user.save(update_fields=['student_id_photo'])
 
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.ACCOUNT.value,
+                    title="Student ID Uploaded",
+                    message="Your student ID has been uploaded successfully",
+                    action_url="/dash/profile.html"
+                )
+
                 # send email later here please
 
-                op.success(f"Id Uploaded for user {user.id}")
+                op.success(f"Id Uploaded for user {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Id Uploaded successfully. We review and update you on the progress",
                     status_code=200
                 )
  
         except Exception as e:
-            op.fail("Unexpected error during profile picture update", exc=e)
+            op.fail(f"Unexpected error during student id picture update for user: {user.first_name or user.email}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500

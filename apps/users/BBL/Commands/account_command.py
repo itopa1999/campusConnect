@@ -15,7 +15,7 @@ class AccountCommand:
     def Execute(request, validated_data):
         email = validated_data.get('email')
         raw_phone = validated_data.get('phone')
-        op = OperationLogger("AccountCommand.Execute", email=email, phone=raw_phone)
+        op = OperationLogger(f"AccountCommand.Execute account creation for  {email}", email=email, phone=raw_phone)
         op.start()
         try:
             normalized_phone = normalize_nigerian_phone(raw_phone)
@@ -88,9 +88,8 @@ class AccountCommand:
                 background_task_send_verification_email.delay(user.email, user.first_name, verification_link)
             except OperationalError as e:
                 op.success("Account created successfully, but failed to queue verification email")
-            else:
-                op.success("Account created successfully, verification email queued")
             
+            op.success(f"Account created successfully for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Account created successfully. Please check your email to verify your account.",
                 data={
@@ -102,7 +101,7 @@ class AccountCommand:
             )
             
         except Exception as e:
-            op.fail("Error creating account", exc=e)
+            op.fail(f"Error creating account for email {email}", exc=e)
             return BaseResult(
                 message=f"Error creating account: {str(e)}",
                 status_code=400
@@ -111,12 +110,12 @@ class AccountCommand:
     @staticmethod
     def VerifyEmail(request, token):
         """Verify user email using verification token"""
-        op = OperationLogger("AccountCommand.VerifyEmail", token=token)
+        op = OperationLogger(f"AccountCommand.VerifyEmail {token}", token=token)
         op.start()
         try:
             is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.EMAIL_VERIFICATION.value)
             if not is_valid:
-                op.fail(f"[AccountCommand.VerifyEmail] Token verification failed: {result}")
+                op.fail(f"[AccountCommand.VerifyEmail] Token: {token} verification failed: {result}")
                 return BaseResult(
                     message=result,
                     status_code=400
@@ -132,9 +131,8 @@ class AccountCommand:
                 background_task_send_account_verify_email.delay(user.email, user.first_name)
             except OperationalError as e:
                 op.success("Email verified successfully, but failed to queue verification email")
-            else:
-                op.success("Email verified successfully")
             
+            op.success(f"Email: {user.email} verified successfully for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Email verified successfully",
                 data={'user_id': user.id, 'email': user.email},
@@ -142,7 +140,7 @@ class AccountCommand:
             )
             
         except Exception as e:
-            op.fail("Error verifying email", exc=e)
+            op.fail(f"Error verifying email for token: {token}", exc=e)
             return BaseResult(
                 message=f"Error verifying email: {str(e)}",
                 status_code=500
@@ -151,7 +149,7 @@ class AccountCommand:
     @staticmethod
     def ResendEmail(request, validated_data):
         email = validated_data.get('email', '').strip()
-        op = OperationLogger("AccountCommand.ResendEmail", email=email)
+        op = OperationLogger(f"AccountCommand.ResendEmail for {email}", email=email)
         op.start()
         user = User.objects.filter(email=email, email_verified=False, is_active=True).first()
         if not user:
@@ -166,11 +164,11 @@ class AccountCommand:
             background_task_send_verification_email.delay(user.email, user.first_name, verification_link)
         except OperationalError as e:
             op.success("Verification email successfully, but failed to queue verification email")
-        else:
-            op.success("Verification email queued successfully")
-        
+
+
+        op.success(f"Verification email: {user.email} queued successfully for user: {user.first_name or user.email}")  
         return BaseResultWithData(
-            message="Account created successfully. Please check your email to verify your account.",
+            message="Verification email successfully sent. Please check your email to verify your account.",
             data={
                 'user_id': user.id,
                 'email': user.email,
@@ -184,7 +182,7 @@ class AccountCommand:
     @staticmethod
     def _create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value):
         """Create a verification token for email verification"""
-        op = OperationLogger("AccountCommand._create_verification_token", user_id=user.id, token_type=token_type)
+        op = OperationLogger(f"AccountCommand._create_verification_token for user: {user.first_name or user.email} ", user_id=user.id, token_type=token_type)
         op.start()
 
         VerificationToken.objects.filter(
@@ -206,7 +204,7 @@ class AccountCommand:
             token=token,
             token_type=token_type,
         )
-        op.success("Verification token created")
+        op.success(f"Verification token: {token} created for user: {user.first_name or user.email}")
         return verification_token
     
     @staticmethod
@@ -216,7 +214,7 @@ class AccountCommand:
         op.start()
 
         if not token:
-            op.fail("[AccountCommand._verify_token] Token is required")
+            op.fail(f"[AccountCommand._verify_token] Token: {token} is required")
             return False, "Token is required"
         
         verification_token = VerificationToken.objects.filter(
@@ -235,7 +233,7 @@ class AccountCommand:
         
         verification_token.is_used = True
         verification_token.save(update_fields=["is_used"])
-        op.success("Token verified successfully")
+        op.success(f"Token verified successfully for user: {verification_token.user.first_name or verification_token.user.email}")
         
         return True, verification_token
 

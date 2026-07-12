@@ -8,7 +8,7 @@ from datetime import timedelta
 import random
 from apps.users.manager import UserManager, SoftDeleteManager
 from utils.base_model import BaseModel
-from utils.enums import PointPurchaseStatusEnum, PointTransactionTypeEnum, TokenType
+from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, TokenType
 import secrets
 from utils.enums import IssueTypeEnum
 # Create your models here.
@@ -269,7 +269,7 @@ class PointPurchase(BaseModel):
     status = models.CharField(
         max_length=20,
         choices= PointPurchaseStatusEnum.choices(),
-        default='pending',
+        default=PointPurchaseStatusEnum.PENDING.value,
         db_index=True
     )
     completed_at = models.DateTimeField(
@@ -312,7 +312,7 @@ class PointTransaction(BaseModel):
     transaction_type = models.CharField(
         max_length=30,
         choices=PointTransactionTypeEnum.choices(),
-        default='other',
+        default=PointTransactionTypeEnum.OTHER.value,
         db_index=True
     )
     description = models.CharField(
@@ -364,3 +364,29 @@ class FeatureFlag(BaseModel):
 
     def __str__(self):
         return f"{self.name} ({'active' if self.is_active else 'inactive'})"
+
+
+
+class Notification(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notification_user")
+    notification_type = models.CharField(max_length=255, choices=NotificationEnum.choices(),
+        default=NotificationEnum.OTHERS.value,
+        db_index=True)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    action_url = models.CharField(max_length=255, blank=True)
+
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['user', 'notification_type']),
+            models.Index(fields=['created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.first_name or self.user.email} title: {self.title}"

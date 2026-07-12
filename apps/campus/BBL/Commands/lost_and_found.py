@@ -19,7 +19,7 @@ class LostandFoundCommand:
         - Image extension allowed (jpg, jpeg, png, webp)
         - Phone number optional (validated by model)
         """
-        op = OperationLogger("LostandFoundCommand.create_item", data=data)
+        op = OperationLogger(f"LostandFoundCommand.create_item from {data.get('full_name') or data.get('email')}", data=data)
         op.start()
 
         # Convert QueryDict to mutable dict if needed
@@ -40,7 +40,7 @@ class LostandFoundCommand:
         ]
         missing = [f for f in required_fields if not data.get(f)]
         if missing:
-            op.fail("Missing required fields", exc={'missing': missing})
+            op.fail(f"Missing required fields for creating item {data.get('item_name')}", exc={'missing': missing})
             return BaseResultWithData(
                 message=f"Missing required fields: {', '.join(missing)}",
                 status_code=400
@@ -50,7 +50,7 @@ class LostandFoundCommand:
         image = data.get('image')
         if image:
             if image.size > ConstantHelper.IMAGE_SIZE:
-                op.fail("Image too large")
+                op.fail(f"Image too large for creating item {data.get('item_name')}")
                 return BaseResultWithData(
                     message=f"Image file size must not exceed {ConstantHelper.IMAGE_SIZE} MB.",
                     status_code=400
@@ -58,7 +58,7 @@ class LostandFoundCommand:
             # Extension check
             allowed_extensions = ('.jpg', '.jpeg', '.png', '.webp')
             if not image.name.lower().endswith(allowed_extensions):
-                op.fail("Invalid image format")
+                op.fail(f"Invalid image format for creating item {data.get('item_name')}")
                 return BaseResultWithData(
                     message="Only JPG, PNG, and WEBP images are allowed.",
                     status_code=400
@@ -69,7 +69,7 @@ class LostandFoundCommand:
         try:
             serializer.is_valid(raise_exception=True)
         except serializers.ValidationError as e:
-            op.fail("Serializer validation failed", exc={'errors': e.detail})
+            op.fail(f"Serializer validation failed for creating item {data.get('item_name')}", exc={'errors': e.detail})
             return BaseResultWithData(
                 message="Validation failed.",
                 data={'errors': e.detail},
@@ -88,7 +88,7 @@ class LostandFoundCommand:
                 )
             # Todo: Consider sending a confirmation email to the user here if needed.
         except Exception as e:
-            op.fail("Unexpected error during creation", exc=e)
+            op.fail(f"Unexpected error during creation: item {data.get('item_name')}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -103,7 +103,7 @@ class LostandFoundCommand:
         - Compare the provided answers with the stored answers.
         - If correct, create the claim and return the finder's contact details.
         """
-        op = OperationLogger("ClaimCommand.create_claim", data=data)
+        op = OperationLogger(f"ClaimCommand.create_claim for item_id: {data.get('lost_item_id')}", data=data)
         op.start()
 
         # ---- 1. Extract and validate required fields ----
@@ -121,7 +121,7 @@ class LostandFoundCommand:
             if not answer2: missing.append('answer2')
             if not full_name: missing.append('full_name')
             if not email: missing.append('email')
-            op.fail("Missing required fields", exc={'missing': missing})
+            op.fail(f"Missing required fields while creating claim for lost_item ID {data.get('lost_item_id')}", exc={'missing': missing})
             return BaseResultWithData(
                 message=f"Missing required fields: {', '.join(missing)}",
                 status_code=400
@@ -131,7 +131,7 @@ class LostandFoundCommand:
         try:
             item = LostAndFound.objects.get(id=lost_item_id, is_deleted=False)
         except LostAndFound.DoesNotExist:
-            op.fail("Item not found")
+            op.fail(f"Item ID {lost_item_id} not found")
             return BaseResultWithData(
                 message="The lost item does not exist.",
                 status_code=404
@@ -139,7 +139,7 @@ class LostandFoundCommand:
 
         # ---- 3. Check status ----
         if item.status.lower() != LostAndFoundStatusEnum.OPEN.value.lower():
-            op.fail("Item not claimable")
+            op.fail(f"Item not claimable for item {item.item_name}")
             return BaseResultWithData(
                 message="This item has already been claimed or resolved.",
                 status_code=400
@@ -147,7 +147,7 @@ class LostandFoundCommand:
 
         existing_claims_count = Claim.objects.filter(lost_item=item, email=email).count()
         if existing_claims_count >= 2:
-            op.fail("Max claims limit reached")
+            op.fail(f"Max claims limit reached for Email: {email}")
             return BaseResultWithData(
                 message="You have already submitted the maximum number of claims (2) for this item.",
                 status_code=400
@@ -167,7 +167,7 @@ class LostandFoundCommand:
         try:
             serializer.is_valid(raise_exception=True)
         except serializers.ValidationError as e:
-            op.fail("Serializer validation failed", exc={'errors': e.detail})
+            op.fail(f"Serializer validation failed while creating claim for lost_item ID {data.get('lost_item_id')} ", exc={'errors': e.detail})
             return BaseResultWithData(
                 message="Validation failed.",
                 data={'errors': e.detail},
@@ -178,7 +178,7 @@ class LostandFoundCommand:
             with transaction.atomic():
                 claim = serializer.save()
         except Exception as e:
-            op.fail("Unexpected error during claim creation", exc=e)
+            op.fail(f"Unexpected error during claim creation for lost_item_id {data.get('lost_item_id')}", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
@@ -199,10 +199,9 @@ class LostandFoundCommand:
                 claim.answer2
                 )
         except OperationalError as e:
-            op.success("Successfully, but failed to queue verification email")
-        else:
-            op.success("Successfully, verification email queued")
+            op.success("Successfully, but failed to queue lost item claim email")
 
+        op.success(f"Successfully, verification email queued for lost email item: {item.item_name}")
         return BaseResultWithData(
             message="If your answer is right we will forward you the founder details. ",
             status_code=200
@@ -211,9 +210,10 @@ class LostandFoundCommand:
 
     @staticmethod
     def approve_claim(request, claim_id, email) -> BaseResultWithData:
-        op = OperationLogger("ClaimCommand.create_claim",  data={'claim_id': claim_id, 'email': email})
+        op = OperationLogger(f"ClaimCommand.approve_claim for claim_id: {claim_id}",  data={'claim_id': claim_id, 'email': email})
         op.start()
         if not claim_id or not email:
+            op.fail("claim_id or email is required")
             return BaseResultWithData(
                 message="Invalid request: missing claim_id or email.",
                 status_code=400
@@ -221,6 +221,7 @@ class LostandFoundCommand:
         
         claim = Claim.objects.filter(id=claim_id, email=email).first()
         if not claim:
+            op.fail(f"claim not found for claim ID {claim_id}")
             return BaseResultWithData(
                 message="Claim not found",
                 status_code=400
@@ -229,7 +230,7 @@ class LostandFoundCommand:
         lost_item = claim.lost_item
 
         if lost_item.status.lower() != LostAndFoundStatusEnum.OPEN.value.lower():
-            op.fail("Item not claimable")
+            op.fail(f"Item not claimable for lost_item {lost_item.item_name}")
             return BaseResultWithData(
                 message="This item has already been claimed or resolved.",
                 status_code=400
@@ -250,9 +251,8 @@ class LostandFoundCommand:
                 )
         except OperationalError as e:
             op.success("Successfully, but failed to queue email")
-        else:
-            op.success("Successfully, email queued")
-
+        
+        op.success(f"Successfully, email queued for sent founder details, item: {lost_item.item_name}")
         return BaseResultWithData (
             message="Details has been forwarded.",
             status_code=200

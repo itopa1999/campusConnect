@@ -192,6 +192,22 @@ class PointTransactionTypeEnum(Enum):
     def values(cls):
         return [item.value for item in cls]
     
+
+class NotificationEnum(Enum):
+    LISTING = "listing"
+    ACCOUNT = "account"
+    SYSTEM = "system"
+    TRANSACTION = 'transaction'
+    OTHERS = "others"
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+    
 class FeatureFlagEnum(Enum):
     FREE_BANNER = "free_banner"
     ACCOUNT_CREATION_BONUS= "account_creation_bonus"
@@ -222,7 +238,9 @@ class CacheKeysEnum(Enum):
     PURCHASES = "purchases_{user_id}_{page}"
     TRANSACTIONS = "transactions_{user_id}_{page}"
     PROFILE = "profile_{user_id}"
-    PUBLIC_LISTING_DETAILS = "public_listing_details_{listing_id}"
+    PUBLIC_LISTING_DETAILS = "public_listing_details_{user_id}_{listing_id}"
+    NOTIFICATIONS = "notifications_{user_id}_{page}"
+    NOTIFICATION_HEADER = "notifications_header_{user_id}"
 
 
     @classmethod

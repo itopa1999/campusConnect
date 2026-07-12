@@ -6,8 +6,8 @@ from django.utils import timezone
 import requests
 from apps.users.models import PointPurchase
 from utils.constant_helper import ConstantHelper
-from utils.enums import PointPurchaseStatusEnum, PointTransactionTypeEnum
-from utils.helpers import UpdatePointsService
+from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum
+from utils.helpers import UpdatePointsService, create_notification
 from utils.log_helpers import OperationLogger
 
 
@@ -16,7 +16,7 @@ def initiate_paystack(request, user, package):
     Initiate Paystack payment for a point package.
     Creates a pending PointPurchase record and returns the Paystack checkout URL.
     """
-    op = OperationLogger("PaystackInitiate", user=user.id, package_id=package.id)
+    op = OperationLogger(f"PaystackInitiate.initiate_paystack for user: {user.first_name or user.email} -- amount: {package.price}", data = {"package_id": package.id})
     op.start()
 
     # Generate a unique reference
@@ -35,7 +35,7 @@ def initiate_paystack(request, user, package):
                 gateway = ConstantHelper.PAYSTACK
             )
     except Exception as e:
-        op.fail(f"Failed to create purchase record: {str(e)}")
+        op.fail(f"Failed to create purchase record for package: {package.description}: user: {user.first_name or user.email}: {str(e)}")
         return None
 
     # Prepare Paystack payload
@@ -69,17 +69,17 @@ def initiate_paystack(request, user, package):
         )
         result = response.json()
     except Exception as e:
-        op.fail(f"Paystack request error: {str(e)}")
+        op.fail(f"Paystack request error for package: {package.description}: user: {user.first_name or user.email}: {str(e)}")
         return None
 
     if response.status_code != 200 or not result.get("status"):
-        op.fail("Paystack initialization failed", exc=result)
+        op.fail(f"Paystack initialization failed for package: {package.description}: user: {user.first_name or user.email}:", exc=result)
         # Update purchase status to failed
         purchase.status = PointPurchaseStatusEnum.FAILED.value
         purchase.save(update_fields=['status'])
         return None
 
-    op.success(f"Paystack initiated, reference: {ref}")
+    op.success(f"Paystack initiated, reference: {ref} for user: {user.first_name or user.email}")
     return result["data"]["authorization_url"]
 
 
@@ -87,7 +87,7 @@ def verify_paystack_payment(reference):
     """
     Verify Paystack payment and complete the purchase.
     """
-    op = OperationLogger("PaystackVerify", reference=reference)
+    op = OperationLogger("PaystackVerify.verify_paystack_payment", reference=reference)
     op.start()
 
     # 1. Verify with Paystack
@@ -98,16 +98,16 @@ def verify_paystack_payment(reference):
         response = requests.get(url, headers=headers)
         result = response.json()
     except Exception as e:
-        op.fail(f"Verification request error: {str(e)}")
+        op.fail(f"Verification request error for reference: {reference}:: {str(e)}")
         return {"success": False, "error": str(e)}
 
     if response.status_code != 200 or not result.get("status"):
-        op.fail("Verification failed", exc=result)
+        op.fail(f"Verification failed for reference: {reference}:", exc=result)
         return {"success": False, "error": result.get("message", "Verification failed")}
 
     data = result.get("data", {})
     if data.get("status") != "success":
-        op.fail("Transaction was not successful", exc=data)
+        op.fail(f"Transaction was not successful for reference: {reference}:", exc=data)
         return {"success": False, "error": "Transaction was not successful"}
 
     # 2. Update purchase record
@@ -118,7 +118,7 @@ def verify_paystack_payment(reference):
                 status=PointPurchaseStatusEnum.PENDING.value
             )
     except PointPurchase.DoesNotExist:
-        op.fail("Purchase not found or already processed")
+        op.fail(f"Purchase not found or already processed for reference: {reference}:")
         return {"success": False, "error": "Purchase not found or already processed"}
 
     # Mark as completed
@@ -138,7 +138,15 @@ def verify_paystack_payment(reference):
         purchase=purchase,
     )
 
-    op.success(f"Purchase completed: {purchase.id}")
+    create_notification(
+        user=purchase.user,
+        notification_type=NotificationEnum.TRANSACTION.value,
+        title="Payment Update",
+        message=f"Purchased {points_awarded} points via Paystack was successful",
+        action_url="/dash/buy-points.html"
+    )
+
+    op.success(f"Purchase completed: {purchase.id} for user: {purchase.user.first_name or purchase.user.email}")
     return {
         "success": True,
         "message": "Payment confirmed and points added successfully.",

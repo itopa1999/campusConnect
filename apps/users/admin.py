@@ -526,3 +526,6 @@ class FeatureFlagAdmin(admin.ModelAdmin):
     def deactivate_features(self, request, queryset):
         updated = queryset.update(is_active=False)
         self.message_user(request, _('{0} features deactivated.').format(updated))
+
+
+admin.site.register(Notification)

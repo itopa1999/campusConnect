@@ -1,7 +1,7 @@
 from django.db.models.signals import post_delete, pre_save, post_save
 from django.dispatch import receiver
 
-from apps.users.models import PointPurchase, User
+from apps.users.models import Notification, PointPurchase, User
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
 from utils.helpers import convert_to_webp
@@ -59,6 +59,9 @@ def convert_updated_images_to_webp(sender, instance, created, **kwargs):
 def user_profile_changed(sender, instance, **kwargs):
     invalidate_profile_cache(instance.id)
 
+    prefix = f"public_listing_details_{instance.id}_"
+    GlobalCache.delete_prefix(prefix)
+
 
 
 def invalidate_profile_cache(user_id):
@@ -79,4 +82,15 @@ def point_purchase_changed(sender, instance, **kwargs):
     GlobalCache.delete_prefix(prefix)
 
     prefix1 = f"transactions_{instance.user_id}"
+    GlobalCache.delete_prefix(prefix1)
+
+
+
+@receiver(post_save, sender=Notification)
+@receiver(post_delete, sender=Notification)
+def notification_changed(sender, instance, **kwargs):
+    prefix = f"notifications_{instance.user_id}"
+    GlobalCache.delete_prefix(prefix)
+
+    prefix1 = f"notifications_header_{instance.user_id}"
     GlobalCache.delete_prefix(prefix1)

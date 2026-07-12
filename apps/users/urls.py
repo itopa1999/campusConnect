@@ -25,10 +25,21 @@ urlpatterns = [
         path('paystack-points-confirm/<str:reference>', PaystackPointsConfirmView.as_view(), name='paystack-points-confirm'),
         path('monnify-confirm/<str:reference>', MonnifyPointsConfirmView.as_view(), name='monnify-confirm'),
         path('flutterwave-points-confirm/<str:reference>', FlutterwavePointsConfirmView.as_view(), name='flutterwave-points-confirm'),
-        path('retry-purchase', RetryPurchaseView.as_view(), name='retry-payment')   
+        path('retry-purchase', RetryPurchaseView.as_view(), name='retry-payment') 
     ])),
     path("report/", include([
         path("submit", SubmitReportView.as_view(), name="submit_contact_report"),
     ])),
+
+    path("notifications/", include([
+        path("", GetAllNotificationsView.as_view(), name="get_all_notifications"),
+        path("mark-read/<int:notification_id>", NotificationMarkAsReadView.as_view(), name="mark_read_notifications"),
+        path("all-mark-read", MarkAllNotificationAsReadView.as_view(), name="mark_all_read_notifications"),
+        path("delete/<int:notification_id>", NotificationDeleteView.as_view(), name="delete_notifications"),
+        path("delete-all", DeleteAllNotificationView.as_view(), name="delete_all_notifications"),
+        path("header", GetNotificationsHeaderView.as_view(), name="get_notifications_header"),
+    ])),
+
+
     path("", RefreshPointBalanceView.as_view(), name='refresh_token'),
 ]

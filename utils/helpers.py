@@ -1,6 +1,6 @@
 import re
 from django.db import transaction
-from apps.users.models import Badge, PointTransaction
+from apps.users.models import Badge, Notification, PointTransaction
 from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
 from utils.enums import BadgeChoiceEnum, CacheKeysEnum, PointTransactionTypeEnum
@@ -233,3 +233,31 @@ def calculate_profile_completion(user):
     total_fields = len(profile_fields)
     filled_fields = sum(1 for value in profile_fields.values() if value)
     return int((filled_fields / total_fields) * 100) if total_fields else 0
+
+
+def create_notification(user, notification_type, title, message, action_url='') -> Notification:
+    """
+    Create a single notification for a user.
+
+    Args:
+        user (User): The recipient user.
+        notification_type (str): One of NotificationEnum values.
+        title (str): Notification title.
+        message (str): Notification message.
+        action_url (str, optional): URL for action. Defaults to ''.
+        save (bool): If False, return unsaved instance. Default True.
+
+    Returns:
+        Notification: The created (and saved) notification instance.
+    """
+    notification = Notification(
+        user=user,
+        notification_type=notification_type,
+        title=title,
+        message=message,
+        action_url=action_url,
+    )
+
+    notification.save()
+
+    return notification

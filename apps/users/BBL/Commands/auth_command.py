@@ -9,15 +9,15 @@ from utils.log_helpers import logger, OperationLogger
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from django.conf import settings
 
-from utils.enums import TokenType
-from utils.helpers import validate_ui_email, is_email_verified
+from utils.enums import NotificationEnum, TokenType
+from utils.helpers import create_notification, validate_ui_email, is_email_verified
 
 class AuthCommand:    
     @staticmethod
     def Execute(request, validated_data):
         email = validated_data.get('email')
         password = validated_data.get('password')
-        op = OperationLogger("AuthCommand.Execute", email=email)
+        op = OperationLogger(f"AuthCommand.Execute login for user: {email}", email=email)
         op.start()
         try:
             # is_valid, message = validate_ui_email(email)
@@ -48,7 +48,7 @@ class AuthCommand:
                 )
             
             if not is_email_verified(user):
-                op.fail(f"[AuthCommand.Execute] Email not verified for user_id: {user.id}")
+                op.fail(f"[AuthCommand.Execute] Email not verified for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Email not verified. Please check your inbox for the verification email.",
                     data=None,
@@ -56,7 +56,7 @@ class AuthCommand:
                 )
 
             if not user.is_active:
-                op.fail(f"[AuthCommand.Execute] Inactive account login attempt: user_id={user.id}")
+                op.fail(f"[AuthCommand.Execute] Inactive account login attempt: user={user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Your account has been deactivated. Please contact support for assistance.",
                     data=None,
@@ -66,7 +66,7 @@ class AuthCommand:
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
-            op.success("Login successful")
+            op.success(f"Login successful for user: {user.first_name or user.email}")
             
             if user.profile_picture and hasattr(user.profile_picture, 'url'):
                 profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
@@ -94,7 +94,7 @@ class AuthCommand:
             )
             
         except Exception as e:
-            op.fail("Error during login", exc=e)
+            op.fail(f"Error during login for email: {email}", exc=e)
             return BaseResultWithData(
                 message=f"Error during login: {str(e)}",
                 data=None,
@@ -105,7 +105,7 @@ class AuthCommand:
     @staticmethod
     def ForgotPassword(request, validated_data):
         email = validated_data.get('email')
-        op = OperationLogger("AuthCommand.ForgotPassword", email=email)
+        op = OperationLogger(f"AuthCommand.ForgotPassword for user: {email}", email=email)
         op.start()
         try:
             # is_valid, message = validate_ui_email(email)
@@ -128,7 +128,7 @@ class AuthCommand:
                 )
 
             if not is_email_verified(user):
-                op.fail(f"[AuthCommand.ForgotPassword] Email not verified for user_id: {user.id}")
+                op.fail(f"[AuthCommand.ForgotPassword] Email not verified for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Email not verified.",
                     data=None,
@@ -142,8 +142,8 @@ class AuthCommand:
                 background_task_send_password_reset_email.delay(user.email, user.first_name, link)
             except OperationalError as e:
                 op.success("Password reset successful, but failed to queue reset email")
-            else:
-                op.success("Password reset email queued")
+            
+            op.success(f"Password reset email successfully queued for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="If an account with that email exists, an email containing a new password has been sent",
                 data=None,
@@ -151,7 +151,7 @@ class AuthCommand:
             )
             
         except Exception as e:
-            op.fail("Error processing password reset", exc=e)
+            op.fail(f"Error processing password reset for email: {email}", exc=e)
             return BaseResultWithData(
                 message=f"Error processing password reset: {str(e)}",
                 data=None,
@@ -165,7 +165,7 @@ class AuthCommand:
         try:
             is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.PASSWORD_RESET.value)
             if not is_valid:
-                op.fail(f"[AuthCommand.VerifyForgetPasswordEmail] Token verification failed: {result}")
+                op.fail(f"[AuthCommand.VerifyForgetPasswordEmail] Token: {token} verification failed: {result}")
                 return BaseResultWithData(
                     message=result,
                     data=None,
@@ -174,7 +174,7 @@ class AuthCommand:
             
             verification_token = result
             user = verification_token.user
-            op.success("Password reset token verified")
+            op.success(f"Password reset token: {token} verified for user: {user.first_name or user.email}")
             
             return BaseResultWithData(
                 message="Link verified successful.",
@@ -186,7 +186,7 @@ class AuthCommand:
             )
             
         except Exception as e:
-            op.fail("Error verifying password reset token", exc=e)
+            op.fail(f"Error verifying password reset token: {token}", exc=e)
             return BaseResultWithData(
                 message=f"Error verifying password reset token: {str(e)}",
                 data=None,
@@ -199,11 +199,11 @@ class AuthCommand:
         email = validated_data.get('email', '').strip()
         password = validated_data.get('password', '').strip()
         confirm_password = validated_data.get('confirm_password', '').strip()
-        op = OperationLogger("AuthCommand.ConfirmResetPassword", user_id=user_id, email=email)
+        op = OperationLogger(f"AuthCommand.ConfirmResetPassword for user: {user_id}", user_id=user_id, email=email)
         op.start()
         try:
             if password != confirm_password:
-                op.fail(f"[AuthCommand.ConfirmResetPassword] Password mismatch for user_id: {user_id}")
+                op.fail(f"[AuthCommand.ConfirmResetPassword] Password mismatch for user: {user_id} : {email}")
                 return BaseResultWithData(
                     message="Password and confirm password do not match",
                     data=None,
@@ -213,7 +213,7 @@ class AuthCommand:
             user = User.objects.filter(id=user_id, email=email, is_active=True, is_deleted=False).first()
             
             if not user:
-                op.fail(f"[AuthCommand.ConfirmResetPassword] Invalid user or inactive account: {user_id}")
+                op.fail(f"[AuthCommand.ConfirmResetPassword] Invalid user or inactive account: user = {user_id} : {email}")
                 return BaseResultWithData(
                     message="Account has issues. Please contact support for assistance.",
                     data=None,
@@ -223,13 +223,19 @@ class AuthCommand:
             user.set_password(password)
             user.save()
 
+            create_notification(
+                user=user,
+                notification_type=NotificationEnum.ACCOUNT.value,
+                title="Password Reset Confirmation",
+                message="Your password has been reset successfully",
+            )
+
             try:
                 background_task_send_notification_email.delay(user.email, user.first_name)
             except OperationalError as e:
                 op.success("Password reset successful, but failed to queue reset email")
-            else:
-                op.success("Password reset successful and notification email queued")
             
+            op.success(f"Password reset successful and notification email queued for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Password reset successful. You can now log in with your new password.",
                 data=None,
@@ -237,7 +243,7 @@ class AuthCommand:
             )
             
         except Exception as e:
-            op.fail("Error resetting password", exc=e)
+            op.fail(f"Error resetting password for user: {user_id} : {email}", exc=e)
             return BaseResultWithData(
                 message=f"Error resetting password: {str(e)}",
                 data=None,
@@ -248,14 +254,14 @@ class AuthCommand:
     @staticmethod
     def ChangePassword(request, validated_data):
         user = request.user
-        op = OperationLogger("AuthCommand.ChangePassword", user_id=getattr(user, 'id', None))
+        op = OperationLogger(f"AuthCommand.ChangePassword for user: {user.first_name or user.email}", user_id=getattr(user, 'id', None))
         op.start()
         try:
             current_password = validated_data.get('current_password')
             new_password = validated_data.get('new_password')
             
             if not user.check_password(current_password):
-                op.fail(f"[AuthCommand.ChangePassword] Incorrect current password for user_id: {user.id}")
+                op.fail(f"[AuthCommand.ChangePassword] Incorrect current password for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Current password is incorrect",
                     data=None,
@@ -263,7 +269,7 @@ class AuthCommand:
                 )
             
             if len(new_password) < 8:
-                op.fail(f"[AuthCommand.ChangePassword] New password too short for user_id: {user.id}")
+                op.fail(f"[AuthCommand.ChangePassword] New password too short for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="New password must be at least 8 characters long",
                     data=None,
@@ -273,13 +279,20 @@ class AuthCommand:
             user.set_password(new_password)
             user.save()
 
+            create_notification(
+                user=user,
+                notification_type=NotificationEnum.ACCOUNT.value,
+                title="Password Change Confirmation",
+                message="Your password has been changed successfully",
+                action_url="/dash/profile.html"
+            )
+
             try:
                 background_task_send_change_password_email.delay(user.email, user.first_name)
             except OperationalError as e:
                 op.success("Password changed successfully, but failed to queue change password email")
-            else:
-                op.success("Password changed successfully and change password email queued")
-
+                
+            op.success(f"Password changed successfully and change password email queued for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Password changed successfully",
                 data=None,
@@ -287,7 +300,7 @@ class AuthCommand:
             )
             
         except Exception as e:
-            op.fail("Error changing password", exc=e)
+            op.fail(f"Error changing password for user: {user.first_name or user.email}", exc=e)
             return BaseResultWithData(
                 message=f"Error changing password: {str(e)}",
                 data=None,
@@ -309,7 +322,7 @@ class AuthCommand:
             try:
                 old_refresh = RefreshToken(refresh_token_str)
             except (TokenError, InvalidToken) as e:
-                op.fail(f"Invalid refresh token: {e}")
+                op.fail(f"Invalid refresh token {refresh_token_str}: {e}")
                 return BaseResultWithData(
                     message="Invalid or expired refresh token",
                     data=None,
@@ -318,7 +331,7 @@ class AuthCommand:
 
             user_id = old_refresh.payload.get('user_id')
             if not user_id:
-                op.fail("Missing user_id in token payload")
+                op.fail(f"Missing user_id in token payload: {refresh_token_str}")
                 return BaseResultWithData(
                     message="Invalid token payload",
                     data=None,
@@ -346,9 +359,9 @@ class AuthCommand:
                 try:
                     old_refresh.blacklist()
                 except AttributeError:
-                    op.fail("Blacklist method not available – ensure token_blacklist is installed")
+                    op.fail(f"Blacklist method not available")
                 except Exception as e:
-                    op.fail(f"Failed to blacklist old token: {e}")
+                    op.fail(f"Failed to blacklist old token {refresh_token_str}: {e}")
 
             # 4. Create brand new tokens
             new_refresh = RefreshToken.for_user(user)
@@ -373,7 +386,7 @@ class AuthCommand:
                 'is_hall_verified' : user.hall_verified
             }
 
-            op.success("Token refreshed and old token blacklisted")
+            op.success(f"Token refreshed and old token blacklisted for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Token refreshed successfully",
                 data=data,
@@ -381,7 +394,7 @@ class AuthCommand:
             )
 
         except Exception as e:
-            op.fail("Unexpected error during token refresh", exc=e)
+            op.fail(f"Unexpected error during token refresh {refresh_token_str}", exc=e)
             logger.exception(f"Refresh token error: {e}")
             return BaseResultWithData(
                 message="Unable to refresh token. Please login again.",

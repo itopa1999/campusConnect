@@ -8,8 +8,8 @@ from django.db import transaction
 
 from apps.users.models import PointPurchase
 from utils.constant_helper import ConstantHelper
-from utils.enums import PointPurchaseStatusEnum, PointTransactionTypeEnum
-from utils.helpers import UpdatePointsService
+from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum
+from utils.helpers import UpdatePointsService, create_notification
 from utils.log_helpers import OperationLogger
 
 # from apps.aso.models import Cart, Order, OrderItem, OrderTracking
@@ -22,7 +22,7 @@ def initiate_flutterwave(request, user, package):
     """
     Initialize Flutterwave payment
     """
-    op = OperationLogger("FlutterwavePayment", user=user.id, package_id=package.id)
+    op = OperationLogger(f"FlutterwavePayment.initiate_flutterwave for user: {user.first_name or user.email} -- amount: {package.price}", data = {"package_id": package.id})
     op.start()
 
     ref = secrets.token_urlsafe(15)
@@ -39,7 +39,7 @@ def initiate_flutterwave(request, user, package):
                 gateway = ConstantHelper.FLUTTERWAVE
             )
     except Exception as e:
-        op.fail(f"Failed to create purchase record: {str(e)}")
+        op.fail(f"Failed to create purchase record for package: {package.description}: user: {user.first_name or user.email}: {str(e)}")
         return None
 
     
@@ -82,14 +82,14 @@ def initiate_flutterwave(request, user, package):
         response = req.post(flutterwave_url, headers=headers, json=flutterwave_data)
         result = response.json()
     except Exception as e:
-        op.fail(f"Flutterwave initialization error: {str(e)}")
+        op.fail(f"Flutterwave initialization error for package: {package.description}: user: {user.first_name or user.email}: {str(e)}")
         return None
     
     if response.status_code == 200 and result.get("status") == "success":
-        op.success(f"Flutterwave initialized, reference: {ref}")
+        op.success(f"Flutterwave initialized, reference: {ref} for user: {user.first_name or user.email}")
         return result["data"]["link"]
     
-    op.fail("Flutterwave initialization failed")
+    op.fail(f"Flutterwave initialization failed for package: {package.description}: user: {user.first_name or user.email}:")
     return None
             
 
@@ -97,7 +97,7 @@ def validate(reference):
     """
     Validate Flutterwave payment using transaction reference
     """
-    op = OperationLogger("FlutterwaveValidate", reference=reference)
+    op = OperationLogger("FlutterwaveValidate.validate", reference=reference)
     op.start()
     
     # Get the transaction details from Flutterwave
@@ -111,19 +111,19 @@ def validate(reference):
         response = req.get(url, headers=headers)
         result = response.json()
     except Exception as e:
-        op.fail(f"Flutterwave verification request error: {str(e)}")
+        op.fail(f"Flutterwave verification request error for reference: {reference}: {str(e)}")
         return {"success": False, "error": str(e)}
         
     # Check if verification is successful
     if response.status_code != 200 or result["status"] != "success":
-        op.fail("Flutterwave verification failed")
+        op.fail(f"Flutterwave verification failed for reference: {reference}:")
         return {"success": False, "error": "Invalid or unsuccessful transaction."}
     
     transaction_data = result["data"]
     
     # Verify payment was successful
     if transaction_data.get("status") != "successful":
-        op.fail("Transaction status is not successful")
+        op.fail(f"Transaction status is not successful for reference: {reference}:")
         return {"success": False, "error": "Transaction not successful."}
     
     try:
@@ -133,7 +133,7 @@ def validate(reference):
                 status=PointPurchaseStatusEnum.PENDING.value
             )
     except PointPurchase.DoesNotExist:
-        op.fail("Purchase not found or already processed")
+        op.fail(f"Purchase not found or already processed for reference: {reference}:")
         return {"success": False, "error": "Purchase not found or already processed"}
         
     # Mark as completed
@@ -152,7 +152,17 @@ def validate(reference):
         reference=purchase.payment_reference,
         purchase=purchase,
     )
-    op.success("Transaction validated and order confirmed")
+
+    create_notification(
+        user=purchase.user,
+        notification_type=NotificationEnum.TRANSACTION.value,
+        title="Payment Update",
+        message=f"Purchased {points_awarded} points via flutterwave was successful",
+        action_url="/dash/buy-points.html"
+    )
+
+    
+    op.success(f"Transaction validated and order confirmed for user: {purchase.user.first_name or purchase.user.email}")
     return {
         "success": True,
         "message": "Payment confirmed successfully.",

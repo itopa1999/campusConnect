@@ -218,7 +218,7 @@ class ListingQuery:
                 status_code=400
             )
 
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.PUBLIC_LISTING_DETAILS, listing_id=listing_id)
+        cache_key = CacheKeysEnum.format(CacheKeysEnum.PUBLIC_LISTING_DETAILS, user_id = request.user.id,  listing_id=listing_id)
         cached_data = GlobalCache.get(cache_key)
         if cached_data:
             return BaseResultWithData(
