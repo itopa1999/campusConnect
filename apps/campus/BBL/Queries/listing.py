@@ -6,6 +6,7 @@ from utils.constant_helper import ConstantHelper
 from django.db.models import Avg, Count, Prefetch, Q
 from django.core.paginator import Paginator
 from utils.enums import CacheKeysEnum, GroupNames, ListingStatusType
+from utils.helpers import humanize_date
 
 class ListingQuery:
     @staticmethod
@@ -64,7 +65,7 @@ class ListingQuery:
                     'from_user': rev.from_user.get_full_name() or rev.from_user.email,
                     'rating': rev.rating,
                     'comment': rev.comment or "",
-                    'created_at': rev.created_at.isoformat(),
+                    'created_at': humanize_date(rev.created_at),
                 })
 
             image_url = None
@@ -87,7 +88,7 @@ class ListingQuery:
                 'hotspots': hotspot_ids,
                 'hotspot_names': hotspot_names,
                 'image': image_url,
-                'created_at': listing.created_at.isoformat(),
+                'created_at': humanize_date(listing.created_at),
                 'modified_at': listing.modified_at.isoformat(),
                 'expires_at': listing.expires_at.isoformat() if listing.expires_at else None,
                 'editing_period_day': ConstantHelper.EDIT_DATE,
@@ -267,7 +268,7 @@ class ListingQuery:
                     'from': rev.from_user.get_full_name() or rev.from_user.email,
                     'rating': rev.rating,
                     'comment': rev.comment or "",
-                    'date': rev.created_at.isoformat(),
+                    'date': humanize_date(rev.created_at),
                 })
 
             # ─── Seller information (with privacy) ──────────────────
@@ -308,7 +309,7 @@ class ListingQuery:
                 'location': hotspots[0] if hotspots else "Campus",
                 'hotspots': hotspots,
                 'image': image_url,
-                'created_at': listing.created_at.isoformat(),
+                'created_at': humanize_date(listing.created_at),
                 'seller': seller_data,
                 'reviews': reviews_list,
                 'review_count': review_count,

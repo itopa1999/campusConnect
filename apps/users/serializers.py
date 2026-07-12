@@ -1,7 +1,7 @@
 from apps.campus.models import Review
 from rest_framework import serializers
 from utils.constant_helper import ConstantHelper
-from utils.helpers import calculate_profile_completion
+from utils.helpers import calculate_profile_completion, humanize_date
 from .models import Badge, PointTransaction, User
 from utils.enums import IssueTypeEnum
 
@@ -69,11 +69,15 @@ class BadgeSerializer(serializers.ModelSerializer):
 
 class ReviewForProfileSerializer(serializers.ModelSerializer):
     from_user_name = serializers.CharField(source='from_user.get_full_name', read_only=True)
-    date = serializers.DateTimeField(source='created_at')
+    date = serializers.SerializerMethodField()
 
     class Meta:
         model = Review
         fields = ['from_user_name', 'rating', 'comment', 'date']
+
+    def get_date(self, obj):
+        return humanize_date(obj.created_at)
+
 
 class TransactionForProfileSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()

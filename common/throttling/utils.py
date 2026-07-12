@@ -1,5 +1,4 @@
 from django.http import HttpRequest
-
 from .enums import UserTypeEnum
 
 
@@ -76,3 +75,5 @@ def format_duration(seconds: int) -> str:
         parts.append(f"{seconds} second{'s' if seconds != 1 else ''}")
 
     return " ".join(parts)
+
+

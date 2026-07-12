@@ -5,7 +5,7 @@ from apps.campus.models import Listing, Review
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum, ListingStatusType
-from utils.helpers import calculate_profile_completion
+from utils.helpers import calculate_profile_completion, humanize_date
 from django.db.models import Count, Q
 
 class DashboardQuery:
@@ -85,7 +85,7 @@ class DashboardQuery:
                 'location': location,
                 'status': listing.status,
                 'image': image_url,
-                'created_at_humanized': DashboardQuery._humanize_date(listing.created_at),
+                'created_at_humanized': humanize_date(listing.created_at),
             })
 
         # --- All reviews received by this user ---
@@ -100,7 +100,7 @@ class DashboardQuery:
                 'from': review.from_user.get_full_name() or review.from_user.email,
                 'rating': review.rating,
                 'comment': review.comment or "",
-                'date': review.created_at.date().isoformat(),
+                'date': humanize_date(review.created_at)
             })
 
         first_name = user.first_name or user.email.split('@')[0]
@@ -127,27 +127,3 @@ class DashboardQuery:
             status_code=200
         )
         
-
-    @staticmethod
-    def _humanize_date(date):
-        """Return a human-friendly relative time string."""
-        now = timezone.now()
-        diff = now - date
-        if diff.days == 0:
-            if diff.seconds < 60:
-                return "just now"
-            elif diff.seconds < 3600:
-                minutes = diff.seconds // 60
-                return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
-            else:
-                hours = diff.seconds // 3600
-                return f"{hours} hour{'s' if hours != 1 else ''} ago"
-        elif diff.days == 1:
-            return "yesterday"
-        elif diff.days < 7:
-            return f"{diff.days} days ago"
-        elif diff.days < 30:
-            weeks = diff.days // 7
-            return f"{weeks} week{'s' if weeks != 1 else ''} ago"
-        else:
-            return date.strftime("%b %d, %Y")

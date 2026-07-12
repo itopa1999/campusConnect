@@ -7,6 +7,8 @@ from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
+from utils.helpers import humanize_date
+
 
 class NotificationQueries:
     @staticmethod
@@ -27,6 +29,8 @@ class NotificationQueries:
             is_deleted=False
         ).select_related('user').order_by('-created_at')
 
+        unread_messages_counts = queryset.filter(is_read = False).count()
+
         # Pagination logic
         paginator = Paginator(queryset, per_page)
         try:
@@ -45,11 +49,12 @@ class NotificationQueries:
                 "message": notification.message,
                 "is_read": notification.is_read,
                 "action_url": notification.action_url,
-                "created_at": notification.created_at.isoformat(),
+                "created_at": humanize_date(notification.created_at),
             })
 
         result_data = {
             "notifications": notifications_list,
+            "unread_messages_counts": unread_messages_counts,
             "page": page_obj.number,
             "total_pages": paginator.num_pages,
             "total_count": paginator.count,
@@ -79,11 +84,14 @@ class NotificationQueries:
                 status_code=200
             )
 
-        queryset = Notification.objects.filter(
+        qs = Notification.objects.filter(
             user=user,
             is_deleted=False
-        ).select_related('user').order_by('-created_at')[:5]
+        ).select_related('user')
 
+        unread_messages_counts = qs.filter(is_read = False).count()
+        queryset = qs.order_by('-created_at')[:5]
+        
         notifications_list = []
         for notification in queryset:
             notifications_list.append({
@@ -93,11 +101,12 @@ class NotificationQueries:
                 "message": notification.message,
                 "is_read": notification.is_read,
                 "action_url": notification.action_url,
-                "created_at": notification.created_at.isoformat(),
+                "created_at": humanize_date(notification.created_at),
             })
 
         result_data = {
-            "notifications": notifications_list
+            "notifications": notifications_list,
+            "unread_messages_counts":unread_messages_counts
         }
 
         GlobalCache.set(cache_key, result_data)

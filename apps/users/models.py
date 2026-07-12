@@ -6,14 +6,13 @@ from django.utils import timezone
 from django.core.validators import MinValueValidator, RegexValidator
 from datetime import timedelta
 import random
-from apps.users.manager import UserManager, SoftDeleteManager
-from utils.base_model import BaseModel
+from apps.users.manager import UserManager
 from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, TokenType
 import secrets
 from utils.enums import IssueTypeEnum
 # Create your models here.
 
-class Badge(models.Model):
+class Badge(BaseModel):
     name = models.CharField(max_length=50)
     icon = models.ImageField(upload_to='badges/', blank=True, null=True)
     description = models.TextField(blank=True, null=True)

@@ -4,6 +4,8 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Avg
 
+from common.admin import SoftDeleteAdmin
+
 from .models import *
 
 # ==================== INLINES ====================
@@ -54,7 +56,7 @@ class UserListingInline(admin.TabularInline):
 # ==================== MODEL ADMINS ====================
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(SoftDeleteAdmin):
     list_display = ('name', 'slug', 'icon', 'sort_order', 'is_deleted', 'listing_count')
     list_filter = ('is_deleted', 'sort_order')
     search_fields = ('name', 'description')
@@ -72,7 +74,7 @@ class CategoryAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
-    actions = ['mark_active', 'mark_deleted']
+    actions = ['mark_active']
 
     def listing_count(self, obj):
         return obj.listings.count()
@@ -87,13 +89,10 @@ class CategoryAdmin(admin.ModelAdmin):
         queryset.update(is_deleted=False)
     mark_active.short_description = "Mark as active"
 
-    def mark_deleted(self, request, queryset):
-        queryset.update(is_deleted=True)
-    mark_deleted.short_description = "Mark as deleted"
 
 
 @admin.register(CampusHotspot)
-class CampusHotspotAdmin(admin.ModelAdmin):
+class CampusHotspotAdmin(SoftDeleteAdmin):
     list_display = ('name', 'sort_order', 'is_deleted', 'listing_count')
     list_filter = ('is_deleted', 'sort_order')
     search_fields = ('name', 'description')
@@ -105,24 +104,16 @@ class CampusHotspotAdmin(admin.ModelAdmin):
         ('Status', {'fields': ('is_deleted',)}),
         ('Metadata', {'fields': ('created_at', 'modified_at'), 'classes': ('collapse',)})
     )
-    actions = ['mark_active', 'mark_deleted']
+    actions = ['mark_active']
 
     def listing_count(self, obj):
         return obj.listings.count()
     listing_count.short_description = 'Active Assoc. Listings'
 
 
-from django.contrib import admin
-from django.urls import reverse
-from django.utils.html import format_html
-from django.utils import timezone
-from django.db.models import Avg
-from apps.campus.models import Listing
-
-
 
 @admin.register(Listing)
-class ListingAdmin(admin.ModelAdmin):
+class ListingAdmin(SoftDeleteAdmin):
     list_display = (
         'title', 'user_link', 'category',
         'price', 'listing_type', 'badge',
@@ -215,7 +206,7 @@ class ListingAdmin(admin.ModelAdmin):
     
 
 @admin.register(ListingHotspot)
-class ListingHotspotAdmin(admin.ModelAdmin):
+class ListingHotspotAdmin(SoftDeleteAdmin):
     list_display = ('listing_link', 'hotspot_link', 'created_at')
     list_filter = ('hotspot',)
     autocomplete_fields = ['listing', 'hotspot']
@@ -233,7 +224,7 @@ class ListingHotspotAdmin(admin.ModelAdmin):
 
 
 @admin.register(Review)
-class ReviewAdmin(admin.ModelAdmin):
+class ReviewAdmin(SoftDeleteAdmin):
     list_display = ('from_user_link', 'to_user_link', 'listing_link', 'rating', 'comment_preview', 'created_at')
     list_filter = ('rating', 'created_at')
     search_fields = ('from_user__email', 'to_user__email', 'listing__title', 'comment')
@@ -270,7 +261,7 @@ class ReviewAdmin(admin.ModelAdmin):
 # ==================== LOST AND FOUND ADMIN ====================
 
 @admin.register(LostAndFound)
-class LostAndFoundAdmin(admin.ModelAdmin):
+class LostAndFoundAdmin(SoftDeleteAdmin):
     list_display = ('item_name', 'location', 'date_found', 'status', 'full_name', 'email', 'claimed_by', 'created_at')
     list_filter = ('status', 'date_found', 'department', 'created_at')
     search_fields = ('item_name', 'description', 'location', 'full_name', 'email', 'department')
@@ -295,7 +286,7 @@ class LostAndFoundAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
-    actions = ['mark_open', 'mark_claimed', 'mark_expired', 'mark_deleted']
+    actions = ['mark_open', 'mark_claimed', 'mark_expired']
 
     def mark_open(self, request, queryset):
         queryset.update(status='open', is_deleted=False)
@@ -309,13 +300,9 @@ class LostAndFoundAdmin(admin.ModelAdmin):
         queryset.update(status='expired')
     mark_expired.short_description = "Set status to Expired"
 
-    def mark_deleted(self, request, queryset):
-        queryset.update(is_deleted=True)
-    mark_deleted.short_description = "Soft delete selected items"
-
 
 @admin.register(Claim)
-class ClaimAdmin(admin.ModelAdmin):
+class ClaimAdmin(SoftDeleteAdmin):
     list_display = ('lost_item_link', 'full_name', 'email', 'phone', 'answers_match', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('lost_item__item_name', 'full_name', 'email', 'phone')
@@ -337,7 +324,7 @@ class ClaimAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
-    actions = ['mark_deleted', 'mark_active']
+    actions = ['mark_active']
 
     def lost_item_link(self, obj):
         app_label = obj.lost_item._meta.app_label
@@ -360,8 +347,3 @@ class ClaimAdmin(admin.ModelAdmin):
     def mark_active(self, request, queryset):
         queryset.update(is_deleted=False)
     mark_active.short_description = "Mark as active"
-
-    def mark_deleted(self, request, queryset):
-        queryset.update(is_deleted=True)
-    mark_deleted.short_description = "Soft delete selected claims"
-

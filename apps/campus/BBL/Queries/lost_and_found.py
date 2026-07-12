@@ -50,9 +50,6 @@ class GetLostItemsQuery:
                     'verification1': item.verification1,   # question 1 (safe)
                     'verification2': item.verification2,   # question 2 (safe)
                     'image': image_url,
-                    'created_at': item.created_at.isoformat(),
-                    'modified_at': item.modified_at.isoformat(),
-                    # answer1 and answer2 are intentionally omitted
                 })
 
             response_data = {

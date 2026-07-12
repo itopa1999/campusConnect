@@ -2,6 +2,7 @@
 
 from apps.users.models import Notification
 from utils.base_result import BaseResultWithData
+from utils.cache_helper import GlobalCache
 from utils.log_helpers import OperationLogger
 
 
@@ -34,6 +35,8 @@ class NotificationCommand:
         op = OperationLogger(f"NotificationCommand.mark_all_as_read for user: {user.first_name or user.email}", data={"user": user.first_name or user.email})
         op.start()
         updated_count = Notification.objects.filter(user=user, is_read=False, is_deleted=False).update(is_read=True)
+        GlobalCache.delete_prefix(f"notifications_{user.id}")
+        GlobalCache.delete_prefix(f"notifications_header_{user.id}")
         op.success(f"Notification mark_all_as_read successfully for user: {user.first_name or user.email}")
         return BaseResultWithData(
             message=f"{updated_count} notifications marked as read successfully",
@@ -66,7 +69,9 @@ class NotificationCommand:
         """delete all notifications for the user."""
         op = OperationLogger(f"NotificationCommand.delete_all_notifications for for user: {user.first_name or user.email}", data={"user": user.first_name or user.email})
         op.start()
-        updated_count = Notification.objects.filter(user=user, is_read=False, is_deleted=False).update(is_deleted=True)
+        updated_count = Notification.objects.filter(user=user, is_deleted=False).update(is_deleted=True)
+        GlobalCache.delete_prefix(f"notifications_{user.id}")
+        GlobalCache.delete_prefix(f"notifications_header_{user.id}")
         op.success(f"Notification delete_all_notifications successfully for user: {user.first_name or user.email}")
         return BaseResultWithData(
             message=f"{updated_count} notifications deleted successfully",

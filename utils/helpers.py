@@ -8,6 +8,10 @@ from io import BytesIO
 from PIL import Image
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.utils import timezone
+from datetime import timedelta
+
+
 
 def validate_ui_email(email: str) -> tuple[bool, str]:
   
@@ -261,3 +265,28 @@ def create_notification(user, notification_type, title, message, action_url='') 
     notification.save()
 
     return notification
+
+
+
+def humanize_date(date):
+    """Return a human-friendly relative time string."""
+    now = timezone.now()
+    diff = now - date
+    if diff.days == 0:
+        if diff.seconds < 60:
+            return "just now"
+        elif diff.seconds < 3600:
+            minutes = diff.seconds // 60
+            return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+        else:
+            hours = diff.seconds // 3600
+            return f"{hours} hour{'s' if hours != 1 else ''} ago"
+    elif diff.days == 1:
+        return "yesterday"
+    elif diff.days < 7:
+        return f"{diff.days} days ago"
+    elif diff.days < 30:
+        weeks = diff.days // 7
+        return f"{weeks} week{'s' if weeks != 1 else ''} ago"
+    else:
+        return date.strftime("%b %d, %Y")

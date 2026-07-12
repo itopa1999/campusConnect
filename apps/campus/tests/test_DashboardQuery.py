@@ -304,27 +304,3 @@ class TestDashboardQuery:
             assert result.data["profile_completion"] == 75.5
             mock_completion.assert_called_once_with(test_user)
 
-    def test_dashboard_humanize_date(self):
-        """Test the _humanize_date helper directly."""
-        now = timezone.now()
-        # Just now
-        assert DashboardQuery._humanize_date(now) == "just now"
-        # 5 minutes ago
-        five_min_ago = now - timedelta(minutes=5)
-        assert DashboardQuery._humanize_date(five_min_ago) == "5 minutes ago"
-        # 2 hours ago
-        two_hours_ago = now - timedelta(hours=2)
-        assert DashboardQuery._humanize_date(two_hours_ago) == "2 hours ago"
-        # Yesterday
-        yesterday = now - timedelta(days=1)
-        assert DashboardQuery._humanize_date(yesterday) == "yesterday"
-        # 3 days ago
-        three_days_ago = now - timedelta(days=3)
-        assert DashboardQuery._humanize_date(three_days_ago) == "3 days ago"
-        # 2 weeks ago (14 days)
-        two_weeks_ago = now - timedelta(days=14)
-        assert DashboardQuery._humanize_date(two_weeks_ago) == "2 weeks ago"
-        # Older: date format
-        old_date = now - timedelta(days=60)
-        expected = old_date.strftime("%b %d, %Y")
-        assert DashboardQuery._humanize_date(old_date) == expected

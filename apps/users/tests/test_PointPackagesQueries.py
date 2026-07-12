@@ -225,7 +225,6 @@ class TestGetPurchases:
         assert "amount_paid" in item
         assert "status" in item
         assert "created_at" in item
-        assert "completed_at" in item
 
         # Package fields
         pkg = item["package"]
@@ -276,19 +275,6 @@ class TestGetPurchases:
         assert data["total_pages"] == 1
         assert data["has_next"] is False
         assert data["has_previous"] is False
-
-    def test_get_purchases_completed_at_null(self, mock_cache, test_user, test_purchases):
-        """If purchase not completed, completed_at should be None."""
-        mock_cache.get.return_value = None
-        result = PointPackagesQueries.get_purchases(test_user, page=1, per_page=20)
-        # Find a pending purchase
-        pending = next((p for p in test_purchases if p.status == PointPurchaseStatusEnum.PENDING.value), None)
-        if pending:
-            items = result.data["items"]
-            for item in items:
-                if item["id"] == pending.id:
-                    assert item["completed_at"] is None
-                    break
 
 
 # ── Tests: get_transactions ──────────────────────────────────────────

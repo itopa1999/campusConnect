@@ -1,10 +1,16 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Avg, Prefetch
+
+from common.admin import SoftDeleteAdmin
+
 from .models import *
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
-class UserAdmin(admin.ModelAdmin):
+
+@admin.register(User)
+class UserAdmin(SoftDeleteAdmin):
     list_display = (
         'email',
         'full_name',
@@ -141,8 +147,8 @@ class UserAdmin(admin.ModelAdmin):
         queryset = queryset.prefetch_related('user_badges', 'groups', 'user_permissions')
         return queryset
     
-
-class VerificationTokenAdmin(admin.ModelAdmin):
+@admin.register(VerificationToken)
+class VerificationTokenAdmin(SoftDeleteAdmin):
     list_display = ('user_email', 'token_type', 'status_badge', 'created_at')
     list_filter = ('token_type', 'is_used', 'created_at')
     search_fields = ('user__email', 'token')
@@ -177,7 +183,9 @@ class VerificationTokenAdmin(admin.ModelAdmin):
         queryset = queryset.select_related('user')
         return queryset
 
-class BadgeAdmin(admin.ModelAdmin):
+
+@admin.register(Badge)
+class BadgeAdmin(SoftDeleteAdmin):
     list_display = ('name', 'description_short', 'icon_preview')
     search_fields = ('name', 'description')
     readonly_fields = ('icon_preview',)
@@ -194,7 +202,8 @@ class BadgeAdmin(admin.ModelAdmin):
     icon_preview.short_description = "Icon Preview"
 
 
-class ContactReportAdmin(admin.ModelAdmin):
+@admin.register(ContactReport)
+class ContactReportAdmin(SoftDeleteAdmin):
     # ========== LIST VIEW ==========
     list_display = (
         'id', 
@@ -264,7 +273,7 @@ class ContactReportAdmin(admin.ModelAdmin):
     )
     
     # ========== ACTIONS ==========
-    actions = ['mark_as_reviewed', 'mark_as_unreviewed', 'soft_delete_selected']
+    actions = ['mark_as_reviewed', 'mark_as_unreviewed']
     
     @admin.action(description='Mark selected reports as reviewed')
     def mark_as_reviewed(self, request, queryset):
@@ -276,15 +285,6 @@ class ContactReportAdmin(admin.ModelAdmin):
         updated = queryset.update(is_reviewed=False)
         self.message_user(request, f'{updated} report(s) marked as not reviewed.')
     
-    @admin.action(description='Soft delete selected reports')
-    def soft_delete_selected(self, request, queryset):
-        from django.utils.timezone import now
-        updated = queryset.update(
-            is_deleted=True,
-            deleted_at=now(),
-            deleted_by=request.user.username
-        )
-        self.message_user(request, f'{updated} report(s) soft-deleted.')
     
     # ========== CUSTOM METHODS FOR LIST DISPLAY ==========
     def issue_type_badge(self, obj):
@@ -312,11 +312,6 @@ class ContactReportAdmin(admin.ModelAdmin):
         obj.modified_by = request.user.username
         super().save_model(request, obj, form, change)
 
-admin.site.register(ContactReport, ContactReportAdmin)
-admin.site.register(User, UserAdmin)
-admin.site.register(VerificationToken, VerificationTokenAdmin)
-admin.site.register(Badge, BadgeAdmin)
-
 
 # ========== PointTransaction Inline ==========
 class PointTransactionInline(admin.TabularInline):
@@ -335,7 +330,7 @@ class PointTransactionInline(admin.TabularInline):
 
 # ========== PointPackage Admin ==========
 @admin.register(PointPackage)
-class PointPackageAdmin(admin.ModelAdmin):
+class PointPackageAdmin(SoftDeleteAdmin):
     list_display = ('points', 'price', 'price_per_point_display', 'savings_percentage_display', 'is_popular', 'is_best_value', 'sort_order')
     list_filter = ('is_popular', 'is_best_value', 'sort_order')
     search_fields = ('description',)
@@ -386,7 +381,7 @@ class PointPackageAdmin(admin.ModelAdmin):
 
 # ========== PointPurchase Admin ==========
 @admin.register(PointPurchase)
-class PointPurchaseAdmin(admin.ModelAdmin):
+class PointPurchaseAdmin(SoftDeleteAdmin):
     list_display = ('user_link', 'package_link', 'points_awarded', 'gateway', 'amount_paid', 'status', 'completed_at', 'created_at')
     list_filter = ('status', 'completed_at', 'created_at')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'package__description', 'payment_reference')
@@ -437,7 +432,7 @@ class PointPurchaseAdmin(admin.ModelAdmin):
 
 # ========== PointTransaction Admin ==========
 @admin.register(PointTransaction)
-class PointTransactionAdmin(admin.ModelAdmin):
+class PointTransactionAdmin(SoftDeleteAdmin):
     list_display = ('id', 'user_link', 'amount', 'balance_after', 'transaction_type_display', 'description', 'created_at')
     list_filter = ('transaction_type', 'created_at')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'description', 'reference')
@@ -472,10 +467,9 @@ class PointTransactionAdmin(admin.ModelAdmin):
     transaction_type_display.admin_order_field = 'transaction_type'
 
 
-from django.utils.translation import gettext_lazy as _
 
 @admin.register(FeatureFlag)
-class FeatureFlagAdmin(admin.ModelAdmin):
+class FeatureFlagAdmin(SoftDeleteAdmin):
     """
     Admin interface for FeatureFlag.
     """
@@ -528,4 +522,63 @@ class FeatureFlagAdmin(admin.ModelAdmin):
         self.message_user(request, _('{0} features deactivated.').format(updated))
 
 
-admin.site.register(Notification)
+@admin.register(Notification)
+class NotificationAdmin(SoftDeleteAdmin):
+    list_display = (
+        'id',
+        'user_email',
+        'title',
+        'notification_type',
+        'is_read',
+        'is_deleted',
+        'created_at'
+    )
+    list_filter = (
+        'notification_type',
+        'is_read',
+        'is_deleted',
+        'created_at',
+        'modified_at'
+    )
+    search_fields = (
+        'user__email',
+        'user__first_name',
+        'user__last_name',
+        'title',
+        'message'
+    )
+    readonly_fields = (
+        'created_at',
+        'created_by',
+        'modified_at',
+        'modified_by',
+        'deleted_at',
+        'deleted_by'
+    )
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'notification_type', 'title', 'message', 'is_read', 'action_url')
+        }),
+        ('Audit Trail', {
+            'fields': ('created_at', 'created_by', 'modified_at', 'modified_by', 'is_deleted', 'deleted_at', 'deleted_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    actions = ['mark_as_read', 'mark_as_unread']
+
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'User Email'
+    user_email.admin_order_field = 'user__email'
+
+    @admin.action(description='Mark selected notifications as read')
+    def mark_as_read(self, request, queryset):
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f'{updated} notification(s) marked as read.')
+
+    @admin.action(description='Mark selected notifications as unread')
+    def mark_as_unread(self, request, queryset):
+        updated = queryset.update(is_read=False)
+        self.message_user(request, f'{updated} notification(s) marked as unread.')
+

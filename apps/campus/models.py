@@ -199,7 +199,7 @@ class LostAndFound(BaseModel):
     
     
 
-    class Meta(BaseModel.Meta):
+    class Meta:
         indexes = [
             models.Index(fields=['date_found', 'status']),
             models.Index(fields=['email', 'status']),
@@ -228,7 +228,7 @@ class Claim(BaseModel):
     )
 
 
-    class Meta(BaseModel.Meta):
+    class Meta:
         indexes = [
             models.Index(fields=['lost_item']),
             models.Index(fields=['email']),

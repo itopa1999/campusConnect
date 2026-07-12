@@ -89,7 +89,6 @@ class PointPackagesQueries:
                 'amount_paid': float(purchase.amount_paid),
                 'status': purchase.status,
                 'created_at': purchase.created_at.isoformat(),
-                'completed_at': purchase.completed_at.isoformat() if purchase.completed_at else None,
             })
 
         response_data = {
