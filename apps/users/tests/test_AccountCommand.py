@@ -283,7 +283,7 @@ class TestAccountCommandResendEmail:
         result = AccountCommand.ResendEmail(request, data)
         assert result.is_success is True
         assert result.status_code == 200
-        assert "Account created successfully" in result.message
+        assert "Verification email successfully sent" in result.message
         token_count = VerificationToken.objects.filter(
             user=test_user, token_type=TokenType.EMAIL_VERIFICATION.value, is_used=False
         ).count()

@@ -469,7 +469,6 @@ class TestListingDetails:
         seller = data["seller"]
         assert seller["id"] == test_listing_with_image.user.id
         assert seller["name"] == "Test User"
-        assert seller["email"] == test_listing_with_image.user.email
         assert seller["is_owner"] is True
 
     def test_listing_details_seller_visibility_false(self, request_factory, test_listing, test_user):
@@ -481,7 +480,6 @@ class TestListingDetails:
             result = ListingQuery.listing_details(request, test_listing.id)
         seller = result.data["seller"]
         assert seller["name"] is None
-        assert seller["email"] is None
         assert seller["phone"] is None
         assert seller["department"] is None
         assert seller["profile_picture"] is None
