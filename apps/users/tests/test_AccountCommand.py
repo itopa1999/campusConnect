@@ -210,8 +210,8 @@ class TestAccountCommandVerifyEmail:
 
     def test_verify_email_success(self, db, request_factory, verification_token, mock_email_tasks):
         """Happy path: verify a valid token."""
-        request = request_factory.get("/")
-        result = AccountCommand.VerifyEmail(request, verification_token.token)
+        request = request_factory.get(f"/?token={verification_token.token}")
+        result = AccountCommand.VerifyEmail(request)
         assert result.is_success is True
         assert result.status_code == 200
         user = verification_token.user
@@ -226,16 +226,16 @@ class TestAccountCommandVerifyEmail:
 
     def test_verify_email_invalid_token(self, db, request_factory):
         """Invalid token (string) should be caught and return 500."""
-        request = request_factory.get("/")
-        result = AccountCommand.VerifyEmail(request, "invalidtoken")
+        request = request_factory.get("/?token=invalidtoken")
+        result = AccountCommand.VerifyEmail(request)
         assert result.is_success is False
         assert result.status_code == 500
         assert "Error verifying email" in result.message
 
     def test_verify_email_expired_token(self, db, request_factory, expired_token):
         """Expired token should fail."""
-        request = request_factory.get("/")
-        result = AccountCommand.VerifyEmail(request, expired_token.token)
+        request = request_factory.get(f"/?token={expired_token.token}")
+        result = AccountCommand.VerifyEmail(request)
         assert result.is_success is False
         assert result.status_code == 400
         assert "has expired" in result.message
@@ -244,8 +244,8 @@ class TestAccountCommandVerifyEmail:
         """Token already used should fail."""
         verification_token.is_used = True
         verification_token.save()
-        request = request_factory.get("/")
-        result = AccountCommand.VerifyEmail(request, verification_token.token)
+        request = request_factory.get(f"/?token={verification_token.token}")
+        result = AccountCommand.VerifyEmail(request)
         assert result.is_success is False
         assert result.status_code == 400
         assert "used" in result.message or "expired" in result.message
@@ -254,8 +254,8 @@ class TestAccountCommandVerifyEmail:
         """If email task fails with celery's OperationalError, verification still succeeds."""
         with patch("apps.users.BBL.Commands.account_command.background_task_send_account_verify_email.delay") as mock_task:
             mock_task.side_effect = OperationalError("Email error")
-            request = request_factory.get("/")
-            result = AccountCommand.VerifyEmail(request, verification_token.token)
+            request = request_factory.get(f"/?token={verification_token.token}")
+            result = AccountCommand.VerifyEmail(request)
             assert result.is_success is True
             assert result.status_code == 200
             user = verification_token.user
@@ -265,8 +265,8 @@ class TestAccountCommandVerifyEmail:
     def test_verify_email_exception(self, db, request_factory, verification_token):
         """Catch unexpected exception and return 500."""
         with patch("apps.users.BBL.Commands.account_command.VerificationToken.objects.filter", side_effect=Exception("DB error")):
-            request = request_factory.get("/")
-            result = AccountCommand.VerifyEmail(request, verification_token.token)
+            request = request_factory.get(f"/?token={verification_token.token}")
+            result = AccountCommand.VerifyEmail(request)
             assert result.is_success is False
             assert result.status_code == 500
             assert "Error verifying email" in result.message

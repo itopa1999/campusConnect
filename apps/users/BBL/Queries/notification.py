@@ -12,8 +12,25 @@ from utils.helpers import humanize_date
 
 class NotificationQueries:
     @staticmethod
-    def get_notification(request, user, page=1, per_page=10) -> BaseResultWithData:
+    def get_notification(request, user) -> BaseResultWithData:
         """Retrieve paginated notifications for a user."""
+        page = request.GET.get('page', 1)
+        per_page = request.GET.get('per_page', 10)
+        try:
+            page = int(page)
+        except (ValueError, TypeError):
+            page = 1
+            
+        try:
+            per_page = int(per_page)
+        except (ValueError, TypeError):
+            per_page = 10  
+
+        if per_page < 1:
+            per_page = 1
+        if per_page > 100:
+            per_page = 100
+            
         cache_key = CacheKeysEnum.format(CacheKeysEnum.NOTIFICATIONS, user_id=user.id, page=page)
 
         cached_data = GlobalCache.get(cache_key)

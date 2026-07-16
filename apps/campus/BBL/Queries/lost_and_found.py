@@ -2,16 +2,35 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from apps.campus.models import LostAndFound
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
-from utils.enums import CacheKeysEnum
+from utils.enums import CacheKeysEnum, LostAndFoundStatusEnum
 
 
 class GetLostItemsQuery:
     @staticmethod
-    def get_items(request, page: int = 1, page_size: int = 10) -> BaseResultWithData:
+    def get_items(request) -> BaseResultWithData:
         """
         Fetch paginated lost items (excludes answer1 and answer2).
         """
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.LOST_ITEMS, page=page, page_size=page_size)
+
+        page = request.GET.get('page', 1)
+        per_page = request.GET.get('per_page', 10)
+        
+        try:
+            page = int(page)
+        except (ValueError, TypeError):
+            page = 1
+            
+        try:
+            per_page = int(per_page)
+        except (ValueError, TypeError):
+            per_page = 10  
+
+        if per_page < 1:
+            per_page = 1
+        if per_page > 100:
+            per_page = 100
+
+        cache_key = CacheKeysEnum.format(CacheKeysEnum.LOST_ITEMS, page=page, per_page=per_page)
 
         cached_data = GlobalCache.get(cache_key)
         if cached_data:
@@ -23,9 +42,9 @@ class GetLostItemsQuery:
 
         try:
             # Base queryset – only non‑deleted items, ordered newest first
-            # queryset = LostAndFound.objects.filter(is_deleted=False, status=LostAndFoundStatusEnum.OPEN.value).order_by('-created_at')
-            queryset = LostAndFound.objects.filter(is_deleted=False).order_by('-created_at')
-            paginator = Paginator(queryset, page_size)
+            queryset = LostAndFound.objects.filter(is_deleted=False, status=LostAndFoundStatusEnum.OPEN.value).order_by('-created_at')
+            # queryset = LostAndFound.objects.filter(is_deleted=False).order_by('-created_at')
+            paginator = Paginator(queryset, per_page)
 
             try:
                 items_page = paginator.page(page)
@@ -58,7 +77,7 @@ class GetLostItemsQuery:
                     'current_page': items_page.number,
                     'total_pages': paginator.num_pages,
                     'total_items': paginator.count,
-                    'page_size': page_size,
+                    'per_page': per_page,
                     'has_next': items_page.has_next(),
                     'has_previous': items_page.has_previous(),
                     'next_page_number': items_page.next_page_number() if items_page.has_next() else None,

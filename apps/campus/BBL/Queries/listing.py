@@ -112,7 +112,25 @@ class ListingQuery:
             )
 
     @staticmethod
-    def get_categorized_listings(request, user, section, page=1, per_page=8):
+    def get_categorized_listings(request, user):
+        
+        section = request.GET.get('section')
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 8))
+        try:
+            page = int(page)
+        except (ValueError, TypeError):
+            page = 1
+            
+        try:
+            per_page = int(per_page)
+        except (ValueError, TypeError):
+            per_page = 8
+
+        if per_page < 1:
+            per_page = 1
+        if per_page > 100:
+            per_page = 100
 
         if section not in ['banner', 'hot_sales', 'departmental', 'for_you']:
             return BaseResultWithData(
@@ -195,6 +213,7 @@ class ListingQuery:
         response_data = {
             'items': items,
             'page': page_obj.number,
+            'per_page': per_page,
             'total_pages': page_obj.paginator.num_pages,
             'total_items': page_obj.paginator.count
         }

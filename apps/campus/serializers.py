@@ -67,3 +67,54 @@ class UpdateAdsViewSerializer(serializers.Serializer):
 
 class ListingAutoActivationSerializer(serializers.Serializer):
     auto_reactivate = serializers.BooleanField()
+
+
+class ListingUpdateSerializer(serializers.Serializer):
+    title = serializers.CharField(
+        max_length=255,
+        required=True,
+        error_messages={
+            'required': 'Title is required.',
+            'blank': 'Title cannot be empty.'
+        }
+    )
+    
+    category_id = serializers.IntegerField(
+        required=True,
+        error_messages={
+            'required': 'Category is required.',
+            'invalid': 'Please select a valid category.'
+        }
+    )
+    
+    price = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=True,
+        min_value=0,
+        error_messages={
+            'required': 'Price is required.',
+            'min_value': 'Price cannot be negative.'
+        }
+    )
+    
+    description = serializers.CharField(
+        required=True,
+        error_messages={
+            'required': 'Description is required.',
+            'blank': 'Description cannot be empty.'
+        }
+    )
+    
+    badge = serializers.CharField(
+        max_length=50,
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
+    
+    hotspots = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        default=list
+    )

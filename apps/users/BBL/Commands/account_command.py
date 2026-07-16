@@ -108,8 +108,9 @@ class AccountCommand:
             )
     
     @staticmethod
-    def VerifyEmail(request, token):
+    def VerifyEmail(request):
         """Verify user email using verification token"""
+        token = request.GET.get('token')
         op = OperationLogger(f"AccountCommand.VerifyEmail {token}", token=token)
         op.start()
         try:

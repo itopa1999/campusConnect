@@ -217,8 +217,8 @@ class TestApproveClaim:
             full_name="Jane",
             email="jane@example.com"
         )
-        request = rf.get("/fake-url")
-        result = LostandFoundCommand.approve_claim(request, claim.id, claim.email)
+        request = rf.get(f"/fake-url?claim_id={claim.id}&page=2&email={claim.email}")
+        result = LostandFoundCommand.approve_claim(request)
         assert result.is_success is True
         assert result.status_code == 200
         assert "Details has been forwarded" in result.message
@@ -229,13 +229,13 @@ class TestApproveClaim:
         mock_email_task[1].assert_called_once()
 
     def test_approve_claim_missing_params(self, rf, db):
-        result = LostandFoundCommand.approve_claim(rf.get("/fake-url"), None, None)
+        result = LostandFoundCommand.approve_claim(rf.get("/fake-url"))
         assert result.is_success is False
         assert result.status_code == 400
         assert "missing claim_id or email" in result.message
 
     def test_approve_claim_not_found(self, rf, db):
-        result = LostandFoundCommand.approve_claim(rf.get("/fake-url"), 9999, "x@x.com")
+        result = LostandFoundCommand.approve_claim(rf.get("/fake-url?claim_id=9999&page=2&email=x@x,com"))
         assert result.is_success is False
         assert result.status_code == 400
         assert "Claim not found" in result.message
@@ -248,7 +248,7 @@ class TestApproveClaim:
             answer1="a", answer2="b",
             full_name="Jane", email="jane@example.com"
         )
-        result = LostandFoundCommand.approve_claim(rf.get("/fake-url"), claim.id, claim.email)
+        result = LostandFoundCommand.approve_claim(rf.get(f"/fake-url?claim_id={claim.id}&page=2&email={claim.email}"))
         assert result.is_success is False
         assert result.status_code == 400
         assert "already been claimed" in result.message
@@ -261,7 +261,7 @@ class TestApproveClaim:
         )
         with patch("apps.campus.BBL.Commands.lost_and_found.background_task_send_founder_details_to_claimer_email.delay") as mock_task:
             mock_task.side_effect = OperationalError("Email error")
-            result = LostandFoundCommand.approve_claim(rf.get("/fake-url"), claim.id, claim.email)
+            result = LostandFoundCommand.approve_claim(rf.get(f"/fake-url?claim_id={claim.id}&page=2&email={claim.email}"))
             assert result.is_success is True
             assert result.status_code == 200
             lost_item.refresh_from_db()

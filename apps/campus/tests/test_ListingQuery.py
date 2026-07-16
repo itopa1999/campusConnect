@@ -258,8 +258,8 @@ class TestGetListingDetail:
 class TestGetCategorizedListings:
 
     def test_get_categorized_listings_invalid_section(self, mock_cache, request_factory, test_user):
-        request = request_factory.get("/")
-        result = ListingQuery.get_categorized_listings(request, test_user, "invalid_section")
+        request = request_factory.get("/?section=invalid_section")
+        result = ListingQuery.get_categorized_listings(request, test_user)
         assert result.is_success is False
         assert result.status_code == 400
         assert "Invalid section parameter" in result.message
@@ -267,17 +267,17 @@ class TestGetCategorizedListings:
     def test_get_categorized_listings_cache_hit(self, mock_cache, request_factory, test_user):
         cached_data = {"items": [{"id": 1}], "page": 1, "total_pages": 1, "total_items": 1}
         mock_cache.get.return_value = cached_data
-        request = request_factory.get("/")
-        result = ListingQuery.get_categorized_listings(request, test_user, "banner")
+        request = request_factory.get("/?section=banner")
+        result = ListingQuery.get_categorized_listings(request, test_user)
         assert result.is_success is True
         assert result.data == cached_data
 
     def test_get_categorized_listings_banner(self, mock_cache, request_factory, test_user, multiple_listings,
                                              test_listing_admin):
         mock_cache.get.return_value = None
-        request = request_factory.get("/")
+        request = request_factory.get("/?section=banner")
         with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
-            result = ListingQuery.get_categorized_listings(request, test_user, "banner")
+            result = ListingQuery.get_categorized_listings(request, test_user)
         assert result.is_success is True
         items = result.data["items"]
         banner_ids = [l.id for l in multiple_listings if l.is_ads_banner]
@@ -288,9 +288,9 @@ class TestGetCategorizedListings:
 
     def test_get_categorized_listings_hot_sales(self, mock_cache, request_factory, test_user, multiple_listings):
         mock_cache.get.return_value = None
-        request = request_factory.get("/")
+        request = request_factory.get("/?section=hot_sales")
         with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
-            result = ListingQuery.get_categorized_listings(request, test_user, "hot_sales")
+            result = ListingQuery.get_categorized_listings(request, test_user)
         items = result.data["items"]
         hot_ids = [l.id for l in multiple_listings if l.is_hot_sales]
         returned_ids = [item["id"] for item in items]
@@ -312,9 +312,9 @@ class TestGetCategorizedListings:
             status=ListingStatusType.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
-        request = request_factory.get("/")
+        request = request_factory.get("/?section=departmental")
         with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
-            result = ListingQuery.get_categorized_listings(request, test_user, "departmental")
+            result = ListingQuery.get_categorized_listings(request, test_user)
         assert result.is_success is True
         items = result.data["items"]
         returned_ids = [item["id"] for item in items]
@@ -324,13 +324,13 @@ class TestGetCategorizedListings:
         test_user.department = None
         test_user.save()
         mock_cache.get.return_value = None
-        request = request_factory.get("/")
+        request = request_factory.get("/?section=departmental")
         with patch.object(ListingQuery, 'get_categorized_listings', return_value=BaseResultWithData(
             message="Categorized listings retrieved successfully",
             data={'items': [], 'page': 1, 'total_pages': 0, 'total_items': 0},
             status_code=200
         )):
-            result = ListingQuery.get_categorized_listings(request, test_user, "departmental")
+            result = ListingQuery.get_categorized_listings(request, test_user)
             assert result.is_success is True
             assert result.data["items"] == []
             assert result.data["total_items"] == 0
@@ -354,9 +354,9 @@ class TestGetCategorizedListings:
             status=ListingStatusType.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
-        request = request_factory.get("/")
+        request = request_factory.get("/?section=for_you")
         with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
-            result = ListingQuery.get_categorized_listings(request, test_user, "for_you")
+            result = ListingQuery.get_categorized_listings(request, test_user)
         items = result.data["items"]
         returned_ids = [item["id"] for item in items]
         assert test_listing_admin.id not in returned_ids
@@ -368,20 +368,73 @@ class TestGetCategorizedListings:
             assert lid not in excluded_ids
 
     def test_get_categorized_listings_pagination(self, mock_cache, request_factory, test_user, multiple_listings):
+        """Test pagination for categorized listings."""
         mock_cache.get.return_value = None
-        request = request_factory.get("/")
+        
+        banner_listings = [l for l in multiple_listings if l.is_ads_banner]
+        banner_count = len(banner_listings)
+        
+        # Test page 1
+        request = request_factory.get("/?section=banner&page=1&per_page=8")
         with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
-            result = ListingQuery.get_categorized_listings(request, test_user, "banner", page=1, per_page=8)
+            result = ListingQuery.get_categorized_listings(request, test_user)
+        
+        assert result.is_success is True
+        assert result.status_code == 200
+        data = result.data
+        
+        assert data["page"] == 1
+        expected_pages = (banner_count + 7) // 8  # Ceiling division
+        assert data["total_pages"] == max(1, expected_pages)
+        assert data["total_items"] == banner_count
+        assert len(data["items"]) == min(8, banner_count)
+        
+        # Clear cache for next request
+        mock_cache.get.return_value = None
+        mock_cache.set.reset_mock()
+        
+        # Test page 2 (only if there are more than 8 items)
+        if banner_count > 8:
+            request = request_factory.get("/?section=banner&page=2&per_page=8")
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
+                result = ListingQuery.get_categorized_listings(request, test_user)
+            
+            assert result.is_success is True
+            assert result.status_code == 200
+            data = result.data
+            
+            assert data["page"] == 2
+            expected_items_on_page_2 = banner_count - 8
+            assert len(data["items"]) == expected_items_on_page_2
+        else:
+            # If there are 8 or fewer items, page 2 should return empty or be handled gracefully
+            request = request_factory.get("/?section=banner&page=2&per_page=8")
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
+                result = ListingQuery.get_categorized_listings(request, test_user)
+            
+            assert result.is_success is True
+            assert result.status_code == 200
+            data = result.data
+            
+            # Page 2 should be the last page (which is page 1 if total <= 8)
+            assert data["page"] == 1  # Or whatever your implementation returns for empty page
+            assert len(data["items"]) == banner_count
+        
+        # Test custom per_page
+        mock_cache.get.return_value = None
+        mock_cache.set.reset_mock()
+        
+        request = request_factory.get("/?section=banner&page=1&per_page=3")
+        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
+            result = ListingQuery.get_categorized_listings(request, test_user)
+        
+        assert result.is_success is True
         data = result.data
         assert data["page"] == 1
-        banner_count = len([l for l in multiple_listings if l.is_ads_banner])
-        expected_pages = (banner_count + 7) // 8
-        assert data["total_pages"] == expected_pages
-        assert len(data["items"]) <= 8
-
-        result = ListingQuery.get_categorized_listings(request, test_user, "banner", page=2, per_page=8)
-        data = result.data
-        assert data["page"] == 2
+        assert data["per_page"] == 3  # Note: You'll need to add 'per_page' to the response data
+        assert len(data["items"]) == min(3, banner_count)
+        expected_pages = (banner_count + 2) // 3
+        assert data["total_pages"] == max(1, expected_pages)
 
     def test_get_categorized_listings_image_url(self, mock_cache, request_factory, test_user, test_category):
         mock_cache.get.return_value = None
@@ -395,8 +448,8 @@ class TestGetCategorizedListings:
             expires_at=timezone.now() + timedelta(days=5),
             is_ads_banner=True,
         )
-        request = request_factory.get("/")
-        result = ListingQuery.get_categorized_listings(request, test_user, "banner")
+        request = request_factory.get("/?section=banner")
+        result = ListingQuery.get_categorized_listings(request, test_user)
         items = result.data["items"]
         for item in items:
             if item["title"] == "No Image":
@@ -419,8 +472,8 @@ class TestGetCategorizedListings:
             expires_at=timezone.now() + timedelta(days=5),
             is_ads_banner=True,
         )
-        request = request_factory.get("/")
-        result = ListingQuery.get_categorized_listings(request, test_user, "banner")
+        request = request_factory.get("/?section=banner")
+        result = ListingQuery.get_categorized_listings(request, test_user)
         items = result.data["items"]
         assert listing.id not in [item["id"] for item in items]
 

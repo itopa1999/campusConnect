@@ -11,6 +11,24 @@ from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransact
 import secrets
 from utils.enums import IssueTypeEnum
 # Create your models here.
+import os
+import uuid
+
+
+def profile_picture_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1]
+    unique = uuid.uuid4().hex[:10]
+
+    return f"profile_pictures/profile_picture_{instance.id}_{unique}{ext}"
+
+
+def student_id_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1]
+    unique = uuid.uuid4().hex[:10]
+
+    return f"student_ids/student_ids_{instance.id}_{unique}{ext}"
+
+
 
 class Badge(BaseModel):
     name = models.CharField(max_length=50)
@@ -35,7 +53,7 @@ class User(BaseModel, AbstractUser):
         null=True
     )
     profile_picture = models.ImageField(
-        upload_to='profile_pictures/',
+        upload_to=profile_picture_upload_path,
         blank=True,
         null=True,
         help_text="Upload a profile picture that will appear on all your product listings"
@@ -43,7 +61,7 @@ class User(BaseModel, AbstractUser):
     points = models.PositiveIntegerField(validators=[MinValueValidator(0)],null=True, default=0)
     matric_number = models.CharField(max_length=50, null=True, blank=True)
 
-    student_id_photo = models.ImageField(upload_to='student_ids/', null =True, blank=True)
+    student_id_photo = models.ImageField(upload_to=student_id_upload_path, null =True, blank=True)
     student_id_verified = models.BooleanField(default=False)
     
     department = models.CharField(max_length=100, blank=True, null=True)

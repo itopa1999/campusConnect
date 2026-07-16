@@ -159,10 +159,18 @@ class AuthCommand:
             )
         
     @staticmethod
-    def VerifyForgetPasswordEmail(request, token):
+    def VerifyForgetPasswordEmail(request):
+        token = request.GET.get('token')
         op = OperationLogger("AuthCommand.VerifyForgetPasswordEmail", token=token)
         op.start()
         try:
+            if not token:
+                op.fail("[AuthCommand.VerifyForgetPasswordEmail] Token is required")
+                return BaseResultWithData(
+                    message="Token is required",
+                    data=None,
+                    status_code=400
+                )
             is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.PASSWORD_RESET.value)
             if not is_valid:
                 op.fail(f"[AuthCommand.VerifyForgetPasswordEmail] Token: {token} verification failed: {result}")

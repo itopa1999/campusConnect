@@ -1,3 +1,4 @@
+from common.filter import ApproveClaimParamsQuery, CategorizedListingsFilter, PaginationParamsFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import generics
@@ -14,13 +15,18 @@ from django.shortcuts import render
 from django.conf import settings
 from utils.enums import GroupNames
 from utils.permissions import ConstantPermission
+from rest_framework.parsers import MultiPartParser, FormParser
+from django_filters.rest_framework import DjangoFilterBackend
+from django_filters import rest_framework as filters
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 
 # Create your views here.
 
 class GetIndexDefaultLisitingView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-
     def get(self, request):
         result = IndexProductsQuery.get_index_product(request)
         return Response(result.to_dict(), status=result.status_code)
@@ -29,14 +35,12 @@ class GetDashboardView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     # throttle_classes = [CustomRate(1, 20, "second", "auth")]
     def get(self, request):
-        print(request.COOKIES)
         result = DashboardQuery.get_dashboard(request)
         return Response(result.to_dict(), status=result.status_code)
     
 
 class GetLookUpView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
-
     def get(self, request):
         result = LookUpQuery.get_lookup(request)
         return Response(result.to_dict(), status=result.status_code)
@@ -45,7 +49,7 @@ class GetLookUpView(APIView):
 class ListingView(generics.GenericAPIView):
     serializer_class = ListingSerializer
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
-
+    parser_classes = [MultiPartParser, FormParser]
     def post(self, request):
         result = ListingCommand.create_listing(request.user, request.data)
         return Response(result.to_dict(), status=result.status_code)
@@ -60,14 +64,18 @@ class MarkAsSoldView(APIView):
 class UploadImageView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     serializer_class = UploadLisitingImageSerializer
+    parser_classes = [MultiPartParser, FormParser]
     def patch(self, request, listing_id):
         result = ListingCommand.image_upload(request.user, listing_id, request.FILES.get('image'))
         return Response(result.to_dict(), status=result.status_code)
     
 
-class ListingDetailView(APIView):
+class ListingDetailView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
-
+    def get_serializer_class(self):
+        if self.request.method == 'PUT':
+            return ListingUpdateSerializer
+    
     def get(self, request, listing_id):
         result = ListingQuery.get_listing_detail(request, request.user, listing_id)
         return Response(result.to_dict(), status=result.status_code)
@@ -88,7 +96,6 @@ class ListingDetailView(APIView):
 class UpdateAdsView(generics.GenericAPIView):
     serializer_class = UpdateAdsViewSerializer
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
-
     def patch(self, request, listing_id):
         result = ListingCommand.update_ads(request.user, listing_id, request.data, partial=False)
         return Response(result.to_dict(), status=result.status_code)
@@ -97,7 +104,6 @@ class UpdateAdsView(generics.GenericAPIView):
 class ListingAutoActivation(generics.GenericAPIView):
     serializer_class = ListingAutoActivationSerializer
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
-
     def patch(self, request, listing_id):
         result = ListingCommand.lisiting_auto_reactivation(request.user, listing_id, request.data, partial=False)
         return Response(result.to_dict(), status=result.status_code)
@@ -108,36 +114,24 @@ class LostAndFoundView(generics.GenericAPIView):
     serializer_class = LostAndFoundSerializer
     permission_classes = [AllowAny]
     authentication_classes = []
-
     def post(self, request):
         result = LostandFoundCommand.create_item(request.data)
         return Response(result.to_dict(), status=result.status_code)
     
 
-
 class LostAndFoundListView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-
+    filter_backends = [filters.DjangoFilterBackend]
+    filterset_class = PaginationParamsFilter
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+        ]
+    )
     def get(self, request):
-        page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 10)
-
-        try:
-            page = int(page)
-            page_size = int(page_size)
-        except ValueError:
-            return Response(
-                {'is_success': False, 'message': 'Page and page_size must be integers.'},
-                status=400
-            )
-
-        if page_size < 1:
-            page_size = 1
-        if page_size > 100:
-            page_size = 100
-
-        result = GetLostItemsQuery.get_items(request, page, page_size)
+        result = GetLostItemsQuery.get_items(request)
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -145,7 +139,6 @@ class LostAndFoundClaimView(generics.GenericAPIView):
     serializer_class = ClaimSerializer
     permission_classes = [AllowAny]
     authentication_classes = []
-
     def post(self, request):
         result = LostandFoundCommand.create_claim(request, request.data)
         return Response(result.to_dict(), status=result.status_code)
@@ -154,11 +147,16 @@ class LostAndFoundClaimView(generics.GenericAPIView):
 class ApproveClaimView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-
+    filter_backends = [filters.DjangoFilterBackend]
+    filterset_class = ApproveClaimParamsQuery  
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('claim_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description="Claim ID"),
+            openapi.Parameter('email', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Email address")
+        ]
+    )
     def get(self, request):
-        claim_id = request.query_params.get('claim_id')
-        email = request.query_params.get('email')
-        result = LostandFoundCommand.approve_claim(request, claim_id, email)
+        result = LostandFoundCommand.approve_claim(request)
         context = {
             'message': result.message,
             'is_success': result.is_success,
@@ -169,19 +167,22 @@ class ApproveClaimView(APIView):
 
 class CategorizedListingsView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
-
+    filter_backends = [filters.DjangoFilterBackend]
+    filterset_class = CategorizedListingsFilter
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('section', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Section"),
+            openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+        ]
+    )
     def get(self, request):
-        section = request.GET.get('section')
-        page = int(request.GET.get('page', 1))
-        per_page = int(request.GET.get('per_page', 8))
-
-        result = ListingQuery.get_categorized_listings(request, request.user, section, page, per_page)
+        result = ListingQuery.get_categorized_listings(request, request.user)
         return Response(result.to_dict(), status=result.status_code)
     
 
 class ListingDetailsView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
-
     def get(self, request, listing_id):
         result = ListingQuery.listing_details(request, listing_id)
         return Response(result.to_dict(), status=result.status_code)

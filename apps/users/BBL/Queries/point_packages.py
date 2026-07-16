@@ -124,7 +124,6 @@ class PointPackagesQueries:
         queryset = PointTransaction.objects.filter(
             user=user
         ).select_related('purchase').order_by('-created_at')
-
         paginator = Paginator(queryset, per_page)
         try:
             page_obj = paginator.page(page)

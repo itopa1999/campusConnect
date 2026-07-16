@@ -12,7 +12,6 @@ from django.utils import timezone
 from datetime import timedelta
 
 
-
 def validate_ui_email(email: str) -> tuple[bool, str]:
   
     allowed_domains = ('@ui.edu.ng', '@stu.ui.edu.ng')
@@ -290,3 +289,6 @@ def humanize_date(date):
         return f"{weeks} week{'s' if weeks != 1 else ''} ago"
     else:
         return date.strftime("%b %d, %Y")
+
+
+

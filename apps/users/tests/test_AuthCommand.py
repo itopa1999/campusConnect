@@ -220,8 +220,8 @@ class TestAuthCommandVerifyForgetPasswordEmail:
             token=12345,
             token_type=TokenType.PASSWORD_RESET.value,
         )
-        request = request_factory.get("/")
-        result = AuthCommand.VerifyForgetPasswordEmail(request, token.token)
+        request = request_factory.get(f"/?token={token.token}")
+        result = AuthCommand.VerifyForgetPasswordEmail(request)
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data["user_id"] == test_user.id
@@ -229,8 +229,8 @@ class TestAuthCommandVerifyForgetPasswordEmail:
 
     def test_verify_token_invalid(self, db, request_factory):
         """Invalid token should fail."""
-        request = request_factory.get("/")
-        result = AuthCommand.VerifyForgetPasswordEmail(request, "invalidtoken")
+        request = request_factory.get("/?token=invalidtoken")
+        result = AuthCommand.VerifyForgetPasswordEmail(request)
         # The code will raise ValueError and return 500 (bug), but we test current behavior
         assert result.is_success is False
         assert result.status_code == 500
@@ -244,8 +244,8 @@ class TestAuthCommandVerifyForgetPasswordEmail:
             token_type=TokenType.PASSWORD_RESET.value,
             expires_at=timezone.now() - timezone.timedelta(days=1),
         )
-        request = request_factory.get("/")
-        result = AuthCommand.VerifyForgetPasswordEmail(request, token.token)
+        request = request_factory.get(f"/?token={token.token}")
+        result = AuthCommand.VerifyForgetPasswordEmail(request)
         assert result.is_success is False
         assert result.status_code == 400
         assert "expired" in result.message
@@ -258,8 +258,8 @@ class TestAuthCommandVerifyForgetPasswordEmail:
             token_type=TokenType.PASSWORD_RESET.value,
         )
         with patch("apps.users.BBL.Commands.auth_command.AccountCommand._verify_token", side_effect=Exception("DB error")):
-            request = request_factory.get("/")
-            result = AuthCommand.VerifyForgetPasswordEmail(request, token.token)
+            request = request_factory.get(f"/?token={token.token}")
+            result = AuthCommand.VerifyForgetPasswordEmail(request)
             assert result.is_success is False
             assert result.status_code == 500
             assert "Error verifying password reset token" in result.message

@@ -5,6 +5,22 @@ import datetime
 from apps.users.models import User
 from utils.enums import BadgeListingType, ListingType, ListingStatusType, LostAndFoundStatusEnum
 from utils.base_model import BaseModel
+import os
+import uuid
+
+
+def listing_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1]
+    unique = uuid.uuid4().hex[:10]
+
+    return f"Lisiting_images/Lisiting_image_{instance.title}_{unique}{ext}"
+
+def lost_and_found_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1]
+    unique = uuid.uuid4().hex[:10]
+
+    return f"lost_and_found/lost_and_found_{instance.item_name}_{unique}{ext}"
+
 
 
 class Category(BaseModel):
@@ -54,7 +70,7 @@ class Listing(BaseModel):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    image = models.ImageField(upload_to='Lisiting_images/',
+    image = models.ImageField(upload_to=listing_upload_path,
         blank=True,
         null=True)
     badge = models.CharField(
@@ -193,7 +209,7 @@ class LostAndFound(BaseModel):
         null=True
     )
     department = models.CharField(max_length=200)
-    image = models.ImageField(upload_to='lost_and_found/',
+    image = models.ImageField(upload_to=lost_and_found_upload_path,
         blank=True,
         null=True)
     

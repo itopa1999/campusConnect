@@ -59,8 +59,8 @@ class TestNotificationQueries:
         }
         mock_cache.get.return_value = cached_data
 
-        request = request_factory.get("/")
-        result = NotificationQueries.get_notification(request, test_user, page=1)
+        request = request_factory.get("/?page=1")
+        result = NotificationQueries.get_notification(request, test_user)
 
         assert result.is_success is True
         assert result.status_code == 200
@@ -83,8 +83,8 @@ class TestNotificationQueries:
                 is_read=(i % 2 == 0),
             )
 
-        request = request_factory.get("/")
-        result = NotificationQueries.get_notification(request, test_user, page=1, per_page=2)
+        request = request_factory.get("/?page=1&per_page=2")
+        result = NotificationQueries.get_notification(request, test_user)
 
         assert result.is_success is True
         assert result.status_code == 200
@@ -119,8 +119,8 @@ class TestNotificationQueries:
         for i in range(5):
             Notification.objects.create(user=test_user, title=f"Notif {i}")
 
-        request = request_factory.get("/")
-        result = NotificationQueries.get_notification(request, test_user, page="invalid", per_page=2)
+        request = request_factory.get("/?page=invalid&per_page=2")
+        result = NotificationQueries.get_notification(request, test_user)
 
         assert result.is_success is True
         assert result.data["page"] == 1
@@ -132,9 +132,9 @@ class TestNotificationQueries:
         for i in range(3):
             Notification.objects.create(user=test_user, title=f"Notif {i}")
 
-        request = request_factory.get("/")
+        request = request_factory.get("/?page=10&per_page=2")
         # page 10 is out of range, should fallback to last page (page 2 with per_page=2)
-        result = NotificationQueries.get_notification(request, test_user, page=10, per_page=2)
+        result = NotificationQueries.get_notification(request, test_user)
 
         assert result.is_success is True
         assert result.data["page"] == 2
@@ -147,8 +147,8 @@ class TestNotificationQueries:
         notif1 = Notification.objects.create(user=test_user, title="Active")
         notif2 = Notification.objects.create(user=test_user, title="Deleted", is_deleted=True)
 
-        request = request_factory.get("/")
-        result = NotificationQueries.get_notification(request, test_user, page=1, per_page=10)
+        request = request_factory.get("/?page=1&per_page=10")
+        result = NotificationQueries.get_notification(request, test_user)
 
         assert result.is_success is True
         notifications = result.data["notifications"]
@@ -166,8 +166,8 @@ class TestNotificationQueries:
                 is_read=(i % 2 == 0)  # 2,4 are read; 0,2,4 read => 3 read, 2 unread
             )
 
-        request = request_factory.get("/")
-        result = NotificationQueries.get_notification(request, test_user, page=1, per_page=2)
+        request = request_factory.get("/?page=1&per_page=2")
+        result = NotificationQueries.get_notification(request, test_user)
 
         assert result.is_success is True
         # Total unread across all notifications: 2 (i=1 and i=3)

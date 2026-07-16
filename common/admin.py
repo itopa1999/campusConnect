@@ -26,3 +26,4 @@ class SoftDeleteAdmin(admin.ModelAdmin):
             deleted_by=request.user.username
         )
         self.message_user(request, f"{queryset.count()} object(s) soft-deleted.")
+

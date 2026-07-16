@@ -209,9 +209,12 @@ class LostandFoundCommand:
     
 
     @staticmethod
-    def approve_claim(request, claim_id, email) -> BaseResultWithData:
+    def approve_claim(request) -> BaseResultWithData:
+        claim_id = request.GET.get('claim_id')
+        email = request.GET.get('email')
         op = OperationLogger(f"ClaimCommand.approve_claim for claim_id: {claim_id}",  data={'claim_id': claim_id, 'email': email})
         op.start()
+                
         if not claim_id or not email:
             op.fail("claim_id or email is required")
             return BaseResultWithData(

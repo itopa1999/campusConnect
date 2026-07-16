@@ -233,7 +233,7 @@ class CacheKeysEnum(Enum):
     INDEX_PRODUCTS = "index_products"
     LISTING_DETAIL = "listing_detail_{user_id}_{listing_id}"
     CATEGORIZED_LISTINGS = "categorized_listings_{user_id}_{section}_{page}"
-    LOST_ITEMS = "lost_items_{page}_{page_size}"
+    LOST_ITEMS = "lost_items_{page}_{per_page}"
     POINT_PACKAGES = "point_packages"
     PURCHASES = "purchases_{user_id}_{page}"
     TRANSACTIONS = "transactions_{user_id}_{page}"
