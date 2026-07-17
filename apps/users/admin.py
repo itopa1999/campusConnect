@@ -33,6 +33,8 @@ class UserAdmin(SoftDeleteAdmin):
         'created_at'
     )
     search_fields = ('email', 'first_name', 'last_name', 'matric_number', 'phone')
+    
+    # ─── All audit fields as readonly ───
     readonly_fields = (
         'date_joined',
         'last_login',
@@ -40,7 +42,10 @@ class UserAdmin(SoftDeleteAdmin):
         'profile_picture_preview',
         'average_rating_display',
         'created_at',
+        'created_by',
         'modified_at',
+        'modified_by',
+        'is_deleted',
         'deleted_at',
         'deleted_by'
     )
@@ -50,7 +55,7 @@ class UserAdmin(SoftDeleteAdmin):
             'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'hall_verified', 'points',
                        'notification', 'visibility')
         }),
-        ('Student Verification (Trust Core)', {
+        ('Student Verification', {
             'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified')
         }),
         ('Academic Info', {
@@ -65,24 +70,20 @@ class UserAdmin(SoftDeleteAdmin):
             'fields': ('average_rating_display', 'user_badges'),
             'classes': ('collapse',)
         }),
-        ('Audit Trail', {
-            'fields': (
-                'created_at',
-                'created_by',
-                'modified_at',
-                'modified_by',
-                'is_deleted',
-                'deleted_at',
-                'deleted_by',
-            ),
-            'classes': ('collapse',)
-        }),
         ('Permissions', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
             'classes': ('collapse',)
         }),
         ('Important Dates', {
             'fields': ('date_joined', 'last_login'),
+            'classes': ('collapse',)
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         }),
     )
@@ -146,13 +147,20 @@ class UserAdmin(SoftDeleteAdmin):
         queryset = super().get_queryset(request)
         queryset = queryset.prefetch_related('user_badges', 'groups', 'user_permissions')
         return queryset
-    
+
+
 @admin.register(VerificationToken)
 class VerificationTokenAdmin(SoftDeleteAdmin):
     list_display = ('user_email', 'token_type', 'status_badge', 'created_at')
     list_filter = ('token_type', 'is_used', 'created_at')
     search_fields = ('user__email', 'token')
-    readonly_fields = ('token', 'created_at', 'modified_at')
+    
+    readonly_fields = (
+        'token',
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
     
     fieldsets = (
         ('Token Information', {
@@ -161,8 +169,12 @@ class VerificationTokenAdmin(SoftDeleteAdmin):
         ('Status', {
             'fields': ('is_used',)
         }),
-        ('Timestamps', {
-            'fields': ('created_at', 'modified_at'),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         }),
     )
@@ -188,7 +200,27 @@ class VerificationTokenAdmin(SoftDeleteAdmin):
 class BadgeAdmin(SoftDeleteAdmin):
     list_display = ('name', 'description_short', 'icon_preview')
     search_fields = ('name', 'description')
-    readonly_fields = ('icon_preview',)
+    
+    readonly_fields = (
+        'icon_preview',
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+    
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'description', 'icon')
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
+            'classes': ('collapse',)
+        }),
+    )
     
     def description_short(self, obj):
         return (obj.description[:75] + '...') if obj.description and len(obj.description) > 75 else obj.description
@@ -204,7 +236,6 @@ class BadgeAdmin(SoftDeleteAdmin):
 
 @admin.register(ContactReport)
 class ContactReportAdmin(SoftDeleteAdmin):
-    # ========== LIST VIEW ==========
     list_display = (
         'id', 
         'issue_type_badge', 
@@ -244,7 +275,6 @@ class ContactReportAdmin(SoftDeleteAdmin):
     date_hierarchy = 'created_at'
     ordering = ['-created_at']
     
-    # ========== FIELD SETS (detail view) ==========
     fieldsets = (
         ('Reporter Information', {
             'fields': ('reporter_name', 'reporter_email'),
@@ -262,7 +292,7 @@ class ContactReportAdmin(SoftDeleteAdmin):
             'fields': ('is_reviewed', 'admin_notes'),
             'classes': ('wide',),
         }),
-        ('Audit Trail (BaseModel fields)', {
+        ('Audit Trail', {
             'fields': (
                 'created_at', 'created_by',
                 'modified_at', 'modified_by',
@@ -272,7 +302,6 @@ class ContactReportAdmin(SoftDeleteAdmin):
         }),
     )
     
-    # ========== ACTIONS ==========
     actions = ['mark_as_reviewed', 'mark_as_unreviewed']
     
     @admin.action(description='Mark selected reports as reviewed')
@@ -285,16 +314,13 @@ class ContactReportAdmin(SoftDeleteAdmin):
         updated = queryset.update(is_reviewed=False)
         self.message_user(request, f'{updated} report(s) marked as not reviewed.')
     
-    
-    # ========== CUSTOM METHODS FOR LIST DISPLAY ==========
     def issue_type_badge(self, obj):
-        """Display issue type with a colored badge."""
         colors = {
-            'report_listing': '#dc3545',   # red
-            'report_user': '#fd7e14',      # orange
-            'bug': '#ffc107',              # yellow
-            'question': '#28a745',         # green
-            'other': '#6c757d',            # gray
+            'report_listing': '#dc3545',
+            'report_user': '#fd7e14',
+            'bug': '#ffc107',
+            'question': '#28a745',
+            'other': '#6c757d',
         }
         display = obj.get_issue_type_display()
         color = colors.get(obj.issue_type, '#6c757d')
@@ -305,7 +331,6 @@ class ContactReportAdmin(SoftDeleteAdmin):
     issue_type_badge.short_description = 'Issue Type'
     issue_type_badge.admin_order_field = 'issue_type'
     
-    # ========== SAVE METHOD (optional) ==========
     def save_model(self, request, obj, form, change):
         if not obj.pk:
             obj.created_by = request.user.username
@@ -317,14 +342,16 @@ class ContactReportAdmin(SoftDeleteAdmin):
 class PointTransactionInline(admin.TabularInline):
     model = PointTransaction
     extra = 0
-    readonly_fields = ('amount', 'balance_after', 'transaction_type', 'description', 'reference', 'created_at')
+    readonly_fields = (
+        'amount', 'balance_after', 'transaction_type', 
+        'description', 'reference', 'created_at'
+    )
     fields = ('amount', 'balance_after', 'transaction_type', 'description', 'reference', 'created_at')
     can_delete = False
     show_change_link = True
     ordering = ('-created_at',)
 
     def get_queryset(self, request):
-        # Optimize with select_related for user
         return super().get_queryset(request).select_related('user')
 
 
@@ -335,6 +362,13 @@ class PointPackageAdmin(SoftDeleteAdmin):
     list_filter = ('is_popular', 'is_best_value', 'sort_order')
     search_fields = ('description',)
     ordering = ('sort_order', 'points')
+    
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+    
     fieldsets = (
         (None, {
             'fields': ('points', 'price', 'description', 'sort_order')
@@ -343,12 +377,16 @@ class PointPackageAdmin(SoftDeleteAdmin):
             'fields': ('is_popular', 'is_best_value'),
             'classes': ('wide',)
         }),
-        ('Metadata', {
-            'fields': ('is_deleted', 'created_at', 'modified_at'),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         })
     )
-    readonly_fields = ('created_at', 'modified_at')
+    
     actions = ['mark_popular', 'unmark_popular', 'mark_best_value', 'unmark_best_value']
 
     def price_per_point_display(self, obj):
@@ -385,17 +423,29 @@ class PointPurchaseAdmin(SoftDeleteAdmin):
     list_display = ('user_link', 'package_link', 'points_awarded', 'gateway', 'amount_paid', 'status', 'completed_at', 'created_at')
     list_filter = ('status', 'completed_at', 'created_at')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'package__description', 'payment_reference')
-    readonly_fields = ('created_at', 'modified_at', 'points_awarded', 'amount_paid')
     raw_id_fields = ('user', 'package')
+    
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+        'points_awarded', 'amount_paid'
+    )
+    
     fieldsets = (
         (None, {
             'fields': ('user', 'package', 'points_awarded', 'amount_paid', 'status', 'payment_reference', 'completed_at')
         }),
-        ('Metadata', {
-            'fields': ('created_at', 'modified_at', 'is_deleted'),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         })
     )
+    
     inlines = [PointTransactionInline]
     actions = ['mark_completed', 'mark_failed', 'mark_pending']
 
@@ -436,16 +486,28 @@ class PointTransactionAdmin(SoftDeleteAdmin):
     list_display = ('id', 'user_link', 'amount', 'balance_after', 'transaction_type_display', 'description', 'created_at')
     list_filter = ('transaction_type', 'created_at')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'description', 'reference')
-    readonly_fields = ('user', 'amount', 'balance_after', 'transaction_type', 'description', 'reference', 'purchase', 'created_at')
+    
+    readonly_fields = (
+        'user', 'amount', 'balance_after', 'transaction_type', 
+        'description', 'reference', 'purchase', 'created_at',
+        'created_by', 'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+    
     fieldsets = (
         (None, {
             'fields': ('user', 'amount', 'balance_after', 'transaction_type', 'description', 'reference', 'purchase')
         }),
-        ('Metadata', {
-            'fields': ('created_at',),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         })
     )
+    
     # Disable add/delete to preserve audit integrity
     def has_add_permission(self, request):
         return False
@@ -467,12 +529,8 @@ class PointTransactionAdmin(SoftDeleteAdmin):
     transaction_type_display.admin_order_field = 'transaction_type'
 
 
-
 @admin.register(FeatureFlag)
 class FeatureFlagAdmin(SoftDeleteAdmin):
-    """
-    Admin interface for FeatureFlag.
-    """
     list_display = (
         'name',
         'is_active',
@@ -485,15 +543,24 @@ class FeatureFlagAdmin(SoftDeleteAdmin):
         'is_deleted',   
     )
     search_fields = ('name', 'description')
-    readonly_fields = ('created_at', 'modified_at')
-    filter_horizontal = ('users',) 
+    filter_horizontal = ('users',)
+    
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
 
     fieldsets = (
         (None, {
             'fields': ('name', 'description', 'is_active', 'users')
         }),
-        (_('System Fields'), {
-            'fields': ('created_at', 'modified_at', 'is_deleted'),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         }),
     )
@@ -501,12 +568,10 @@ class FeatureFlagAdmin(SoftDeleteAdmin):
     actions = ['activate_features', 'deactivate_features']
 
     def get_queryset(self, request):
-        """Exclude soft‑deleted records by default."""
         qs = super().get_queryset(request)
         return qs.filter(is_deleted=False)
 
     def users_count(self, obj):
-        """Return the number of users assigned to this flag."""
         return obj.users.count()
     users_count.short_description = _('Users')
     users_count.admin_order_field = 'users__count'
@@ -547,6 +612,7 @@ class NotificationAdmin(SoftDeleteAdmin):
         'title',
         'message'
     )
+    
     readonly_fields = (
         'created_at',
         'created_by',
@@ -555,17 +621,22 @@ class NotificationAdmin(SoftDeleteAdmin):
         'deleted_at',
         'deleted_by'
     )
+    
     fieldsets = (
         (None, {
             'fields': ('user', 'notification_type', 'title', 'message', 'is_read', 'action_url')
         }),
         ('Audit Trail', {
-            'fields': ('created_at', 'created_by', 'modified_at', 'modified_by', 'is_deleted', 'deleted_at', 'deleted_by'),
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by'
+            ),
             'classes': ('collapse',)
         }),
     )
+    
     actions = ['mark_as_read', 'mark_as_unread']
-
 
     def user_email(self, obj):
         return obj.user.email
@@ -581,4 +652,3 @@ class NotificationAdmin(SoftDeleteAdmin):
     def mark_as_unread(self, request, queryset):
         updated = queryset.update(is_read=False)
         self.message_user(request, f'{updated} notification(s) marked as unread.')
-

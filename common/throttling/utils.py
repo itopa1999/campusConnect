@@ -14,12 +14,11 @@ def get_client_identifier(
     """
 
     if user_type == UserTypeEnum.AUTH:
-        if not request.user.is_authenticated:
-            raise ValueError(
-                "Authenticated rate limiting requires an authenticated user."
-            )
-
         return str(request.user.pk)
+
+    if user_type == UserTypeEnum.AUTO:
+        if request.user.is_authenticated:
+            return str(request.user.pk)
 
     forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
 

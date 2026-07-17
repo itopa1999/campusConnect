@@ -61,18 +61,27 @@ class CategoryAdmin(SoftDeleteAdmin):
     list_filter = ('is_deleted', 'sort_order')
     search_fields = ('name', 'description')
     prepopulated_fields = {'slug': ('name',)}
-    readonly_fields = ('created_at', 'modified_at', 'listing_count_display')
+    
+    # ─── All audit trail fields as readonly ───
+    readonly_fields = (
+        'created_at', 'created_by', 
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+        'listing_count_display',
+    )
+    
     fieldsets = (
         (None, {
             'fields': ('name', 'slug', 'icon', 'description', 'sort_order')
         }),
-        ('Status', {
-            'fields': ('is_deleted',)
-        }),
-        ('Metadata', {
-            'fields': ('created_at', 'modified_at', 'created_by', 'modified_by'),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
-        })
+        }),
     )
     actions = ['mark_active']
 
@@ -96,13 +105,25 @@ class CampusHotspotAdmin(SoftDeleteAdmin):
     list_display = ('name', 'sort_order', 'is_deleted', 'listing_count')
     list_filter = ('is_deleted', 'sort_order')
     search_fields = ('name', 'description')
-    readonly_fields = ('created_at', 'modified_at',)
+    
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+    
     fieldsets = (
         (None, {
             'fields': ('name', 'description', 'sort_order')
         }),
-        ('Status', {'fields': ('is_deleted',)}),
-        ('Metadata', {'fields': ('created_at', 'modified_at'), 'classes': ('collapse',)})
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
+            'classes': ('collapse',)
+        }),
     )
     actions = ['mark_active']
 
@@ -124,16 +145,22 @@ class ListingAdmin(SoftDeleteAdmin):
     )
     list_filter = (
         'listing_type', 'status', 'category', 'is_deleted',
-        'expires_at', 'is_hot_sales', 'is_ads_banner'  # new filters
+        'expires_at', 'is_hot_sales', 'is_ads_banner'
     )
     search_fields = (
         'title', 'description', 'user__email', 'user__full_name',
-        'is_hot_sales', 'is_ads_banner'  # optional, but can help
+        'is_hot_sales', 'is_ads_banner'
     )
+    
+    # ─── All audit trail fields as readonly ───
     readonly_fields = (
-        'created_at', 'modified_at', 'review_count', 'avg_rating',
-        'is_hot_sales_expires_at', 'is_ads_banner_expires_at'  # auto-set, so read-only
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+        'review_count', 'avg_rating',
+        'is_hot_sales_expires_at', 'is_ads_banner_expires_at'
     )
+    
     autocomplete_fields = ['user', 'category']
     inlines = [ListingHotspotInline]
     date_hierarchy = 'created_at'
@@ -146,7 +173,7 @@ class ListingAdmin(SoftDeleteAdmin):
         ('Expiry', {
             'fields': ('expires_at',)
         }),
-        ('Promotions', {   # <-- new fieldset
+        ('Promotions', {
             'fields': ('is_ads_banner', 'is_ads_banner_expires_at', 'is_hot_sales', 'is_hot_sales_expires_at'),
             'classes': ('wide',)
         }),
@@ -154,8 +181,12 @@ class ListingAdmin(SoftDeleteAdmin):
             'fields': ('review_count', 'avg_rating'),
             'classes': ('collapse',)
         }),
-        ('Metadata', {
-            'fields': ('created_at', 'modified_at', 'created_by', 'modified_by', 'is_deleted'),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         })
     )
@@ -211,6 +242,26 @@ class ListingHotspotAdmin(SoftDeleteAdmin):
     list_filter = ('hotspot',)
     autocomplete_fields = ['listing', 'hotspot']
     search_fields = ('listing__title', 'hotspot__name')
+    
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+    
+    fieldsets = (
+        (None, {
+            'fields': ('listing', 'hotspot')
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
+            'classes': ('collapse',)
+        }),
+    )
 
     def listing_link(self, obj):
         url = reverse('admin:campus_listing_change', args=[obj.listing.id])
@@ -228,9 +279,28 @@ class ReviewAdmin(SoftDeleteAdmin):
     list_display = ('from_user_link', 'to_user_link', 'listing_link', 'rating', 'comment_preview', 'created_at')
     list_filter = ('rating', 'created_at')
     search_fields = ('from_user__email', 'to_user__email', 'listing__title', 'comment')
-    readonly_fields = ('created_at', 'modified_at')
     raw_id_fields = ('from_user', 'to_user', 'listing')
     actions = ['delete_selected']
+    
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+    
+    fieldsets = (
+        (None, {
+            'fields': ('from_user', 'to_user', 'listing', 'rating', 'comment')
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
+            'classes': ('collapse',)
+        }),
+    )
 
     def from_user_link(self, obj):
         url = reverse('admin:users_user_change', args=[obj.from_user.id])
@@ -265,7 +335,13 @@ class LostAndFoundAdmin(SoftDeleteAdmin):
     list_display = ('item_name', 'location', 'date_found', 'status', 'full_name', 'email', 'claimed_by', 'created_at')
     list_filter = ('status', 'date_found', 'department', 'created_at')
     search_fields = ('item_name', 'description', 'location', 'full_name', 'email', 'department')
-    readonly_fields = ('created_at', 'modified_at', 'is_deleted')
+    
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+    
     fieldsets = (
         (None, {
             'fields': ('item_name', 'description', 'location', 'date_found', 'image')
@@ -278,11 +354,15 @@ class LostAndFoundAdmin(SoftDeleteAdmin):
             'fields': ('full_name', 'email', 'department')
         }),
         ('Status', {
-            'fields': ('status', 'is_deleted'),
+            'fields': ('status', 'claimed_by'),
             'classes': ('collapse',)
         }),
-        ('Metadata', {
-            'fields': ('created_at', 'modified_at'),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         })
     )
@@ -306,8 +386,14 @@ class ClaimAdmin(SoftDeleteAdmin):
     list_display = ('lost_item_link', 'full_name', 'email', 'phone', 'answers_match', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('lost_item__item_name', 'full_name', 'email', 'phone')
-    readonly_fields = ('created_at', 'modified_at', 'is_deleted')
     raw_id_fields = ('lost_item',)
+    
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+    
     fieldsets = (
         (None, {
             'fields': ('lost_item', 'full_name', 'email', 'phone')
@@ -315,12 +401,12 @@ class ClaimAdmin(SoftDeleteAdmin):
         ('Verification Answers', {
             'fields': ('answer1', 'answer2')
         }),
-        ('Status', {
-            'fields': ('is_deleted',),
-            'classes': ('collapse',)
-        }),
-        ('Metadata', {
-            'fields': ('created_at', 'modified_at'),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
             'classes': ('collapse',)
         })
     )

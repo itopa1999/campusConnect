@@ -11,3 +11,8 @@ class RateLimitResult:
     limit: int
     remaining: int
     retry_after: int | None = None
+
+    def __post_init__(self):
+        """Validate that remaining is never negative."""
+        if self.remaining < 0:
+            self.remaining = 0

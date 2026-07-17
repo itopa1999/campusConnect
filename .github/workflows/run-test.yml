@@ -1,4 +1,4 @@
-name: Django Tests
+name: Django CI
 
 on:
   push:
@@ -33,9 +33,8 @@ jobs:
           --health-retries=5
 
     env:
-
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      
+
       DB_NAME: github_actions
       DB_USER: postgres
       DB_PASSWORD: postgres
@@ -61,6 +60,48 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Verify Django Loads
+        run: |
+          python manage.py check
+
+      - name: Run Django Deployment Checks
+        run: |
+          python manage.py check --deploy
+
+      - name: Check For Missing Migrations
+        run: |
+          python manage.py makemigrations --check --dry-run
+
+      - name: Apply Migrations
+        run: |
+          python manage.py migrate --noinput
+
+      - name: Collect Static Files
+        run: |
+          python manage.py collectstatic --noinput
+
+      - name: Verify Database Connection
+        run: |
+          python manage.py shell -c "
+          from django.db import connection;
+          connection.cursor().execute('SELECT 1');
+          print('Database OK')
+          "
+
+      - name: Verify Cache Backend
+        run: |
+          python manage.py shell -c "
+          from django.core.cache import cache;
+          cache.set('github_test','ok',30);
+          assert cache.get('github_test') == 'ok';
+          print('Cache OK')
+          "
+
+      - name: Run Ruff Linter
+        continue-on-error: true
+        run: |
+          ruff check .
+
       - name: Run Pytest
         run: |
-          python -m pytest -v
+          pytest -v --tb=short
