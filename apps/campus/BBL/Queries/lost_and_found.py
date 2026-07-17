@@ -14,36 +14,35 @@ class GetLostItemsQuery:
 
         page = request.GET.get('page', 1)
         per_page = request.GET.get('per_page', 10)
-        
+
         try:
             page = int(page)
         except (ValueError, TypeError):
             page = 1
-            
+
         try:
             per_page = int(per_page)
         except (ValueError, TypeError):
-            per_page = 10  
+            per_page = 10
 
         if per_page < 1:
             per_page = 1
         if per_page > 100:
             per_page = 100
 
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.LOST_ITEMS, page=page, per_page=per_page)
+        cache_key = CacheKeysEnum.format(
+            CacheKeysEnum.LOST_ITEMS,
+            page=page,
+            per_page=per_page
+        )
 
-        cached_data = GlobalCache.get(cache_key)
-        if cached_data:
-            return BaseResultWithData(
-                message="Lost items retrieved from cache",
-                data=cached_data,
-                status_code=200
-            )
+        def build_lost_items_data():
+            """Heavy computation callback – runs only on cache miss."""
+            queryset = LostAndFound.objects.filter(
+                is_deleted=False,
+                status=LostAndFoundStatusEnum.OPEN.value
+            ).order_by('-created_at')
 
-        try:
-            # Base queryset – only non‑deleted items, ordered newest first
-            queryset = LostAndFound.objects.filter(is_deleted=False, status=LostAndFoundStatusEnum.OPEN.value).order_by('-created_at')
-            # queryset = LostAndFound.objects.filter(is_deleted=False).order_by('-created_at')
             paginator = Paginator(queryset, per_page)
 
             try:
@@ -71,7 +70,7 @@ class GetLostItemsQuery:
                     'image': image_url,
                 })
 
-            response_data = {
+            return {
                 'items': items_data,
                 'pagination': {
                     'current_page': items_page.number,
@@ -85,11 +84,18 @@ class GetLostItemsQuery:
                 }
             }
 
-            GlobalCache.set(cache_key, response_data)  
+        try:
+            data = GlobalCache.get_or_set(
+                key=cache_key,
+                callback=build_lost_items_data,
+                timeout=3600,     
+                lock_timeout=30,
+                max_wait=5.0,
+            )
 
             return BaseResultWithData(
                 message="Lost items retrieved successfully.",
-                data=response_data,
+                data=data,
                 status_code=200
             )
 

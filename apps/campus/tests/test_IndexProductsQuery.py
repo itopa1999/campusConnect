@@ -14,12 +14,6 @@ from utils.enums import ListingStatusType, ListingType, GroupNames
 # ── Fixtures ──────────────────────────────────────────────────────────
 
 @pytest.fixture
-def mock_cache():
-    """Mock GlobalCache.get and .set."""
-    with patch("apps.campus.BBL.Queries.index_products.GlobalCache") as mock:
-        yield mock
-
-@pytest.fixture
 def admin_user(db):
     """Create an admin user (in the Admin group)."""
     user = User.objects.create_user(
@@ -28,7 +22,6 @@ def admin_user(db):
         first_name="Admin",
         last_name="User"
     )
-    # Add user to Admin group
     from django.contrib.auth.models import Group
     admin_group, _ = Group.objects.get_or_create(name=GroupNames.ADMIN.value)
     user.groups.add(admin_group)
@@ -65,7 +58,7 @@ def admin_listings(admin_user, test_category, test_hotspot):
             category=test_category,
             listing_type=ListingType.SELL.value,
             status=ListingStatusType.ACTIVE.value,
-            expires_at=now + timedelta(days=30 - i),  # different expiry, all active
+            expires_at=now + timedelta(days=30 - i),
             badge="bundle" if i % 2 == 0 else "",
         )
         listing.hotspots.add(test_hotspot)
@@ -119,27 +112,38 @@ def request_factory():
 
 class TestIndexProductsQuery:
 
-    def test_get_index_products_cache_hit(self, request_factory, mock_cache):
+    def test_get_index_products_cache_hit(self, request_factory):
         """When cached data exists, return it without DB query."""
         cached_data = {"listings": [{"id": 1, "title": "Cached"}]}
-        mock_cache.get.return_value = cached_data
-
         request = request_factory.get("/")
-        result = IndexProductsQuery.get_index_product(request)
+
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+            mock_get_or_set.return_value = cached_data
+            result = IndexProductsQuery.get_index_product(request)
 
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_cache.get.assert_called_once()
-        mock_cache.set.assert_not_called()
+        mock_get_or_set.assert_called_once_with(
+            key=ANY,
+            callback=ANY,
+            timeout=3600,
+            lock_timeout=30,
+            max_wait=5.0,
+        )
 
-    def test_get_index_products_cache_miss(self, mock_cache, admin_listings, non_admin_listings,
-                                           expired_listings, request_factory, admin_user):
+    def test_get_index_products_cache_miss(self, admin_listings, non_admin_listings,
+                                           expired_listings, request_factory):
         """Cache miss: fetch only active admin listings, limit to 6, order by created_at desc."""
-        mock_cache.get.return_value = None
-
         request = request_factory.get("/")
-        result = IndexProductsQuery.get_index_product(request)
+
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+            # Simulate cache miss by executing the callback
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            result = IndexProductsQuery.get_index_product(request)
 
         assert result.is_success is True
         assert result.status_code == 200
@@ -147,15 +151,10 @@ class TestIndexProductsQuery:
         listings_data = data["listings"]
 
         # Should contain only admin listings, active, not expired, limited to 6
-        # Admin listings are 8, but limit 6 -> 6 items
         assert len(listings_data) == 6
 
-        # They should be ordered by created_at desc (most recent first).
-        # Since we created them in order 1..8, the IDs should be descending.
+        # Ordered by created_at desc (most recent first)
         ids = [item["id"] for item in listings_data]
-        # The listings were created with increasing IDs, so descending means last created first.
-        # Our listings: admin_listings[0] is oldest, admin_listings[7] is newest.
-        # So the first item should be admin_listings[7] (highest ID)
         assert ids == sorted(ids, reverse=True)
 
         # Check a sample item has required fields
@@ -177,14 +176,9 @@ class TestIndexProductsQuery:
         assert not any(id in returned_ids for id in non_admin_ids)
         assert not any(id in returned_ids for id in expired_ids)
 
-        # Cache should have been set
-        mock_cache.set.assert_called_once_with("index_products", data)
-
-    def test_get_index_products_location(self, mock_cache, admin_user, test_category, test_hotspot,
+    def test_get_index_products_location(self, admin_user, test_category, test_hotspot,
                                          request_factory):
         """Location should be first hotspot name, or 'Campus' if none."""
-        mock_cache.get.return_value = None
-
         # Listing with hotspot
         listing_with_hs = Listing.objects.create(
             user=admin_user,
@@ -209,50 +203,24 @@ class TestIndexProductsQuery:
         )
 
         request = request_factory.get("/")
-        result = IndexProductsQuery.get_index_product(request)
-        listings = result.data["listings"]
 
-        # Find the two listings in the result (they should both be included)
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            result = IndexProductsQuery.get_index_product(request)
+
+        listings = result.data["listings"]
         for item in listings:
             if item["title"] == "With HS":
                 assert item["location"] == test_hotspot.name
             elif item["title"] == "No HS":
                 assert item["location"] == "Campus"
 
-    def test_get_index_products_image_url(self, mock_cache, admin_user, test_category, request_factory):
-        """Image URL should be built with request.build_absolute_uri."""
-        mock_cache.get.return_value = None
-
-        # Create listing with image (mock the image field)
-        listing = Listing.objects.create(
-            user=admin_user,
-            title="With Image",
-            price=10,
-            category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
-            expires_at=timezone.now() + timedelta(days=5),
-        )
-        # Mock the image.url property
-        listing.image = MagicMock()
-        listing.image.url = "/media/test.jpg"
-
-        request = request_factory.get("/")
-        # We need to patch the queryset to use our listing with mocked image.
-        # Since we are using real DB, we can't easily mock the listing.image without
-        # patching the queryset. Instead we can test that image is None when no image,
-        # and that the field exists.
-        # For the image URL, we'll test that the built URL is correct by mocking
-        # request.build_absolute_uri.
-        with patch.object(request, 'build_absolute_uri') as mock_build:
-            mock_build.return_value = "http://testserver/media/test.jpg"
-            # Need to actually fetch from DB again, but our listing doesn't have a real image file.
-            # So we can't set image.url without a file.
-            # We'll skip this specific test for now and test that image is None for no image.
-            pass
-
-        # For simplicity, we'll just verify that 'image' key exists and is None for no image.
-        # Let's create a listing without image.
+    def test_get_index_products_image_url(self, admin_user, test_category, request_factory):
+        """Image URL should be None when no image exists."""
+        # Create a listing without image (most realistic in test)
         no_image_listing = Listing.objects.create(
             user=admin_user,
             title="No Image",
@@ -262,16 +230,22 @@ class TestIndexProductsQuery:
             status=ListingStatusType.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
-        # Clear cache so fresh query happens
-        mock_cache.get.return_value = None
-        result = IndexProductsQuery.get_index_product(request)
+
+        request = request_factory.get("/")
+
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            result = IndexProductsQuery.get_index_product(request)
+
         for item in result.data["listings"]:
             if item["title"] == "No Image":
                 assert item["image"] is None
 
-    def test_get_index_products_limit(self, mock_cache, admin_user, test_category, request_factory):
+    def test_get_index_products_limit(self, admin_user, test_category, request_factory):
         """Test that the limit parameter works (default 6, can be overridden)."""
-        mock_cache.get.return_value = None
         # Create 10 active admin listings
         now = timezone.now()
         for i in range(10):
@@ -286,18 +260,25 @@ class TestIndexProductsQuery:
             )
 
         request = request_factory.get("/")
-        # Default limit 6
-        result = IndexProductsQuery.get_index_product(request)
-        assert len(result.data["listings"]) == 6
 
-        # Override limit to 3
-        result = IndexProductsQuery.get_index_product(request, limit=3)
-        assert len(result.data["listings"]) == 3
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+            # We need to test that the limit is passed correctly.
+            # We'll spy on the queryset slicing by checking the callback result length.
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
 
-    def test_get_index_products_no_admin_listings(self, mock_cache, non_admin_user, test_category,
+            # Default limit 6
+            result = IndexProductsQuery.get_index_product(request)
+            assert len(result.data["listings"]) == 6
+
+            # Override limit to 3
+            result = IndexProductsQuery.get_index_product(request, limit=3)
+            assert len(result.data["listings"]) == 3
+
+    def test_get_index_products_no_admin_listings(self, non_admin_user, test_category,
                                                   request_factory):
         """If there are no admin listings, return empty list."""
-        mock_cache.get.return_value = None
         # Only non-admin listings exist
         Listing.objects.create(
             user=non_admin_user,
@@ -308,7 +289,15 @@ class TestIndexProductsQuery:
             status=ListingStatusType.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
+
         request = request_factory.get("/")
-        result = IndexProductsQuery.get_index_product(request)
+
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            result = IndexProductsQuery.get_index_product(request)
+
         assert result.is_success is True
         assert result.data["listings"] == []

@@ -232,14 +232,14 @@ class CacheKeysEnum(Enum):
     LOOKUP_DATA = "lookup_data"
     INDEX_PRODUCTS = "index_products"
     LISTING_DETAIL = "listing_detail_{user_id}_{listing_id}"
-    CATEGORIZED_LISTINGS = "categorized_listings_{user_id}_{section}_{page}"
+    CATEGORIZED_LISTINGS = "categorized_listings_{user_id}_{section}_{page}_{per_page}"
     LOST_ITEMS = "lost_items_{page}_{per_page}"
     POINT_PACKAGES = "point_packages"
-    PURCHASES = "purchases_{user_id}_{page}"
-    TRANSACTIONS = "transactions_{user_id}_{page}"
+    PURCHASES = "purchases_{user_id}_{page}_{per_page}"
+    TRANSACTIONS = "transactions_{user_id}_{page}_{per_page}"
     PROFILE = "profile_{user_id}"
     PUBLIC_LISTING_DETAILS = "public_listing_details_{user_id}_{listing_id}"
-    NOTIFICATIONS = "notifications_{user_id}_{page}"
+    NOTIFICATIONS = "notifications_{user_id}_{page}_{per_page}"
     NOTIFICATION_HEADER = "notifications_header_{user_id}"
 
 

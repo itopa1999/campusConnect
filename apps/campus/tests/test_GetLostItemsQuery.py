@@ -4,24 +4,17 @@ from datetime import datetime, timedelta
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from django.test import RequestFactory
-from django.core.paginator import Paginator
-
 from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
 from apps.campus.models import LostAndFound
 from utils.enums import LostAndFoundStatusEnum
-from utils.base_result import BaseResultWithData
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
 @pytest.fixture
-def mock_cache():
-    with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache") as mock:
-        yield mock
-
-@pytest.fixture
 def request_factory():
     return RequestFactory()
+
 
 @pytest.fixture
 def lost_items(db):
@@ -29,8 +22,7 @@ def lost_items(db):
     now = timezone.now()
     items = []
     for i in range(15):
-        # Change: All items should have OPEN status
-        status = LostAndFoundStatusEnum.OPEN.value  # All OPEN
+        status = LostAndFoundStatusEnum.OPEN.value
         item = LostAndFound.objects.create(
             item_name=f"Item {i}",
             description=f"Description {i}",
@@ -77,24 +69,39 @@ def lost_item_with_image(db):
 
 class TestGetLostItemsQuery:
 
-    def test_get_items_cache_hit(self, mock_cache, request_factory):
+    def test_get_items_cache_hit(self, request_factory):
         """Return cached data if available."""
         cached_data = {"items": [{"id": 1}], "pagination": {"current_page": 1}}
-        mock_cache.get.return_value = cached_data
         request = request_factory.get("/?page=1&per_page=10")
-        result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            mock_get_or_set.return_value = cached_data
+            result = GetLostItemsQuery.get_items(request)
+
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_cache.get.assert_called_once()
-        mock_cache.set.assert_not_called()
+        mock_get_or_set.assert_called_once_with(
+            key=ANY,
+            callback=ANY,
+            timeout=3600,
+            lock_timeout=30,
+            max_wait=5.0,
+        )
 
-    def test_get_items_success(self, mock_cache, request_factory, lost_items):
+    def test_get_items_success(self, request_factory, lost_items):
         """Retrieve paginated lost items with default parameters."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=1&per_page=10")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            # Simulate cache miss by executing the callback
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         assert result.is_success is True
         assert result.status_code == 200
         data = result.data
@@ -118,14 +125,18 @@ class TestGetLostItemsQuery:
         assert pagination["next_page_number"] == 2
         assert pagination["previous_page_number"] is None
 
-        mock_cache.set.assert_called_once_with("lost_items_1_10", data)
-
-    def test_get_items_page_2(self, mock_cache, request_factory, lost_items):
+    def test_get_items_page_2(self, request_factory, lost_items):
         """Retrieve second page of results."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=2&per_page=10")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         data = result.data
         items = data["items"]
         pagination = data["pagination"]
@@ -138,12 +149,18 @@ class TestGetLostItemsQuery:
         assert pagination["next_page_number"] is None
         assert pagination["previous_page_number"] == 1
 
-    def test_get_items_custom_per_page(self, mock_cache, request_factory, lost_items):
+    def test_get_items_custom_per_page(self, request_factory, lost_items):
         """Test custom per_page parameter."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=1&per_page=5")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         data = result.data
         items = data["items"]
         pagination = data["pagination"]
@@ -152,79 +169,119 @@ class TestGetLostItemsQuery:
         assert pagination["total_pages"] == 3
         assert pagination["per_page"] == 5
 
-    def test_get_items_invalid_page(self, mock_cache, request_factory, lost_items):
+    def test_get_items_invalid_page(self, request_factory, lost_items):
         """Invalid page (string) should default to page 1."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=invalid&per_page=10")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         assert result.is_success is True
         assert result.status_code == 200
         data = result.data
         assert data is not None
         assert data["pagination"]["current_page"] == 1
 
-    def test_get_items_page_beyond_last(self, mock_cache, request_factory, lost_items):
+    def test_get_items_page_beyond_last(self, request_factory, lost_items):
         """Page beyond total should return last page."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=999&per_page=10")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         data = result.data
         assert data["pagination"]["current_page"] == 2
         assert len(data["items"]) == 5
 
-    def test_get_items_image_url(self, mock_cache, request_factory, lost_item_with_image):
+    def test_get_items_image_url(self, request_factory, lost_item_with_image):
         """Test that image URL is built correctly when image exists."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=1&per_page=10")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         data = result.data
+        found = False
         for item in data["items"]:
             if item["item_name"] == "Item with Image":
                 assert item["image"] == "http://testserver/media/test.jpg"
+                found = True
                 break
-        else:
-            pytest.fail("Item with image not found in result")
+        assert found, "Item with image not found in result"
 
-    def test_get_items_image_url_null(self, mock_cache, request_factory, lost_items):
+    def test_get_items_image_url_null(self, request_factory, lost_items):
         """When no image, image field should be None."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=1&per_page=10")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         for item in result.data["items"]:
             assert item["image"] is None
 
-    def test_get_items_excludes_answers(self, mock_cache, request_factory, lost_items):
+    def test_get_items_excludes_answers(self, request_factory, lost_items):
         """Ensure answer1 and answer2 are never included in the response."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=1&per_page=10")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         for item in result.data["items"]:
             assert "answer1" not in item
             assert "answer2" not in item
 
-    def test_get_items_exception(self, mock_cache, request_factory):
+    def test_get_items_exception(self, request_factory):
         """Return 500 on unexpected database error."""
-        mock_cache.get.return_value = None
-        with patch("apps.campus.BBL.Queries.lost_and_found.LostAndFound.objects.filter", side_effect=Exception("DB error")):
-            request = request_factory.get("/?page=1&per_page=10")
-            result = GetLostItemsQuery.get_items(request)
-            assert result.is_success is False
-            assert result.status_code == 500
-            assert "An unexpected error occurred" in result.message
-
-    def test_get_items_empty_result(self, mock_cache, request_factory, db):
-        """When no items exist, return empty list with pagination metadata."""
-        # Ensure the database is empty for this test
-        LostAndFound.objects.all().delete()
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=1&per_page=10")
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.LostAndFound.objects.filter", side_effect=Exception("DB error")):
+            with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+                # get_or_set will call the callback, which raises the exception
+                mock_get_or_set.side_effect = Exception("DB error")  # Simulate the exception bubbling up
+                result = GetLostItemsQuery.get_items(request)
+
+        assert result.is_success is False
+        assert result.status_code == 500
+        assert "An unexpected error occurred" in result.message
+
+    def test_get_items_empty_result(self, request_factory, db):
+        """When no items exist, return empty list with pagination metadata."""
+        LostAndFound.objects.all().delete()
+        request = request_factory.get("/?page=1&per_page=10")
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         data = result.data
         assert data["items"] == []
         pagination = data["pagination"]
@@ -233,25 +290,32 @@ class TestGetLostItemsQuery:
         assert pagination["has_next"] is False
         assert pagination["has_previous"] is False
 
-
-    def test_get_items_negative_per_page(self, mock_cache, request_factory, lost_items):
+    def test_get_items_negative_per_page(self, request_factory, lost_items):
         """Negative per_page should default to 1."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=1&per_page=-5")
-        
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
-        
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         data = result.data
         assert data["pagination"]["per_page"] == 1
 
-    def test_get_items_per_page_exceeds_max(self, mock_cache, request_factory, lost_items):
+    def test_get_items_per_page_exceeds_max(self, request_factory, lost_items):
         """per_page > 100 should be capped at 100."""
-        mock_cache.get.return_value = None
         request = request_factory.get("/?page=1&per_page=200")
-        
-        with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
-            result = GetLostItemsQuery.get_items(request)
-        
+
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
+                result = GetLostItemsQuery.get_items(request)
+
         data = result.data
         assert data["pagination"]["per_page"] == 100

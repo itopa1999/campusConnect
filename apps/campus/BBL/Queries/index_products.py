@@ -4,50 +4,53 @@ from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum, GroupNames, ListingStatusType
 
+
 class IndexProductsQuery:
     @staticmethod
     def get_index_product(request, limit=6):
         """Return the 6 most recent active listings for the homepage."""
         cache_key = CacheKeysEnum.INDEX_PRODUCTS.value
-        cached_data = GlobalCache.get(cache_key)
-        if cached_data:
-            return BaseResultWithData(
-                message="Index products retrieved successfully",
-                data=cached_data,
-                status_code=200
-            )
-        
-        now = timezone.now()
 
-        queryset = Listing.objects.filter(
-            status=ListingStatusType.ACTIVE.value,
-            is_deleted=False,
-            expires_at__gt=now,
-            user__groups__name=GroupNames.ADMIN.value
-        ).select_related('category', 'user').prefetch_related('hotspots').order_by('-created_at')[:limit]
+        def build_index_products_data():
+            """Heavy computation callback – runs only on cache miss."""
+            now = timezone.now()
 
-        listings_data = []
-        for listing in queryset:
-            hotspots = list(listing.hotspots.all())
-            location = hotspots[0].name if hotspots else "Campus"
-            image_url = None
-            if listing.image:
-                image_url = request.build_absolute_uri(listing.image.url)
-            listings_data.append({
-                'id': listing.id,
-                'title': listing.title,
-                'price': float(listing.price) if listing.price else 0,
-                'category': listing.category.name,
-                'location': location,
-                'description': listing.description or "",
-                'badge': listing.badge,
-                'type': listing.listing_type,
-                'image': image_url
-            })
+            queryset = Listing.objects.filter(
+                status=ListingStatusType.ACTIVE.value,
+                is_deleted=False,
+                expires_at__gt=now,
+                user__groups__name=GroupNames.ADMIN.value
+            ).select_related('category', 'user').prefetch_related('hotspots').order_by('-created_at')[:limit]
 
-        data = {'listings': listings_data}
-        
-        GlobalCache.set(cache_key, data)
+            listings_data = []
+            for listing in queryset:
+                hotspots = list(listing.hotspots.all())
+                location = hotspots[0].name if hotspots else "Campus"
+                image_url = None
+                if listing.image:
+                    image_url = request.build_absolute_uri(listing.image.url)
+                listings_data.append({
+                    'id': listing.id,
+                    'title': listing.title,
+                    'price': float(listing.price) if listing.price else 0,
+                    'category': listing.category.name,
+                    'location': location,
+                    'description': listing.description or "",
+                    'badge': listing.badge,
+                    'type': listing.listing_type,
+                    'image': image_url
+                })
+
+            return {'listings': listings_data}
+
+        # ── Atomic cache get-or-set with stampede protection ──
+        data = GlobalCache.get_or_set(
+            key=cache_key,
+            callback=build_index_products_data,
+            timeout=3600,
+            lock_timeout=30,
+            max_wait=5.0, 
+        )
 
         return BaseResultWithData(
             message="Index products retrieved successfully",
