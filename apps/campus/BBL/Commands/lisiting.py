@@ -440,7 +440,8 @@ class ListingCommand:
 
             with transaction.atomic():
                 listing.status = ListingStatusType.ACTIVE.value
-                listing.save(update_fields=['status'])
+                listing.expires_at = None
+                listing.save(update_fields=['status', 'expires_at'])
 
                 UpdatePointsService.update_points(
                     user=user,

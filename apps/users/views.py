@@ -324,16 +324,41 @@ class LogoutUserView(generics.GenericAPIView):
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        refresh_token = serializer.validated_data['refresh_token']
+        refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh_token')
         try:
             token = RefreshToken(refresh_token)
             token.blacklist()
-            return Response({"message": "Logged out successfully"}, status=200)
+            response = Response({"message": "Logged out successfully"}, status=200)
+            self._clear_auth_cookies(response)
+            return response
         except TokenError:
             return Response({"error": "Invalid or expired token"}, status=400)
+        
 
+    def _clear_auth_cookies(self, response):
+        """Expire both access and refresh HttpOnly cookies."""
+        response.set_cookie(
+            'access_token',
+            '',
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite='None',
+            max_age=0,
+            expires='Thu, 01 Jan 1970 00:00:00 GMT',
+            path='/',
+        )
+        response.set_cookie(
+            'refresh_token',
+            '',
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite='None',
+            max_age=0,
+            expires='Thu, 01 Jan 1970 00:00:00 GMT',
+            path='/',
+        )
+        
+        
 
 class RefreshPointBalanceView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]

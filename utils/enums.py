@@ -228,6 +228,7 @@ class CacheKeysEnum(Enum):
     Always use CacheKeys.KEY_NAME.value when accessing cache.
     """
 
+    # ANNO and Student
     DASHBOARD = "get_dashboard_{user_id}"
     GET_POINTS_BALANCE = "get_points_balance_{user_id}"
     LOOKUP_DATA = "lookup_data"
@@ -242,6 +243,10 @@ class CacheKeysEnum(Enum):
     PUBLIC_LISTING_DETAILS = "public_listing_details_{user_id}_{listing_id}"
     NOTIFICATIONS = "notifications_{user_id}_{page}_{per_page}"
     NOTIFICATION_HEADER = "notifications_header_{user_id}"
+
+
+    # Moderator
+    MOD_DASHBOARD = 'mod_get_dashboard_{user_id}'
 
 
     @classmethod

@@ -1,15 +1,21 @@
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from apps.campus.models import Listing
+from utils.log_helpers import OperationLogger
+
+User = get_user_model()
 
 
-class EmailHelper:    
+class EmailHelper:
+    
     @staticmethod
     def send_email(subject, message, recipient_list, html_message=None, fail_silently=False):
         try:
             email = EmailMultiAlternatives(
                 subject=subject,
-                body=message,           
+                body=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=recipient_list,
             )
@@ -20,20 +26,20 @@ class EmailHelper:
         except Exception as e:
             print(f"Error sending email: {str(e)}")
             return False
-    
+
     @staticmethod
     def send_verification_email(email, first_name, verification_link):
-        print("link is here" ,verification_link)
-
+        op = OperationLogger("EmailHelper.send_verification_email", email=email)
+        op.start()
         try:
+            base_url = settings.BASE_FRONTEND_URL
             context = {
                 'first_name': first_name,
                 'verification_link': verification_link,
+                'base_url': base_url,
             }
-
-            html_content = render_to_string('verification_email.html', context)
-
-            plain_text  = f"""
+            html_content = render_to_string('emails/verification_email.html', context)
+            plain_text = f"""
 Hello {first_name},
 
 Welcome to Campus Connect! Please verify your email by clicking the link below:
@@ -47,31 +53,41 @@ This link is unique and can only be used once. If you didn't create this account
 Best regards,
 Campus Connect Team
             """
-            
-            # Send email
             subject = "Verify Your Campus Connect Email"
-            return EmailHelper.send_email(
+            success = EmailHelper.send_email(
                 subject=subject,
                 message=plain_text,
                 recipient_list=[email],
-                html_message = html_content,
+                html_message=html_content,
                 fail_silently=False
             )
+            if success:
+                op.success(f"Verification email sent to {email}")
+            else:
+                op.fail(f"Failed to send verification email to {email}")
+            return success
         except Exception as e:
-            print(f"Error sending verification email: {str(e)}")
+            op.fail(f"Error sending verification email: {str(e)}")
             return False
-    
+
     @staticmethod
-    def send_password_reset_email(email, first_name, link):
-        try:         
-            # Email subject and message
-            subject = "Reset Your Campus Connect Password"
-            message = f"""
+    def send_password_reset_email(email, first_name, reset_link):
+        op = OperationLogger("EmailHelper.send_password_reset_email", email=email)
+        op.start()
+        try:
+            base_url = settings.BASE_FRONTEND_URL
+            context = {
+                'first_name': first_name,
+                'reset_link': reset_link,
+                'base_url': base_url,
+            }
+            html_content = render_to_string('emails/password_reset_email.html', context)
+            plain_text = f"""
 Hello {first_name},
 
 We received a request to reset your password. Click the link below to reset it:
 
-{link}
+{reset_link}
 
 This link will expire in 10 minutes.
 
@@ -80,110 +96,184 @@ If you didn't request this, please ignore this email.
 Best regards,
 Campus Connect Team
             """
-            
-            # Send email
-            return EmailHelper.send_email(
+            subject = "Reset Your Campus Connect Password"
+            success = EmailHelper.send_email(
                 subject=subject,
-                message=message,
+                message=plain_text,
                 recipient_list=[email],
+                html_message=html_content,
                 fail_silently=False
             )
+            if success:
+                op.success(f"Password reset email sent to {email}")
+            else:
+                op.fail(f"Failed to send password reset email to {email}")
+            return success
         except Exception as e:
-            print(f"Error sending password reset email: {str(e)}")
+            op.fail(f"Error sending password reset email: {str(e)}")
             return False
-
 
     @staticmethod
     def send_password_reset_confirmation_email(email, first_name):
+        op = OperationLogger("EmailHelper.send_password_reset_confirmation_email", email=email)
+        op.start()
         try:
-            subject = "Your Campus Connect Password Has Been Reset"
-            message = f"""
+            base_url = settings.BASE_FRONTEND_URL
+            context = {
+                'first_name': first_name,
+                'base_url': base_url,
+            }
+            html_content = render_to_string('emails/password_reset_confirmation_email.html', context)
+            plain_text = f"""
 Hello {first_name},
 Your password has been successfully reset. If you did not perform this action, please contact our support team immediately.
 Best regards,
 Campus Connect Team
             """
-            return EmailHelper.send_email(
+            subject = "Your Campus Connect Password Has Been Reset"
+            success = EmailHelper.send_email(
                 subject=subject,
-                message=message,
+                message=plain_text,
                 recipient_list=[email],
+                html_message=html_content,
                 fail_silently=False
             )
+            if success:
+                op.success(f"Password reset confirmation email sent to {email}")
+            else:
+                op.fail(f"Failed to send password reset confirmation email to {email}")
+            return success
         except Exception as e:
-            print(f"Error sending password reset confirmation email: {str(e)}")
+            op.fail(f"Error sending password reset confirmation email: {str(e)}")
             return False
-        
 
     @staticmethod
     def send_account_verification_success_email(email, first_name):
+        op = OperationLogger("EmailHelper.send_account_verification_success_email", email=email)
+        op.start()
         try:
-            subject = "Your Campus Connect Account Has Been Verified"
-            message = f"""
+            base_url = settings.BASE_FRONTEND_URL
+            login_url = f"{base_url}/login"  # adjust to your login URL
+            context = {
+                'first_name': first_name,
+                'login_url': login_url,
+                'base_url': base_url,
+            }
+            html_content = render_to_string('emails/account_verification_success_email.html', context)
+            plain_text = f"""
 Hello {first_name},
 
 Your account has been successfully verified. You can now log in to your Campus Connect account.
 
+Login here: {login_url}
+
 Best regards,
 Campus Connect Team
             """
-            return EmailHelper.send_email(
+            subject = "Your Campus Connect Account Has Been Verified"
+            success = EmailHelper.send_email(
                 subject=subject,
-                message=message,
+                message=plain_text,
                 recipient_list=[email],
+                html_message=html_content,
                 fail_silently=False
             )
+            if success:
+                op.success(f"Account verification success email sent to {email}")
+            else:
+                op.fail(f"Failed to send account verification success email to {email}")
+            return success
         except Exception as e:
-            print(f"Error sending account verification success email: {str(e)}")
+            op.fail(f"Error sending account verification success email: {str(e)}")
             return False
-        
+
     @staticmethod
     def send_password_change_confirmation_email(email, first_name):
+        op = OperationLogger("EmailHelper.send_password_change_confirmation_email", email=email)
+        op.start()
         try:
-            subject = "Your Campus Connect Password Has Been Changed"
-            message = f"""
+            base_url = settings.BASE_FRONTEND_URL
+            context = {
+                'first_name': first_name,
+                'base_url': base_url,
+            }
+            html_content = render_to_string('emails/password_change_confirmation_email.html', context)
+            plain_text = f"""
 Hello {first_name},
 Your password has been successfully changed. If you did not perform this action, please contact our support team immediately.
 Best regards,
 Campus Connect Team
             """
-            return EmailHelper.send_email(
+            subject = "Your Campus Connect Password Has Been Changed"
+            success = EmailHelper.send_email(
                 subject=subject,
-                message=message,
+                message=plain_text,
                 recipient_list=[email],
+                html_message=html_content,
                 fail_silently=False
             )
+            if success:
+                op.success(f"Password change confirmation email sent to {email}")
+            else:
+                op.fail(f"Failed to send password change confirmation email to {email}")
+            return success
         except Exception as e:
-            print(f"Error sending password change confirmation email: {str(e)}")
+            op.fail(f"Error sending password change confirmation email: {str(e)}")
             return False
-        
+
     @staticmethod
     def send_report_received_email(email, first_name, issue_type):
+        op = OperationLogger("EmailHelper.send_report_received_email", email=email)
+        op.start()
         try:
-            subject = "We Have Received Your Report"
-            message = f"""
+            base_url = settings.BASE_FRONTEND_URL
+            context = {
+                'first_name': first_name,
+                'issue_type': issue_type,
+                'base_url': base_url,
+            }
+            html_content = render_to_string('emails/report_received_email.html', context)
+            plain_text = f"""
 Hello {first_name},
 Thank you for submitting your report regarding "{issue_type}". We have received your report and our team will review it within 48 hours. We appreciate your help in keeping our community safe and welcoming.
 Best regards,
 Campus Connect Team
             """
-            return EmailHelper.send_email(
+            subject = "We Have Received Your Report"
+            success = EmailHelper.send_email(
                 subject=subject,
-                message=message,
+                message=plain_text,
                 recipient_list=[email],
+                html_message=html_content,
                 fail_silently=False
             )
+            if success:
+                op.success(f"Report received email sent to {email}")
+            else:
+                op.fail(f"Failed to send report received email to {email}")
+            return success
         except Exception as e:
-            print(f"Error sending report received email: {str(e)}")
+            op.fail(f"Error sending report received email: {str(e)}")
             return False
-        
 
     @staticmethod
     def send_lost_item_claim_email(item_name, founder_email, founder_full_name,
                                    approval_link, claimer_full_name, answer1, answer2):
-
-        subject = f"Someone wants to claim your lost item: {item_name}"
-
-        message = f"""
+        op = OperationLogger("EmailHelper.send_lost_item_claim_email", founder_email=founder_email)
+        op.start()
+        try:
+            base_url = settings.BASE_FRONTEND_URL
+            context = {
+                'item_name': item_name,
+                'founder_full_name': founder_full_name,
+                'claimer_full_name': claimer_full_name,
+                'answer1': answer1,
+                'answer2': answer2,
+                'approval_link': approval_link,
+                'base_url': base_url,
+            }
+            html_content = render_to_string('emails/lost_item_claim_email.html', context)
+            plain_text = f"""
 Hello {founder_full_name},
 
 A student named {claimer_full_name} has submitted a claim for the item "{item_name}" that you reported lost.
@@ -199,20 +289,23 @@ If you do not recognise this claim, you can safely ignore this email.
 
 Best regards,
 CampusConnect Team
-        """.strip()
-
-        try:
-            return EmailHelper.send_email(
+            """
+            subject = f"Someone wants to claim your lost item: {item_name}"
+            success = EmailHelper.send_email(
                 subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+                message=plain_text,
                 recipient_list=[founder_email],
-                fail_silently=False,
+                html_message=html_content,
+                fail_silently=False
             )
+            if success:
+                op.success(f"Lost item claim email sent to {founder_email}")
+            else:
+                op.fail(f"Failed to send lost item claim email to {founder_email}")
+            return success
         except Exception as e:
-            print(f"Error sending report received email: {str(e)}")
+            op.fail(f"Error sending lost item claim email: {str(e)}")
             return False
-        
 
     @staticmethod
     def send_founder_details_to_claimer_email(
@@ -223,10 +316,20 @@ CampusConnect Team
         claimer_full_name,
         claimer_email
     ):
- 
-        subject = f"✅ Founder of '{item_name}' approved your claim – here's how to reach them"
-
-        message = f"""
+        op = OperationLogger("EmailHelper.send_founder_details_to_claimer_email", claimer_email=claimer_email)
+        op.start()
+        try:
+            base_url = settings.BASE_FRONTEND_URL
+            context = {
+                'item_name': item_name,
+                'founder_full_name': founder_full_name,
+                'founder_email': founder_email,
+                'founder_phone': founder_phone,
+                'claimer_full_name': claimer_full_name,
+                'base_url': base_url,
+            }
+            html_content = render_to_string('emails/founder_details_to_claimer_email.html', context)
+            plain_text = f"""
 Hello {claimer_full_name},
 
 Good news! The founder of the item "{item_name}" has approved your claim and agreed to share their contact details with you.
@@ -243,16 +346,269 @@ If you have any questions, feel free to contact us.
 
 Best regards,
 CampusConnect Team
-        """
-
-        try:
-            return EmailHelper.send_email(
+            """
+            subject = f"✅ Founder of '{item_name}' approved your claim – here's how to reach them"
+            success = EmailHelper.send_email(
                 subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+                message=plain_text,
                 recipient_list=[claimer_email],
-                fail_silently=False,
+                html_message=html_content,
+                fail_silently=False
             )
+            if success:
+                op.success(f"Founder details email sent to {claimer_email}")
+            else:
+                op.fail(f"Failed to send founder details email to {claimer_email}")
+            return success
         except Exception as e:
-            print(f"Error sending report received email: {str(e)}")
+            op.fail(f"Error sending founder details email: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_expired_lisiting_emails(ids):
+        op = OperationLogger("EmailHelper.send_expired_lisiting_emails", ids=ids)
+        op.start()
+        try:
+            listings = Listing.objects.filter(id__in=ids, is_deleted=False).select_related('user')
+            if not listings:
+                op.fail("No listings found for the provided IDs")
+                return
+
+            user_listings = {}
+            for listing in listings:
+                user_listings.setdefault(listing.user, []).append(listing)
+
+            base_url = settings.BASE_FRONTEND_URL
+            dashboard_url = f"{base_url}/dash/main.html#listings"
+
+            sent_count = 0
+            for user, user_listings_list in user_listings.items():
+                titles = [l.title for l in user_listings_list]
+                context = {
+                    'first_name': user.first_name or user.email,
+                    'titles': titles,
+                    'base_url': base_url,
+                    'dashboard_url': dashboard_url,
+                }
+                html_content = render_to_string('emails/expired_listings.html', context)
+                plain_text = f"""
+Hello {user.first_name or user.email},
+
+The following listing(s) on CampusConnect have expired and are no longer visible:
+
+{', '.join(titles)}
+
+You can reactivate each listing for 1 point. Log in to your account to manage your listings.
+
+Visit: {dashboard_url}
+
+Best regards,
+CampusConnect Team
+                """
+                success = EmailHelper.send_email(
+                    subject="Your listings have expired on CampusConnect",
+                    message=plain_text,
+                    recipient_list=[user.email],
+                    html_message=html_content,
+                    fail_silently=False
+                )
+                if success:
+                    sent_count += 1
+                    op.success(f"Expired email sent to {user.email} for {len(titles)} listing(s)")
+                else:
+                    op.fail(f"Failed to send expired email to {user.email}")
+
+            op.success(f"Sent {sent_count} expired email(s) for {len(listings)} listing(s)")
+            return True
+        except Exception as e:
+            op.fail(f"Error in send_expired_lisiting_emails: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_auto_reactivate_listing_emails(ids):
+        op = OperationLogger("EmailHelper.send_auto_reactivate_listing_emails", ids=ids)
+        op.start()
+        try:
+            listings = Listing.objects.filter(id__in=ids, is_deleted=False).select_related('user')
+            if not listings:
+                op.fail("No listings found for the provided IDs")
+                return
+
+            user_listings = {}
+            for listing in listings:
+                user_listings.setdefault(listing.user, []).append(listing)
+
+            base_url = settings.BASE_FRONTEND_URL
+            dashboard_url = f"{base_url}/dash/main.html#listings"
+
+            sent_count = 0
+            for user, user_listings_list in user_listings.items():
+                titles = [l.title for l in user_listings_list]
+                context = {
+                    'first_name': user.first_name or user.email,
+                    'titles': titles,
+                    'base_url': base_url,
+                    'dashboard_url': dashboard_url,
+                }
+                html_content = render_to_string('emails/auto_reactivated_listings.html', context)
+                plain_text = f"""
+Hello {user.first_name or user.email},
+
+The following listing(s) on CampusConnect have been automatically reactivated because they expired and you had auto-reactivation enabled:
+
+{', '.join(titles)}
+
+1 point was deducted from your balance for each listing.
+
+They are now active for another 30 days.
+
+Manage your listings: {dashboard_url}
+
+Best regards,
+CampusConnect Team
+                """
+                success = EmailHelper.send_email(
+                    subject="Your listings have been auto-reactivated on CampusConnect",
+                    message=plain_text,
+                    recipient_list=[user.email],
+                    html_message=html_content,
+                    fail_silently=False
+                )
+                if success:
+                    sent_count += 1
+                    op.success(f"Auto-reactivation email sent to {user.email} for {len(titles)} listing(s)")
+                else:
+                    op.fail(f"Failed to send auto-reactivation email to {user.email}")
+
+            op.success(f"Sent {sent_count} auto-reactivation email(s) for {len(listings)} listing(s)")
+            return True
+        except Exception as e:
+            op.fail(f"Error in send_auto_reactivate_listing_emails: {str(e)}")
+            return False
+        
+
+    @staticmethod
+    def send_banner_expired_emails(ids):
+        """
+        Send email notifications to users whose banner promotions have expired.
+        """
+        op = OperationLogger("EmailHelper.send_banner_expired_emails", ids=ids)
+        op.start()
+        try:
+            listings = Listing.objects.filter(id__in=ids, is_deleted=False).select_related('user')
+            if not listings:
+                op.fail("No listings found for the provided IDs")
+                return
+
+            user_listings = {}
+            for listing in listings:
+                user_listings.setdefault(listing.user, []).append(listing)
+
+            base_url = settings.BASE_FRONTEND_URL
+            dashboard_url = f"{base_url}/dash/main.html#listings"
+
+            sent_count = 0
+            for user, user_listings_list in user_listings.items():
+                titles = [l.title for l in user_listings_list]
+                context = {
+                    'first_name': user.first_name or user.email,
+                    'titles': titles,
+                    'base_url': base_url,
+                    'dashboard_url': dashboard_url,
+                }
+                html_content = render_to_string('emails/banner_expired_email.html', context)
+                plain_text = f"""
+    Hello {user.first_name or user.email},
+
+    The banner promotion for the following listing(s) on CampusConnect has expired:
+
+    {', '.join(titles)}
+
+    You can renew the banner promotion from your listing management page.
+
+    Manage your listings: {dashboard_url}
+
+    Best regards,
+    CampusConnect Team
+                """
+                success = EmailHelper.send_email(
+                    subject="Your banner promotions have expired on CampusConnect",
+                    message=plain_text,
+                    recipient_list=[user.email],
+                    html_message=html_content,
+                    fail_silently=False
+                )
+                if success:
+                    sent_count += 1
+                    op.success(f"Banner expired email sent to {user.email} for {len(titles)} listing(s)")
+                else:
+                    op.fail(f"Failed to send banner expired email to {user.email}")
+
+            op.success(f"Sent {sent_count} banner expired email(s) for {len(listings)} listing(s)")
+            return True
+        except Exception as e:
+            op.fail(f"Error in send_banner_expired_emails: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_hot_sales_expired_emails(ids):
+        """
+        Send email notifications to users whose Hot Sales promotions have expired.
+        """
+        op = OperationLogger("EmailHelper.send_hot_sales_expired_emails", ids=ids)
+        op.start()
+        try:
+            listings = Listing.objects.filter(id__in=ids, is_deleted=False).select_related('user')
+            if not listings:
+                op.fail("No listings found for the provided IDs")
+                return
+
+            user_listings = {}
+            for listing in listings:
+                user_listings.setdefault(listing.user, []).append(listing)
+
+            base_url = settings.BASE_FRONTEND_URL
+            dashboard_url = f"{base_url}/dash/main.html#listings"
+
+            sent_count = 0
+            for user, user_listings_list in user_listings.items():
+                titles = [l.title for l in user_listings_list]
+                context = {
+                    'first_name': user.first_name or user.email,
+                    'titles': titles,
+                    'base_url': base_url,
+                    'dashboard_url': dashboard_url,
+                }
+                html_content = render_to_string('emails/hot_sales_expired_email.html', context)
+                plain_text = f"""
+    Hello {user.first_name or user.email},
+
+    The Hot Sales promotion for the following listing(s) on CampusConnect has expired:
+
+    {', '.join(titles)}
+
+    You can renew the Hot Sales promotion from your listing management page.
+
+    Manage your listings: {dashboard_url}
+
+    Best regards,
+    CampusConnect Team
+                """
+                success = EmailHelper.send_email(
+                    subject="Your Hot Sales promotions have expired on CampusConnect",
+                    message=plain_text,
+                    recipient_list=[user.email],
+                    html_message=html_content,
+                    fail_silently=False
+                )
+                if success:
+                    sent_count += 1
+                    op.success(f"Hot Sales expired email sent to {user.email} for {len(titles)} listing(s)")
+                else:
+                    op.fail(f"Failed to send Hot Sales expired email to {user.email}")
+
+            op.success(f"Sent {sent_count} Hot Sales expired email(s) for {len(listings)} listing(s)")
+            return True
+        except Exception as e:
+            op.fail(f"Error in send_hot_sales_expired_emails: {str(e)}")
             return False

@@ -1,6 +1,4 @@
-Here's a comprehensive list of features and capabilities a **moderator** should have in CampusConnect, organized by priority and functionality:
 
----
 
 ## 🛡️ 1. CONTENT MODERATION
 
@@ -9,7 +7,6 @@ Here's a comprehensive list of features and capabilities a **moderator** should 
 |---------|-------------|
 | **View all listings** | Access to a moderation dashboard showing all listings (active, pending, flagged) |
 | **Approve/reject new listings** | Approve or reject listings before they go live (if manual approval is enabled) |
-| **Edit/update listings** | Correct inaccurate information, remove inappropriate content, or update categories |
 | **Delete listings** | Remove listings that violate community guidelines or are scams |
 | **Hide listings** | Temporarily hide listings for review without permanently deleting them |
 | **Flag listings** | Flag listings for further review or for other moderators |
@@ -27,7 +24,6 @@ Here's a comprehensive list of features and capabilities a **moderator** should 
 | Feature | Description |
 |---------|-------------|
 | **View user profiles** | Access detailed user profiles and activity history |
-| **Moderate profile content** | Edit or remove inappropriate profile pictures, bios, or other user-generated content |
 | **Moderate comments** | Edit or delete comments on listings |
 | **Moderate reported content** | Review and act on content reported by users |
 
@@ -92,11 +88,9 @@ Here's a comprehensive list of features and capabilities a **moderator** should 
 
 | Feature | Description |
 |---------|-------------|
-| **View community activity** | Overview of recent activity and trends |
-| **Pin announcements** | Pin important announcements to the top of feeds |
 | **Manage categories** | Add, edit, or remove listing categories |
 | **Manage hotspots** | Add, edit, or remove safe meeting spots |
-| **Create/send community messages** | Send broadcast messages to all users or specific groups |
+| **Create/send community messages** | Send broadcast messages to all users or specific user |
 
 ---
 
@@ -111,41 +105,6 @@ Here's a comprehensive list of features and capabilities a **moderator** should 
 | **Notes** | Add private notes to listings, users, or reports for other moderators |
 | **Collaboration** | Assign tasks to other moderators or leave comments |
 
----
-
-## 📱 8. MOBILE & RESPONSIVE ACCESS
-
-| Feature | Description |
-|---------|-------------|
-| **Mobile-optimized dashboard** | Full moderation capabilities on mobile devices |
-| **Push notifications** | Receive alerts for new reports, pending listings, or urgent issues |
-| **Quick actions** | Ability to approve, reject, or flag content from mobile |
-
----
-
-## 🔐 9. PERMISSION & SECURITY
-
-| Feature | Description |
-|---------|-------------|
-| **Role-based access** | Different permission levels (junior moderator, senior moderator, admin) |
-| **Audit trail** | Log all moderation actions (who did what and when) |
-| **Two-factor authentication** | Optional 2FA for moderator accounts |
-| **IP whitelisting** | Restrict moderator access to specific IP addresses (optional) |
-| **Session management** | Ability to view and revoke active sessions |
-| **Password policy** | Enforce strong passwords for moderator accounts |
-
----
-
-## 📧 10. NOTIFICATIONS & COMMUNICATION
-
-| Feature | Description |
-|---------|-------------|
-| **Email notifications** | Send emails to users about warnings, suspensions, or bans |
-| **In-app notifications** | Notify users within the app about moderation actions |
-| **Escalation alerts** | Send alerts to admins when serious issues arise |
-| **Automated responses** | Send auto-replies to users when their report is received |
-
----
 
 ## 🎯 PRIORITY IMPLEMENTATION ORDER
 
@@ -172,19 +131,10 @@ Here's a comprehensive list of features and capabilities a **moderator** should 
 8. Moderation dashboard with metrics
 
 ### Phase 3 – Community Management
-1. Pin announcements
 2. Manage categories and hotspots
-3. Broadcast messages
-4. Community activity overview
-5. Automated notifications to users
 
 ### Phase 4 – Advanced Features
-1. Advanced analytics and reports
-2. Collaboration tools (assign tasks, comments)
-3. Two-factor authentication for moderators
-4. IP whitelisting
-5. Automated moderation rules (AI-assisted)
-
+1. Advanced analytics and reports 
 ---
 
 ## 🛠️ Backend Endpoints Required
@@ -223,58 +173,3 @@ Here's a comprehensive list of features and capabilities a **moderator** should 
 - `GET /api/moderator/audit-log/` – View moderation audit trail
 
 ---
-
-## 👨‍💻 Implementation Notes
-
-### Django Models to Add/Extend
-
-```python
-# ModeratorAction model (audit trail)
-class ModeratorAction(models.Model):
-    ACTION_TYPES = (
-        ('approve', 'Approve Listing'),
-        ('reject', 'Reject Listing'),
-        ('hide', 'Hide Listing'),
-        ('delete', 'Delete Listing'),
-        ('warning', 'Issue Warning'),
-        ('suspend', 'Suspend User'),
-        ('ban', 'Ban User'),
-        ('reinstate', 'Reinstate User'),
-        ('resolve_report', 'Resolve Report'),
-        ('escalate', 'Escalate to Admin'),
-        # etc.
-    )
-    moderator = models.ForeignKey(User, on_delete=models.CASCADE)
-    action_type = models.CharField(max_length=50, choices=ACTION_TYPES)
-    target_type = models.CharField(max_length=50)  # 'listing', 'user', 'review', 'report'
-    target_id = models.PositiveIntegerField()
-    reason = models.TextField(blank=True)
-    metadata = models.JSONField(default=dict)  # Store additional context
-    created_at = models.DateTimeField(auto_now_add=True)
-```
-
-### User Model Extensions
-Add moderation-related fields to the User model:
-- `moderation_warnings` (count)
-- `moderation_suspended_until` (datetime)
-- `moderation_banned_at` (datetime)
-- `moderation_notes` (text)
-
-### Permissions (Django Groups)
-
-```python
-# permissions.py
-class ModeratorPermissions:
-    CAN_MODERATE_LISTINGS = 'can_moderate_listings'
-    CAN_MODERATE_USERS = 'can_moderate_users'
-    CAN_MODERATE_REVIEWS = 'can_moderate_reviews'
-    CAN_MANAGE_REPORTS = 'can_manage_reports'
-    CAN_VIEW_ANALYTICS = 'can_view_analytics'
-    CAN_SUSPEND_USERS = 'can_suspend_users'
-    CAN_BAN_USERS = 'can_ban_users'
-    CAN_ESCALATE = 'can_escalate_issues'
-```
-
----
-
-This list should give you a solid foundation for implementing moderator capabilities in CampusConnect. Start with Phase 1 (Essential) for the MVP, then expand to Phases 2-4 as the platform grows.

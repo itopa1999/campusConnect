@@ -40,7 +40,7 @@ class ReportSerializer(serializers.Serializer):
     message = serializers.CharField()
 
 class LogoutSerializer(serializers.Serializer):
-    refresh_token = serializers.CharField(max_length=5000, write_only=True, required=True)
+    refresh_token = serializers.CharField(max_length=5000, write_only=True, required=False)
 
 class RefreshTokenSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(max_length=5000, write_only=True, required=False)

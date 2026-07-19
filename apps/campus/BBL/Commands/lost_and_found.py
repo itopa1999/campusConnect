@@ -2,7 +2,7 @@ from django.db import OperationalError, transaction
 from rest_framework import serializers
 from apps.campus.models import Claim, LostAndFound
 from apps.campus.serializers import ClaimSerializer, LostAndFoundSerializer  # you'll need this
-from utils.Tasks.emailService import background_task_send_founder_details_to_claimer_email, background_task_send_lost_item_claim_email
+from utils.Tasks.backgroundTask import background_task_send_founder_details_to_claimer_email, background_task_send_lost_item_claim_email
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
 from utils.enums import LostAndFoundStatusEnum

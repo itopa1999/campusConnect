@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Email</title>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; background-color: #f7f9f8; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px 30px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+    .header { text-align: center; margin-bottom: 30px; }
+    .logo { max-width: 140px; }
+    h1 { font-size: 24px; color: #1e2a2c; font-weight: 700; margin: 0 0 8px 0; }
+    .subhead { color: #5f7775; font-size: 16px; }
+    .divider { border: none; border-top: 2px solid #e8edea; margin: 30px 0; }
+    .action-button { display: inline-block; background: #2c7a5e; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 40px; font-weight: 600; margin: 20px 0; }
+    .action-button:hover { background: #1f5e48; }
+    .info-box { background: #f8faf9; border-radius: 12px; padding: 16px 20px; margin: 20px 0; }
+    .footer { font-size: 14px; color: #7a9490; text-align: center; margin-top: 30px; border-top: 1px solid #e8edea; padding-top: 20px; }
+    .warning { color: #c23d2e; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Verify Your Email Address</h1>
+      <p class="subhead">Welcome to CampusConnect!</p>
+    </div>
+
+    <p>Hello <strong>{{ first_name }}</strong>,</p>
+    <p>Thank you for signing up for CampusConnect! Please verify your email address to get started.</p>
+
+    <div style="text-align: center;">
+      <a href="{{ verification_link }}" class="action-button">Verify Email Address</a>
+    </div>
+
+    <div class="info-box">
+      <p><strong>⚠️ This link will expire in 10 minutes.</strong></p>
+      <p>This link is unique and can only be used once.</p>
+    </div>
+
+    <p>If you didn't create this account, please ignore this email.</p>
+
+    <div class="footer">
+      &copy; 2026 CampusConnect – <a href="{{ base_url }}" style="color:#2c7a5e; text-decoration:none;">Visit CampusConnect</a>
+    </div>
+  </div>
+</body>
+</html>

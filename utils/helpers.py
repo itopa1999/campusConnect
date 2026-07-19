@@ -170,13 +170,19 @@ class UpdatePointsService:
     @staticmethod
     def check_points(user):
         cache_key = CacheKeysEnum.format(CacheKeysEnum.GET_POINTS_BALANCE, user_id=user.id)
-        cached_data = GlobalCache.get(cache_key)
-        if cached_data:
-            return cached_data
-        else:
+
+        def build_check_point_data():
             points_balance = user.points or 0
-            GlobalCache.set(cache_key, points_balance)
             return points_balance
+        data = GlobalCache.get_or_set(
+            key=cache_key,
+            callback=build_check_point_data,
+            timeout=3600,
+            lock_timeout=30,
+            max_wait=5.0,
+        )
+
+        return data
 
 def convert_to_webp(instance, field_name, quality=30):
     """Convert an ImageField to WebP if not already WebP."""

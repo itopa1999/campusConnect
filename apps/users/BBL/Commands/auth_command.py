@@ -1,6 +1,6 @@
 from apps.users.BBL.Commands.account_command import AccountCommand
 from apps.users.models import User
-from utils.Tasks.emailService import background_task_send_change_password_email, background_task_send_notification_email, background_task_send_password_reset_email
+from utils.Tasks.backgroundTask import background_task_send_change_password_email, background_task_send_notification_email, background_task_send_password_reset_email
 from utils.base_result import BaseResultWithData
 from rest_framework_simplejwt.tokens import RefreshToken
 from celery.exceptions import OperationalError

@@ -155,7 +155,7 @@ class UploadImageView(generics.GenericAPIView):
 class ListingDetailView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [
-        CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH, scope="listing_detail_get"),
+        CustomRateThrottle(rate=60, period=600, user_type=UserTypeEnum.AUTH, scope="listing_detail_get"),
     ]
     
     def get_serializer_class(self):

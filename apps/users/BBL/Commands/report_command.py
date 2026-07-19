@@ -1,5 +1,5 @@
 from apps.users.models import ContactReport
-from utils.Tasks.emailService import background_task_send_report_recieved_email
+from utils.Tasks.backgroundTask import background_task_send_report_recieved_email
 from utils.base_result import BaseResultWithData
 from utils.enums import IssueTypeEnum
 from utils.log_helpers import OperationLogger

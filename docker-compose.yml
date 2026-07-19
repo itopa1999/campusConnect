@@ -102,7 +102,7 @@ services:
     volumes:
       - .:/app
 
-    command: celery -A backend worker --loglevel=info --pool=solo
+    command: celery -A backend worker --loglevel=info --concurrency=4
 
 
   # celery-beat:

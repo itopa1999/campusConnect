@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banner Promotion Expired</title>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; background-color: #f7f9f8; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px 30px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+    .header { text-align: center; margin-bottom: 30px; }
+    h1 { font-size: 24px; color: #1e2a2c; font-weight: 700; margin: 0 0 8px 0; }
+    .subhead { color: #5f7775; font-size: 16px; }
+    .divider { border: none; border-top: 2px solid #e8edea; margin: 30px 0; }
+    .listing-list { background: #f8faf9; border-radius: 12px; padding: 16px 20px; margin: 20px 0; }
+    .listing-item { padding: 6px 0; border-bottom: 1px solid #e8edea; }
+    .listing-item:last-child { border-bottom: none; }
+    .action-button { display: inline-block; background: #2c7a5e; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 40px; font-weight: 600; margin: 20px 0; }
+    .action-button:hover { background: #1f5e48; }
+    .footer { font-size: 14px; color: #7a9490; text-align: center; margin-top: 30px; border-top: 1px solid #e8edea; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Banner Promotion Expired</h1>
+      <p class="subhead">Your banner ads are no longer visible</p>
+    </div>
+
+    <p>Hello <strong>{{ first_name }}</strong>,</p>
+    <p>The banner promotion for the following listing(s) on CampusConnect has expired and is no longer visible:</p>
+
+    <div class="listing-list">
+      {% for title in titles %}
+        <div class="listing-item">• {{ title }}</div>
+      {% endfor %}
+    </div>
+
+    <p>You can <strong>renew the banner promotion</strong> from your listing management page.</p>
+
+    <div style="text-align: center;">
+      <a href="{{ dashboard_url }}" class="action-button">Manage Your Listings</a>
+    </div>
+
+    <p>If you have any questions, feel free to contact our support team.</p>
+
+    <div class="footer">
+      &copy; 2026 CampusConnect – <a href="{{ base_url }}" style="color:#2c7a5e; text-decoration:none;">Visit CampusConnect</a>
+    </div>
+  </div>
+</body>
+</html>

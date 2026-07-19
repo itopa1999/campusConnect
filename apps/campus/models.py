@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 import datetime
-
+from django.utils import timezone
 from apps.users.models import User
 from utils.enums import BadgeListingType, ListingType, ListingStatusType, LostAndFoundStatusEnum
 from utils.base_model import BaseModel
@@ -112,15 +112,22 @@ class Listing(BaseModel):
             models.Index(fields=['expires_at']),
             models.Index(fields=['created_at']),
             models.Index(fields=['price']),
-            models.Index(fields=['status', 'expires_at', 'is_deleted']),
+            models.Index(
+                fields=['status', 'is_deleted', 'expires_at'],
+                name='listing_expire_idx'
+            )
         ]
         ordering = ['-created_at']
 
     def __str__(self):
         return self.title
+    
+    @property
+    def is_expired(self):
+        return self.expires_at <= timezone.now()
 
     def save(self, *args, **kwargs):
-        if not self.pk and not self.expires_at:
+        if self.expires_at is None:
             self.expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
 
         if self.is_hot_sales and self.is_hot_sales_expires_at is None:
@@ -132,7 +139,6 @@ class Listing(BaseModel):
             self.is_ads_banner_expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
         elif not self.is_ads_banner:
             self.is_ads_banner_expires_at = None
-
         super().save(*args, **kwargs)
 
 
