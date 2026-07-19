@@ -116,7 +116,7 @@ class ListingQuery:
             )
         
     @staticmethod
-    def get_categorized_listings(request, user):
+    def get_categorized_listings(request, user=None) -> BaseResultWithData:
         section = request.GET.get('section')
         page = int(request.GET.get('page', 1))
         per_page = int(request.GET.get('per_page', 8))
@@ -142,12 +142,14 @@ class ListingQuery:
                 status_code=400
             )
 
+        # Build cache key – use a placeholder for unauthenticated users
+        user_id = user.id if user and hasattr(user, 'id') else 'anonymous'
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.CATEGORIZED_LISTINGS,
-            user_id=user.id,
+            user_id=user_id,
             section=section,
             page=page,
-            per_page = per_page
+            per_page=per_page
         )
 
         def build_categorized_listings_data():
@@ -159,12 +161,17 @@ class ListingQuery:
             ).exclude(user__groups__name=GroupNames.ADMIN.value).select_related('user', 'category')
             base_qs = base_qs.prefetch_related('hotspots')
 
+            # Determine if the user is authenticated and has a department
+            is_authenticated = user and user.is_authenticated
+            user_dept = user.department if is_authenticated and hasattr(user, 'department') else None
+
             if section == 'banner':
                 qs = base_qs.filter(is_ads_banner=True)
             elif section == 'hot_sales':
                 qs = base_qs.filter(is_hot_sales=True)
             elif section == 'departmental':
-                if not user.department:
+                # If not authenticated or no department, return empty
+                if not is_authenticated or not user_dept:
                     return {
                         'items': [],
                         'page': 1,
@@ -172,11 +179,11 @@ class ListingQuery:
                         'total_pages': 0,
                         'total_items': 0
                     }
-                qs = base_qs.filter(user__department__icontains=user.department)
+                qs = base_qs.filter(user__department__icontains=user_dept)
             elif section == 'for_you':
                 qs = base_qs.exclude(is_ads_banner=True).exclude(is_hot_sales=True)
-                if user.department:
-                    qs = qs.exclude(user__department__icontains=user.department)
+                if is_authenticated and user_dept:
+                    qs = qs.exclude(user__department__icontains=user_dept)
             else:
                 return {
                     'items': [],
@@ -187,7 +194,6 @@ class ListingQuery:
                 }
 
             qs = qs.order_by('-created_at')
-
             paginator = Paginator(qs, per_page)
             page_obj = paginator.get_page(page)
 
@@ -218,7 +224,7 @@ class ListingQuery:
         data = GlobalCache.get_or_set(
             key=cache_key,
             callback=build_categorized_listings_data,
-            timeout=600,           
+            timeout=600,
             lock_timeout=30,
             max_wait=5.0,
         )
@@ -228,7 +234,7 @@ class ListingQuery:
             data=data,
             status_code=200
         )
-    
+        
 
     @staticmethod
     def listing_details(request, listing_id: int) -> BaseResultWithData:

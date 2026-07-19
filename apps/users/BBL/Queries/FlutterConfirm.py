@@ -1,13 +1,10 @@
 from http import HTTPStatus
-from django.conf import settings
-from django.shortcuts import redirect
 # from apps.aso.flutterwave import validate
 from utils.base_result import BaseResultWithData
-from django.core.mail import send_mail
 from apps.users.flutterwave import validate
 class FlutterwaveConfirmQuery:
     @staticmethod
-    def execute(reference):
+    def execute(reference)-> BaseResultWithData:
         if not reference:
             return BaseResultWithData(
                 data=None,

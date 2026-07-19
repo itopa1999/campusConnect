@@ -2,17 +2,16 @@ from apps.users.models import User, VerificationToken
 from utils.Tasks.emailService import background_task_send_account_verify_email, background_task_send_verification_email
 from utils.base_result import BaseResult, BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import BadgeChoiceEnum, DefaultPointEnum, FeatureFlagEnum, GroupNames, PointTransactionTypeEnum, TokenType
-from utils.emails_helper import EmailHelper
+from utils.enums import BadgeChoiceEnum, FeatureFlagEnum, GroupNames, PointTransactionTypeEnum, TokenType
 from utils.featureflag import is_feature_active
-from utils.helpers import BadgeService, UpdatePointsService, validate_ui_email, normalize_nigerian_phone
+from utils.helpers import BadgeService, UpdatePointsService, normalize_nigerian_phone
 from django.db import transaction
-from utils.log_helpers import logger, OperationLogger
+from utils.log_helpers import OperationLogger
 from celery.exceptions import OperationalError
 
 class AccountCommand:    
     @staticmethod
-    def Execute(request, validated_data):
+    def Execute(request, validated_data) -> BaseResultWithData:
         email = validated_data.get('email')
         raw_phone = validated_data.get('phone')
         op = OperationLogger(f"AccountCommand.Execute account creation for  {email}", email=email, phone=raw_phone)
@@ -74,7 +73,7 @@ class AccountCommand:
                         points=ConstantHelper.ACCOUNT_CREATION_BONUS_POINTS,
                         action=ConstantHelper.POINT_ADDITION,
                         transaction_type=PointTransactionTypeEnum.ACCOUNT_CREATION_BONUS.value,
-                        description=f"Account Creation Bouns",
+                        description="Account Creation Bouns",
                         reference=f"user_id: {user.id}"
                     )
 
@@ -86,7 +85,7 @@ class AccountCommand:
 
             try:
                 background_task_send_verification_email.delay(user.email, user.first_name, verification_link)
-            except OperationalError as e:
+            except OperationalError:
                 op.success("Account created successfully, but failed to queue verification email")
             
             op.success(f"Account created successfully for user: {user.first_name or user.email}")
@@ -108,7 +107,7 @@ class AccountCommand:
             )
     
     @staticmethod
-    def VerifyEmail(request):
+    def VerifyEmail(request)-> BaseResultWithData:
         """Verify user email using verification token"""
         token = request.GET.get('token')
         op = OperationLogger(f"AccountCommand.VerifyEmail {token}", token=token)
@@ -130,7 +129,7 @@ class AccountCommand:
 
             try:
                 background_task_send_account_verify_email.delay(user.email, user.first_name)
-            except OperationalError as e:
+            except OperationalError:
                 op.success("Email verified successfully, but failed to queue verification email")
             
             op.success(f"Email: {user.email} verified successfully for user: {user.first_name or user.email}")
@@ -142,13 +141,13 @@ class AccountCommand:
             
         except Exception as e:
             op.fail(f"Error verifying email for token: {token}", exc=e)
-            return BaseResult(
+            return BaseResultWithData(
                 message=f"Error verifying email: {str(e)}",
                 status_code=500
             )
         
     @staticmethod
-    def ResendEmail(request, validated_data):
+    def ResendEmail(request, validated_data)-> BaseResultWithData:
         email = validated_data.get('email', '').strip()
         op = OperationLogger(f"AccountCommand.ResendEmail for {email}", email=email)
         op.start()
@@ -163,7 +162,7 @@ class AccountCommand:
         verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
         try:
             background_task_send_verification_email.delay(user.email, user.first_name, verification_link)
-        except OperationalError as e:
+        except OperationalError:
             op.success("Verification email successfully, but failed to queue verification email")
 
 
@@ -181,7 +180,7 @@ class AccountCommand:
 
     
     @staticmethod
-    def _create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value):
+    def _create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)-> BaseResultWithData:
         """Create a verification token for email verification"""
         op = OperationLogger(f"AccountCommand._create_verification_token for user: {user.first_name or user.email} ", user_id=user.id, token_type=token_type)
         op.start()

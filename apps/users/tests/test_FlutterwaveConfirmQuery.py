@@ -1,10 +1,8 @@
 import pytest
 from http import HTTPStatus
-from unittest.mock import patch, MagicMock
-from django.test import RequestFactory
+from unittest.mock import patch
 
 from apps.users.BBL.Queries.FlutterConfirm import FlutterwaveConfirmQuery
-from utils.base_result import BaseResultWithData
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────

@@ -35,7 +35,8 @@ DEFAULT_APPS = [
 
 CUSTOM_APPS = [
     'apps.campus',
-    'apps.users'
+    'apps.users',
+    'apps.moderator'
 ]
 
 THIRD_PARTY_APPS = [
@@ -203,6 +204,7 @@ SIMPLE_JWT = {
 REST_FRAMEWORK = {
     "NON_FIELD_ERRORS_KEY": "errors",
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        'backend.authentication.JWTCookieAuthentication',
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": [

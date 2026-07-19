@@ -3,7 +3,6 @@ from django.http import HttpResponse
 import base64
 import os
 from datetime import datetime, timedelta
-from django.template import loader
 
 class BothHttpAndHttpsSchemaGenerator(OpenAPISchemaGenerator):
     def get_schema(self, request=None, public=False):

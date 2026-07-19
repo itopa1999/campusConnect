@@ -1,16 +1,15 @@
 import pytest
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, ANY
 from datetime import timedelta
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from django.test import RequestFactory
-from django.contrib.auth.models import Group, AnonymousUser
+from django.contrib.auth.models import Group
 
 from apps.campus.BBL.Queries.listing import ListingQuery
 from apps.campus.models import Listing, Category, CampusHotspot, Review
 from apps.users.models import User
 from utils.enums import ListingStatusType, ListingType, GroupNames
-from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
 
 

@@ -1,3 +1,4 @@
+from apps.campus.serializers import (ClaimSerializer, ListingAutoActivationSerializer, ListingSerializer, ListingUpdateSerializer, LostAndFoundSerializer, UpdateAdsViewSerializer, UploadLisitingImageSerializer)
 from common.filter import ApproveClaimParamsQuery, CategorizedListingsFilter, PaginationParamsFilter
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
@@ -12,13 +13,11 @@ from apps.campus.BBL.Queries.index_products import IndexProductsQuery
 from apps.campus.BBL.Commands.lisiting import ListingCommand
 from apps.campus.BBL.Queries.listing import ListingQuery
 from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
-from apps.campus.serializers import *
 from django.shortcuts import render
 from django.conf import settings
 from utils.enums import GroupNames
 from utils.permissions import ConstantPermission
 from rest_framework.parsers import MultiPartParser, FormParser
-from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as filters
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -108,7 +107,6 @@ class ApproveClaimView(APIView):
 class GetDashboardView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
-    
     def get(self, request):
         result = DashboardQuery.get_dashboard(request)
         return Response(result.to_dict(), status=result.status_code)
@@ -210,7 +208,8 @@ class ListingAutoActivation(generics.GenericAPIView):
 
 
 class CategorizedListingsView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [AllowAny]
+    permission_classes = []
     throttle_classes = [CustomRateThrottle(rate=40, period=60, user_type=UserTypeEnum.AUTH)]
     filter_backends = [filters.DjangoFilterBackend]
     filterset_class = CategorizedListingsFilter
@@ -223,6 +222,7 @@ class CategorizedListingsView(APIView):
         ]
     )
     def get(self, request):
+        print(request.COOKIES)
         result = ListingQuery.get_categorized_listings(request, request.user)
         return Response(result.to_dict(), status=result.status_code)
 

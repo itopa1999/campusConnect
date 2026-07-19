@@ -6,7 +6,7 @@ from utils.enums import AdvertTypeEnum, BadgeListingType, CacheKeysEnum, Listing
 
 class LookUpQuery:
     @staticmethod
-    def get_lookup(request):
+    def get_lookup(request) -> BaseResultWithData:
         """
         Return all lookup data needed for the create‑listing page:
         - categories (id, name, icon, description)

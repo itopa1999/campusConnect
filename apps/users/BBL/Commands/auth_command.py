@@ -3,18 +3,17 @@ from apps.users.models import User
 from utils.Tasks.emailService import background_task_send_change_password_email, background_task_send_notification_email, background_task_send_password_reset_email
 from utils.base_result import BaseResultWithData
 from rest_framework_simplejwt.tokens import RefreshToken
-from utils.emails_helper import EmailHelper
 from celery.exceptions import OperationalError
 from utils.log_helpers import logger, OperationLogger
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from django.conf import settings
 
 from utils.enums import NotificationEnum, TokenType
-from utils.helpers import create_notification, validate_ui_email, is_email_verified
+from utils.helpers import create_notification, is_email_verified
 
 class AuthCommand:    
     @staticmethod
-    def Execute(request, validated_data):
+    def Execute(request, validated_data) -> BaseResultWithData:
         email = validated_data.get('email')
         password = validated_data.get('password')
         op = OperationLogger(f"AuthCommand.Execute login for user: {email}", email=email)
@@ -80,6 +79,7 @@ class AuthCommand:
                 data={
                     'access_token': access_token,
                     'refresh_token': refresh_token,
+                    'user': {
                     "user_id": user.id,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
@@ -89,6 +89,7 @@ class AuthCommand:
                     "trusting_score": user.average_rating,
                     "is_email_verified": user.email_verified,
                     "is_hall_verified": user.hall_verified,
+                    }
                 },
                 status_code=200
             )
@@ -103,7 +104,7 @@ class AuthCommand:
 
 
     @staticmethod
-    def ForgotPassword(request, validated_data):
+    def ForgotPassword(request, validated_data)-> BaseResultWithData:
         email = validated_data.get('email')
         op = OperationLogger(f"AuthCommand.ForgotPassword for user: {email}", email=email)
         op.start()
@@ -140,7 +141,7 @@ class AuthCommand:
             link = f"{request.build_absolute_uri('/user/api/auth/verify-forget-password-email')}?token={verification_token.token}"
             try:
                 background_task_send_password_reset_email.delay(user.email, user.first_name, link)
-            except OperationalError as e:
+            except OperationalError:
                 op.success("Password reset successful, but failed to queue reset email")
             
             op.success(f"Password reset email successfully queued for user: {user.first_name or user.email}")
@@ -159,7 +160,7 @@ class AuthCommand:
             )
         
     @staticmethod
-    def VerifyForgetPasswordEmail(request):
+    def VerifyForgetPasswordEmail(request)-> BaseResultWithData:
         token = request.GET.get('token')
         op = OperationLogger("AuthCommand.VerifyForgetPasswordEmail", token=token)
         op.start()
@@ -202,7 +203,7 @@ class AuthCommand:
             )
         
     @staticmethod
-    def ConfirmResetPassword(request, validated_data):
+    def ConfirmResetPassword(request, validated_data)-> BaseResultWithData:
         user_id = validated_data.get('user_id', '')
         email = validated_data.get('email', '').strip()
         password = validated_data.get('password', '').strip()
@@ -240,7 +241,7 @@ class AuthCommand:
 
             try:
                 background_task_send_notification_email.delay(user.email, user.first_name)
-            except OperationalError as e:
+            except OperationalError:
                 op.success("Password reset successful, but failed to queue reset email")
             
             op.success(f"Password reset successful and notification email queued for user: {user.first_name or user.email}")
@@ -260,7 +261,7 @@ class AuthCommand:
             
     
     @staticmethod
-    def ChangePassword(request, validated_data):
+    def ChangePassword(request, validated_data)-> BaseResultWithData:
         user = request.user
         op = OperationLogger(f"AuthCommand.ChangePassword for user: {user.first_name or user.email}", user_id=getattr(user, 'id', None))
         op.start()
@@ -297,7 +298,7 @@ class AuthCommand:
 
             try:
                 background_task_send_change_password_email.delay(user.email, user.first_name)
-            except OperationalError as e:
+            except OperationalError:
                 op.success("Password changed successfully, but failed to queue change password email")
                 
             op.success(f"Password changed successfully and change password email queued for user: {user.first_name or user.email}")
@@ -316,14 +317,19 @@ class AuthCommand:
             )
 
     @staticmethod
-    def RefreshToken(request, validated_data):
+    def RefreshToken(request, refresh_token_str)-> BaseResultWithData:
         """
         Verify refresh token, rotate tokens, and blacklist the old refresh token.
         Returns new access token and new refresh token.
         """
-        refresh_token_str = validated_data.get('refresh_token')
         op = OperationLogger("AuthCommand.RefreshToken", refresh_token=refresh_token_str)
         op.start()
+
+        if not refresh_token_str:
+            return BaseResultWithData(
+                message= "Refresh token is required.",
+                status_code=400
+            )
 
         try:
             # 1. Validate the incoming refresh token
@@ -367,7 +373,7 @@ class AuthCommand:
                 try:
                     old_refresh.blacklist()
                 except AttributeError:
-                    op.fail(f"Blacklist method not available")
+                    op.fail("Blacklist method not available")
                 except Exception as e:
                     op.fail(f"Failed to blacklist old token {refresh_token_str}: {e}")
 
@@ -383,15 +389,17 @@ class AuthCommand:
             data = {
                 'access_token': str(new_access),
                 'refresh_token': str(new_refresh),
-                'user_id': user.id,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'email': user.email,
-                'profile_pic': profile_pic_url,
-                'point_bal': user.points if user.points else 0,
-                'trusting_score': user.average_rating,
-                'is_email_verified': user.email_verified,
-                'is_hall_verified' : user.hall_verified
+                'user': {
+                    'user_id': user.id,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'email': user.email,
+                    'profile_pic': profile_pic_url,
+                    'point_bal': user.points if user.points else 0,
+                    'trusting_score': user.average_rating,
+                    'is_email_verified': user.email_verified,
+                    'is_hall_verified' : user.hall_verified
+                }
             }
 
             op.success(f"Token refreshed and old token blacklisted for user: {user.first_name or user.email}")

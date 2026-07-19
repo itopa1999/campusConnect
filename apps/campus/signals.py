@@ -70,22 +70,23 @@ def listing_changed(sender, instance, **kwargs):
     user_id = instance.user_id if instance else None
     if user_id:
         invalidate_dashboard_cache(user_id)
-    invalidate_listing_caches(instance)
+    invalidate_listing_caches(instance, user_id)
     GlobalCache.delete(CacheKeysEnum.INDEX_PRODUCTS.value)
 
 
 @receiver(post_save, sender=Review)
 @receiver(post_delete, sender=Review)
 def review_changed(sender, instance, **kwargs):
-
     user_id = instance.to_user_id if instance else None
     if user_id:
         invalidate_dashboard_cache(user_id)
 
-    cache_key = CacheKeysEnum.format(CacheKeysEnum.LISTING_DETAIL, user_id=user_id, listing_id=instance.listing_id)
-    cache_key2 = CacheKeysEnum.format(CacheKeysEnum.PUBLIC_LISTING_DETAILS, user_id=user_id, listing_id=instance.listing_id)
-    GlobalCache.delete(cache_key)
-    GlobalCache.delete(cache_key2)
+    listing = getattr(instance, 'listing', None)
+    if listing is not None:
+        invalidate_listing_caches(listing, user_id)
+    else:
+        GlobalCache.delete_prefix("listing_detail_")
+        GlobalCache.delete_prefix("public_listing_details_")
 
 
 @receiver(post_save, sender=Category)
@@ -135,17 +136,20 @@ def invalidate_lookup_cache():
     GlobalCache.delete(CacheKeysEnum.LOOKUP_DATA.value)
 
 
-def invalidate_listing_caches(listing):
-    if not listing or not listing.user_id:
+def invalidate_listing_caches(listing, user_id):
+    if not listing:
         return
-    detail_key = CacheKeysEnum.format(CacheKeysEnum.LISTING_DETAIL,
-                                      user_id=listing.user_id,
-                                      listing_id=listing.id)
-    
-    GlobalCache.delete(detail_key)
 
-    prefix = "categorized_listings_"
-    GlobalCache.delete_prefix(prefix)
+    detail_key = CacheKeysEnum.format(
+        CacheKeysEnum.LISTING_DETAIL,
+        user_id=user_id,
+        listing_id=listing.id,
+    )
+
+    GlobalCache.delete(detail_key)
+    GlobalCache.delete_prefix("listing_detail_")
+    GlobalCache.delete_prefix("public_listing_details_")
+    GlobalCache.delete_prefix("categorized_listings_")
 
 
 def invalidate_packages_cache():

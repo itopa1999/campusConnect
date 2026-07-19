@@ -1,12 +1,11 @@
 import pytest
 from decimal import Decimal
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch
 from django.test import RequestFactory
 from apps.users.BBL.Commands.buy_points import BuyPointsCommand
 from apps.users.models import PointPackage, PointPurchase, User
 from utils.enums import PointPurchaseStatusEnum
 from utils.constant_helper import ConstantHelper
-from utils.base_result import BaseResultWithData
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────

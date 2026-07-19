@@ -1,11 +1,10 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from django.test import RequestFactory
 
 from apps.users.BBL.Commands.report_command import ReportCommand
 from apps.users.models import ContactReport
 from utils.enums import IssueTypeEnum
-from utils.base_result import BaseResultWithData
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────

@@ -1,14 +1,11 @@
 import pytest
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch
 from celery.exceptions import OperationalError
-from django.core.exceptions import ObjectDoesNotExist
 from django.test import RequestFactory
 from django.utils import timezone
 
 from apps.users.models import User, VerificationToken
-from utils.enums import TokenType, BadgeChoiceEnum, FeatureFlagEnum, GroupNames
-from utils.base_result import BaseResultWithData
-from utils.constant_helper import ConstantHelper
+from utils.enums import TokenType, BadgeChoiceEnum
 
 # Adjust import path as needed – assuming the command lives in apps/users/BBL/Commands/account_command.py
 from apps.users.BBL.Commands.account_command import AccountCommand

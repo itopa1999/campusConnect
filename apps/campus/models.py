@@ -87,7 +87,7 @@ class Listing(BaseModel):
     status = models.CharField(
         max_length=10, 
         choices=ListingStatusType.choices(), 
-        default=ListingStatusType.ACTIVE.value
+        default=ListingStatusType.PENDING.value
     )
     expires_at = models.DateTimeField(null=True, blank=True)
 

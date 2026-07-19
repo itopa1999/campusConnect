@@ -8,7 +8,6 @@ from datetime import timedelta
 import random
 from apps.users.manager import UserManager
 from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, TokenType
-import secrets
 from utils.enums import IssueTypeEnum
 # Create your models here.
 import os

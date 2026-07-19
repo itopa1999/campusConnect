@@ -7,7 +7,7 @@ from utils.enums import CacheKeysEnum, GroupNames, ListingStatusType
 
 class IndexProductsQuery:
     @staticmethod
-    def get_index_product(request, limit=6):
+    def get_index_product(request, limit=6) -> BaseResultWithData:
         """Return the 6 most recent active listings for the homepage."""
         cache_key = CacheKeysEnum.INDEX_PRODUCTS.value
 

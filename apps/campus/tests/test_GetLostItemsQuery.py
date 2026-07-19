@@ -1,6 +1,6 @@
 import pytest
-from unittest.mock import patch, MagicMock, ANY
-from datetime import datetime, timedelta
+from unittest.mock import patch, ANY
+from datetime import timedelta
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from django.test import RequestFactory

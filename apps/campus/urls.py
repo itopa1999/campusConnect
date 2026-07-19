@@ -1,5 +1,6 @@
 from django.urls import path, include
-from .views import *
+
+from apps.campus.views import (ApproveClaimView, CategorizedListingsView, GetDashboardView, GetIndexDefaultLisitingView, GetLookUpView, ListingAutoActivation, ListingDetailView, ListingDetailsView, ListingView, LostAndFoundClaimView, LostAndFoundListView, LostAndFoundView, MarkAsSoldView, UpdateAdsView, UploadImageView)
 
 
 

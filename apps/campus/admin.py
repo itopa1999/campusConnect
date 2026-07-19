@@ -4,9 +4,9 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Avg
 
+from apps.campus.models import (CampusHotspot, Category, Claim, Listing, 
+                                ListingHotspot, LostAndFound, Review)
 from common.admin import SoftDeleteAdmin
-
-from .models import *
 
 # ==================== INLINES ====================
 

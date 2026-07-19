@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import patch
-from django.test import RequestFactory
 
 from apps.users.BBL.Commands.notification import NotificationCommand
 from apps.users.models import Notification, User

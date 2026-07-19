@@ -1,6 +1,6 @@
 import pytest
 from http import HTTPStatus
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from apps.users.BBL.Queries.PaystackConfirm import PaystackConfirmQuery
 

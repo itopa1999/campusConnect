@@ -43,7 +43,7 @@ class LogoutSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(max_length=5000, write_only=True, required=True)
 
 class RefreshTokenSerializer(serializers.Serializer):
-    refresh_token = serializers.CharField(max_length=5000, write_only=True, required=True)
+    refresh_token = serializers.CharField(max_length=5000, write_only=True, required=False)
 
 class ConfirmResetPasswordSerializer(serializers.Serializer):
     user_id = serializers.CharField(max_length=200, write_only=True, required=True)

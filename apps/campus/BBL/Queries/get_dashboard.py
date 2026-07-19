@@ -11,7 +11,7 @@ from utils.helpers import calculate_profile_completion, humanize_date
 
 class DashboardQuery:
     @staticmethod
-    def get_dashboard(request):
+    def get_dashboard(request) -> BaseResultWithData:
         user = request.user
         cache_key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user.id)
 
@@ -21,11 +21,13 @@ class DashboardQuery:
             counts = Listing.objects.filter(user=user, is_deleted=False).aggregate(
                 total_active=Count('id', filter=Q(status=ListingStatusType.ACTIVE.value, expires_at__gt=now)),
                 total_expired=Count('id', filter=Q(status=ListingStatusType.EXPIRED.value)),
-                total_marked_sold=Count('id', filter=Q(status=ListingStatusType.SOLD.value))
+                total_marked_sold=Count('id', filter=Q(status=ListingStatusType.SOLD.value)),
+                total_pending=Count('id', filter=Q(status=ListingStatusType.PENDING.value))
             )
             total_active = counts.get('total_active') or 0
             total_expired = counts.get('total_expired') or 0
             total_marked_sold = counts.get('total_marked_sold') or 0
+            total_pending = counts.get('total_pending') or 0
 
             # ── Trust score ──
             trust_score = round((float(user.average_rating) / 5.0) * 100, 1) if user.average_rating else 0.0
@@ -105,6 +107,7 @@ class DashboardQuery:
                 'total_active': total_active,
                 'total_marked_sold': total_marked_sold,
                 'total_expired': total_expired,
+                'total_pending': total_pending,
                 'total_sold': user.sold_items,
                 'trust_score': trust_score,
                 'profile_completion': profile_completion,

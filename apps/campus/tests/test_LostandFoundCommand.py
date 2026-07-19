@@ -1,6 +1,5 @@
 import pytest
-from decimal import Decimal
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import OperationalError   # <-- added
 
@@ -8,10 +7,7 @@ from rest_framework import serializers
 
 from apps.campus.BBL.Commands.lost_and_found import LostandFoundCommand
 from apps.campus.models import LostAndFound, Claim
-from apps.campus.serializers import LostAndFoundSerializer, ClaimSerializer
-from apps.users.models import User
 from utils.enums import LostAndFoundStatusEnum
-from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
 
 # ── Fixtures ──────────────────────────────────────────────────────────

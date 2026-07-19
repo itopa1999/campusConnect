@@ -1,5 +1,4 @@
 from celery import shared_task
-from django.core.mail import send_mail
 
 from utils.emails_helper import EmailHelper
 

@@ -1,11 +1,9 @@
 import pytest
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, ANY
 from django.test import RequestFactory
-from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
 
 from apps.users.BBL.Queries.notification import NotificationQueries
 from apps.users.models import Notification, User
-from utils.base_result import BaseResultWithData
 from utils.enums import CacheKeysEnum
 
 

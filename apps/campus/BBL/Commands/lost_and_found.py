@@ -198,7 +198,7 @@ class LostandFoundCommand:
                 claim.answer1,
                 claim.answer2
                 )
-        except OperationalError as e:
+        except OperationalError:
             op.success("Successfully, but failed to queue lost item claim email")
 
         op.success(f"Successfully, verification email queued for lost email item: {item.item_name}")
@@ -252,7 +252,7 @@ class LostandFoundCommand:
                 claim.full_name,
                 claim.email
                 )
-        except OperationalError as e:
+        except OperationalError:
             op.success("Successfully, but failed to queue email")
         
         op.success(f"Successfully, email queued for sent founder details, item: {lost_item.item_name}")

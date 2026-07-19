@@ -3,13 +3,8 @@ from django.db import transaction
 from apps.users.models import Badge, Notification, PointTransaction
 from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
-from utils.enums import BadgeChoiceEnum, CacheKeysEnum, PointTransactionTypeEnum
-from io import BytesIO
-from PIL import Image
-from django.core.files.base import ContentFile
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from utils.enums import CacheKeysEnum, PointTransactionTypeEnum
 from django.utils import timezone
-from datetime import timedelta
 
 
 def validate_ui_email(email: str) -> tuple[bool, str]:

@@ -1,13 +1,11 @@
 import pytest
 from decimal import Decimal
-from unittest.mock import patch, MagicMock, ANY
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from unittest.mock import patch, ANY
 from django.utils import timezone
 
 from apps.users.BBL.Queries.point_packages import PointPackagesQueries
 from apps.users.models import PointPackage, PointPurchase, PointTransaction, User
 from utils.enums import PointPurchaseStatusEnum, PointTransactionTypeEnum
-from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
 
 

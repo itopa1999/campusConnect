@@ -1,16 +1,12 @@
 import pytest
-import os
-from decimal import Decimal
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, MagicMock
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory
 from django.utils import timezone
-from datetime import timedelta
 
 from apps.users.BBL.Commands.profile import ProfileCommand
 from apps.users.models import User
 from utils.constant_helper import ConstantHelper
-from utils.base_result import BaseResultWithData
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────

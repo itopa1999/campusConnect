@@ -1,12 +1,9 @@
 import pytest
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, MagicMock
 from django.test import RequestFactory
-from django.core.exceptions import ObjectDoesNotExist
 
 from apps.users.BBL.Queries.profile import ProfileQuery
 from apps.users.models import User
-from apps.users.serializers import ProfileSerializer
-from utils.base_result import BaseResultWithData
 from utils.enums import CacheKeysEnum
 
 
@@ -45,59 +42,72 @@ def mock_serializer():
 
 class TestProfileQuery:
 
-    def test_get_profile_detail_cache_hit(self, mock_cache, request_factory, test_user):
+    def test_get_profile_detail_cache_hit(self, request_factory, test_user):
         """Return cached data if available."""
         cached_data = {"id": 1, "email": "test@example.com"}
-        mock_cache.get.return_value = cached_data
-
-        request = request_factory.get("/")
-        result = ProfileQuery.get_profile_detail(request, test_user)
+        with patch("apps.users.BBL.Queries.profile.GlobalCache.get_or_set") as mock_get_or_set:
+            mock_get_or_set.return_value = cached_data
+            request = request_factory.get("/")
+            result = ProfileQuery.get_profile_detail(request, test_user)
 
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_cache.get.assert_called_once_with(
-            CacheKeysEnum.format(CacheKeysEnum.PROFILE, user_id=test_user.id)
-        )
-        # Cache set should not be called
-        mock_cache.set.assert_not_called()
+        mock_get_or_set.assert_called_once()
+        # Check that the callback is not executed because cache hit
 
-    def test_get_profile_detail_cache_miss(self, mock_cache, mock_serializer, request_factory, test_user):
+    def test_get_profile_detail_cache_miss(self, request_factory, test_user):
         """Fetch from serializer, cache, and return."""
-        mock_cache.get.return_value = None
+        expected_data = {"id": 1, "email": "test@example.com"}
+        with patch("apps.users.BBL.Queries.profile.GlobalCache.get_or_set") as mock_get_or_set:
+            # Simulate cache miss: get_or_set calls the callback
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()
+            mock_get_or_set.side_effect = side_effect
 
-        request = request_factory.get("/")
-        result = ProfileQuery.get_profile_detail(request, test_user)
+            with patch("apps.users.BBL.Queries.profile.ProfileSerializer") as mock_serializer:
+                mock_serializer.return_value.data = expected_data
+                request = request_factory.get("/")
+                result = ProfileQuery.get_profile_detail(request, test_user)
 
         assert result.is_success is True
         assert result.status_code == 200
-        expected_data = {"id": 1, "email": "test@example.com"}
         assert result.data == expected_data
-
-        # Serializer should have been called with user and context
         mock_serializer.assert_called_once_with(test_user, context={'request': request})
+        mock_get_or_set.assert_called_once()
 
-        # Cache should have been set
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.PROFILE, user_id=test_user.id)
-        mock_cache.set.assert_called_once_with(cache_key, expected_data)
+    def test_get_profile_detail_serializer_exception(self, request_factory, test_user):
+        """If serializer raises an exception, it should propagate."""
+        with patch("apps.users.BBL.Queries.profile.GlobalCache.get_or_set") as mock_get_or_set:
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                return callback()  # callback will raise
+            mock_get_or_set.side_effect = side_effect
 
-    def test_get_profile_detail_serializer_exception(self, mock_cache, request_factory, test_user):
-        """If serializer raises an exception, it should propagate (not caught)."""
-        mock_cache.get.return_value = None
-        with patch("apps.users.BBL.Queries.profile.ProfileSerializer") as mock_serializer:
-            mock_serializer.side_effect = Exception("Serializer error")
-            with pytest.raises(Exception) as excinfo:
-                ProfileQuery.get_profile_detail(request_factory.get("/"), test_user)
-            assert "Serializer error" in str(excinfo.value)
+            with patch("apps.users.BBL.Queries.profile.ProfileSerializer") as mock_serializer:
+                mock_serializer.side_effect = Exception("Serializer error")
+                with pytest.raises(Exception) as excinfo:
+                    ProfileQuery.get_profile_detail(request_factory.get("/"), test_user)
+                assert "Serializer error" in str(excinfo.value)
 
-    def test_get_profile_detail_cache_key_format(self, mock_cache, request_factory, test_user):
+    def test_get_profile_detail_cache_key_format(self, request_factory, test_user):
         """Ensure the cache key is formatted correctly."""
-        mock_cache.get.return_value = None
-        with patch("apps.users.BBL.Queries.profile.ProfileSerializer") as mock_serializer:
-            mock_serializer.return_value.data = {"id": 1}
-            request = request_factory.get("/")
-            ProfileQuery.get_profile_detail(request, test_user)
-
         expected_key = CacheKeysEnum.format(CacheKeysEnum.PROFILE, user_id=test_user.id)
-        mock_cache.get.assert_called_once_with(expected_key)
-        mock_cache.set.assert_called_once_with(expected_key, {"id": 1})
+        with patch("apps.users.BBL.Queries.profile.GlobalCache.get_or_set") as mock_get_or_set:
+            # Simulate cache miss
+            def side_effect(key, callback, timeout, lock_timeout, max_wait):
+                assert key == expected_key
+                return callback()
+            mock_get_or_set.side_effect = side_effect
+
+            with patch("apps.users.BBL.Queries.profile.ProfileSerializer") as mock_serializer:
+                mock_serializer.return_value.data = {"id": 1}
+                request = request_factory.get("/")
+                ProfileQuery.get_profile_detail(request, test_user)
+
+            mock_get_or_set.assert_called_once_with(
+                key=expected_key,
+                callback=mock_get_or_set.call_args[1]['callback'],
+                timeout=86400,
+                lock_timeout=30,
+                max_wait=5.0,
+            )

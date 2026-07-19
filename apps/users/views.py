@@ -2,11 +2,11 @@ from apps.users.BBL.Commands.notification import NotificationCommand
 from apps.users.BBL.Commands.profile import ProfileCommand
 from apps.users.BBL.Queries.notification import NotificationQueries
 from apps.users.BBL.Queries.profile import ProfileQuery
+from apps.users.serializers import (BuyPointSerializer, ChangePasswordSerializer, ConfirmResetPasswordSerializer, LogoutSerializer, ProfilePictureSerializer, ProfileSerializer, ProfileUpdateSerializer, RefreshTokenSerializer, ReportSerializer, ResendVerificationEmailSerializer, RetryPurchaseSerailizer, UploadStudentIdSerializer, UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer)
 from common.filter import PaginationParamsFilter, PointPackagesFilter, TokenQueryParam
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
 from rest_framework import generics
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView, status
@@ -20,7 +20,6 @@ from utils.base_result import BaseResultWithData
 from utils.enums import GroupNames
 from utils.helpers import UpdatePointsService
 from utils.permissions import ConstantPermission
-from .serializers import *
 from .BBL.Commands.account_command import AccountCommand
 from .BBL.Commands.auth_command import AuthCommand
 from .BBL.Commands.report_command import ReportCommand
@@ -133,8 +132,36 @@ class LoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = AuthCommand.Execute(request, serializer.validated_data)
-        return Response(result.to_dict(), status=result.status_code)
+        if result.status_code != 200:
+            return Response(result.to_dict(), status=result.status_code)
+        response = Response(result.to_dict(), status=result.status_code)
+        access_token = result.data.get('access_token')
+        refresh_token = result.data.get('refresh_token')
 
+        access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+        refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+
+        response.set_cookie(
+            'access_token',
+            access_token,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite='None', # TODO make this Lax
+            max_age=access_lifetime_seconds,
+            path='/',
+        )
+        response.set_cookie(
+            'refresh_token',
+            refresh_token,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite='None',
+            max_age=refresh_lifetime_seconds,
+            path='/',
+        )
+
+        return response
+    
 
 class ForgotPasswordView(generics.GenericAPIView):
     serializer_class = UserForgotPasswordSerializer
@@ -156,10 +183,63 @@ class RefreshTokenView(generics.GenericAPIView):
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.ANON)]
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        result = AuthCommand.RefreshToken(request, serializer.validated_data)
-        return Response(result.to_dict(), status=result.status_code)
+        refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh_token')
+        result = AuthCommand.RefreshToken(request, refresh_token)
+        if result.status_code != 200:
+            response = Response(result.to_dict(), status=result.status_code)
+            self._clear_auth_cookies(response)
+            return response
+        
+        response = Response(result.to_dict(), status=result.status_code)
+        access_token = result.data.get('access_token')
+        refresh_token = result.data.get('refresh_token')
+
+        access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+        refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+
+        response.set_cookie(
+            'access_token',
+            access_token,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite='None',
+            max_age=access_lifetime_seconds,
+            path='/',
+        )
+        response.set_cookie(
+            'refresh_token',
+            refresh_token,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite='None',
+            max_age=refresh_lifetime_seconds,
+            path='/',
+        )
+        return response
+    
+
+    def _clear_auth_cookies(self, response):
+        """Expire both access and refresh HttpOnly cookies."""
+        response.set_cookie(
+            'access_token',
+            '',
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite='None',
+            max_age=0,
+            expires='Thu, 01 Jan 1970 00:00:00 GMT',
+            path='/',
+        )
+        response.set_cookie(
+            'refresh_token',
+            '',
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite='None',
+            max_age=0,
+            expires='Thu, 01 Jan 1970 00:00:00 GMT',
+            path='/',
+        )
 
 
 class SubmitReportView(generics.GenericAPIView):

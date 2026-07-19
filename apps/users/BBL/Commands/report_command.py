@@ -1,13 +1,12 @@
 from apps.users.models import ContactReport
 from utils.Tasks.emailService import background_task_send_report_recieved_email
 from utils.base_result import BaseResultWithData
-from django.utils import timezone
 from utils.enums import IssueTypeEnum
-from utils.log_helpers import logger, OperationLogger
+from utils.log_helpers import OperationLogger
 
 class ReportCommand:
     @staticmethod
-    def Add(request, validated_data):
+    def Add(request, validated_data)-> BaseResultWithData:
         reporter_name = validated_data.get('reporter_name', '').strip()
         reporter_email = validated_data.get('reporter_email', '').strip()
         issue_type = validated_data.get('issue_type', '').strip()

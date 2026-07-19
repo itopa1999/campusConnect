@@ -11,7 +11,6 @@ from django.utils import timezone
 import os
 from PIL import Image
 from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 
 
 class ProfileCommand:

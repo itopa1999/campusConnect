@@ -79,6 +79,7 @@ class ListingStatusType(Enum):
     ACTIVE = 'active'
     SOLD = 'sold'
     EXPIRED = 'expired'
+    PENDING = 'pending'
 
     @classmethod
     def choices(cls):

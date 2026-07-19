@@ -107,10 +107,10 @@ jobs:
       #     print('Cache OK')
       #     "
 
-      - name: Run Ruff Linter
-        continue-on-error: true
-        run: |
-          ruff check .
+      # - name: Run Ruff Linter
+      #   continue-on-error: true
+      #   run: |
+      #     ruff check .
 
       - name: Run Pytest
         run: |

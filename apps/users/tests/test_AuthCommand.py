@@ -1,15 +1,13 @@
 import pytest
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, MagicMock
 from celery.exceptions import OperationalError
 from django.test import RequestFactory
-from django.conf import settings
 from django.utils import timezone
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from rest_framework_simplejwt.exceptions import InvalidToken
 
 from apps.users.BBL.Commands.auth_command import AuthCommand
 from apps.users.models import User, VerificationToken
-from utils.enums import TokenType, BadgeChoiceEnum
+from utils.enums import TokenType
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -99,9 +97,9 @@ class TestAuthCommandExecute:
         assert result.status_code == 200
         assert "access_token" in result.data
         assert "refresh_token" in result.data
-        assert result.data["user_id"] == test_user.id
-        assert result.data["email"] == test_user.email
-        assert result.data["is_email_verified"] is True
+        assert result.data["user"]["user_id"] == test_user.id
+        assert result.data["user"]["email"] == test_user.email
+        assert result.data["user"]["is_email_verified"] is True
         mock_refresh_token[0].for_user.assert_called_once_with(test_user)
 
     def test_login_user_not_found(self, db, request_factory):
@@ -421,19 +419,20 @@ class TestAuthCommandChangePassword:
 class TestAuthCommandRefreshToken:
 
     def test_refresh_token_success(self, db, request_factory, test_user, mock_refresh_token):
-        """Happy path: refresh token."""
         request = request_factory.post("/")
-        data = {"refresh_token": "old_refresh_token"}
+        token_str = "old_refresh_token"
         # Mock the RefreshToken instance
         mock_refresh, mock_token = mock_refresh_token
         mock_token.payload = {"user_id": test_user.id}
+        # Make sure the mock returns the token when called with the string
+        mock_refresh.return_value = mock_token
 
-        result = AuthCommand.RefreshToken(request, data)
+        result = AuthCommand.RefreshToken(request, token_str)
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data["access_token"] == "new_access_token"
         assert result.data["refresh_token"] == "new_refresh_token"
-        mock_refresh.assert_called_with("old_refresh_token")
+        mock_refresh.assert_called_once_with(token_str)
         mock_refresh.for_user.assert_called_once_with(test_user)
 
     def test_refresh_token_invalid(self, db, request_factory):

@@ -3,15 +3,12 @@ from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
-from django.db import transaction
 
 from rest_framework import serializers 
 from apps.campus.BBL.Commands.lisiting import ListingCommand
 from apps.campus.models import Listing, CampusHotspot
-from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
-from utils.enums import ListingStatusType, ListingType, AdvertTypeEnum, PointTransactionTypeEnum
-from utils.base_result import BaseResultWithData
+from utils.enums import ListingStatusType, ListingType, PointTransactionTypeEnum
 from utils.constant_helper import ConstantHelper
 from utils.helpers import UpdatePointsService
 

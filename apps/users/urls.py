@@ -1,6 +1,12 @@
 from django.urls import path, include
-from .views import *
 
+from apps.users.views import (BuyPointView, ChangePasswordView, ConfirmResetPasswordView, CreateAccountView, DeleteAllNotificationView, 
+                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, LoginView, LogoutUserView, 
+                              MarkAllNotificationAsReadView, MonnifyPointsConfirmView, NotificationDeleteView, NotificationMarkAsReadView, 
+                              PaystackPointsConfirmView, PointPackagesView, ProfileView, RefreshPointBalanceView, RefreshTokenView, 
+                              ResendVerificationEmailView, RetryPurchaseView, SubmitReportView, UploadProfilePictureView, UploadStudentIdView, 
+                              VerifyAccountEmailView, VerifyForgetPasswordEmailView
+                            )
 
 urlpatterns = [
     path("auth/", include([
@@ -24,7 +30,7 @@ urlpatterns = [
         path("buy-points-initial", BuyPointView.as_view(), name="buy_points_initial"),
         path('paystack-points-confirm/<str:reference>', PaystackPointsConfirmView.as_view(), name='paystack-points-confirm'),
         path('monnify-confirm/<str:reference>', MonnifyPointsConfirmView.as_view(), name='monnify-confirm'),
-        path('flutterwave-points-confirm/<str:reference>', FlutterwavePointsConfirmView.as_view(), name='flutterwave-points-confirm'),
+        path('flutterwave-points-confirm/<str:reference>', FlutterwavePointsConfirmView.as_view(), name='flutterwave-points-confirm'),  # noqa: F821
         path('retry-purchase', RetryPurchaseView.as_view(), name='retry-payment') 
     ])),
     path("report/", include([

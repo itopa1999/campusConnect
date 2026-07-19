@@ -1,6 +1,6 @@
 import pytest
 from datetime import timedelta
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, ANY
 from django.utils import timezone
 from django.test import RequestFactory
 
@@ -8,7 +8,6 @@ from apps.campus.BBL.Queries.get_dashboard import DashboardQuery
 from apps.campus.models import Listing, Review, Category, CampusHotspot
 from apps.users.models import User
 from utils.enums import ListingStatusType, ListingType
-from utils.base_result import BaseResultWithData
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────

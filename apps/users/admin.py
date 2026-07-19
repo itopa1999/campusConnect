@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from django.db.models import Avg, Prefetch
+from django.db.models import Avg
 
+from apps.users.models import (Badge, ContactReport, FeatureFlag, Notification, PointPackage, PointPurchase, PointTransaction, User, VerificationToken)
 from common.admin import SoftDeleteAdmin
 
-from .models import *
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 

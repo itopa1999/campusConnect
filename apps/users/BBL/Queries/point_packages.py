@@ -47,7 +47,7 @@ class PointPackagesQueries:
         return data
     
     @staticmethod
-    def get_purchases(user, page=1, per_page=10):
+    def get_purchases(user, page=1, per_page=10)-> BaseResultWithData:
         """Retrieve paginated purchase history for a user."""
 
         cache_key = CacheKeysEnum.format(
@@ -119,7 +119,7 @@ class PointPackagesQueries:
     
 
     @staticmethod
-    def get_transactions(user, page=1, per_page=10):
+    def get_transactions(user, page=1, per_page=10)-> BaseResultWithData:
         """Retrieve paginated transaction history for a user."""
 
         cache_key = CacheKeysEnum.format(

@@ -152,8 +152,7 @@ class ListingCommand:
         # --- 8. Save within a transaction ---
         try:
             with transaction.atomic():
-                listing = serializer.save(user=user)
-                
+                listing = serializer.save(user=user)                
                 UpdatePointsService.update_points(
                     user=user,
                     points=total_points_needed,
@@ -173,7 +172,7 @@ class ListingCommand:
 
                 op.success(f"Listing created: {listing.id} for user: {user.first_name or user.email}")
                 return BaseResultWithData(
-                    message="Listing created successfully, It will appear in the marketplace within a few minutes.",
+                    message="Listing created successfully, It will appear in the marketplace once approved",
                     data={'listing_id': listing.id},
                     status_code=201
                 )

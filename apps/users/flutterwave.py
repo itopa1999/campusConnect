@@ -1,5 +1,4 @@
 from django.utils import timezone
-import json
 import secrets
 from django.conf import settings
 from django.urls import reverse

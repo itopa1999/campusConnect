@@ -1,4 +1,4 @@
-from .base import *
+import os
 
 DEBUG = False
 ALLOWED_HOSTS = ["yourdomain.com"]
@@ -21,3 +21,32 @@ EMAIL_PORT = os.environ.get("EMAIL_PORT")
 EMAIL_HOST_USER = os.environ.get("EMAIL_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 DEFAULT_FROM_EMAIL = "no-reply@yourdomain.com"
+
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5501",
+    "http://127.0.0.1:5500",
+    "http://192.168.0.199:5501",
+    "http://192.168.1.179:5500",
+    "http://192.168.0.198:5501",
+    "http://172.26.80.1:5500",
+    "http://192.168.1.127:5500",
+    "http://127.0.0.1:5500",
+]
+
+BASE_FRONTEND_URL = os.environ.get("BASE_FRONTEND_URL")
+
+# Payment Gateway Keys
+PAYSTACK_SECRET_KEY=os.getenv('PAYSTACK_SECRET_KEY')
+PAYSTACK_INITIALIZE_URL=os.getenv('PAYSTACK_INITIALIZE_URL')
+PAYSTACK_VERIFY_URL=os.getenv('PAYSTACK_VERIFY_URL')
+
+# Flutterwave Gateway Keys
+FLUTTERWAVE_SECRET_KEY=os.getenv('FLUTTERWAVE_SECRET_KEY')
+FLUTTERWAVE_INITIALIZE_URL=os.getenv('FLUTTERWAVE_INITIALIZE_URL')
+FLUTTERWAVE_VERIFY_URL=os.getenv('FLUTTERWAVE_VERIFY_URL')
+
+
+COOKIE_SECURE = True 

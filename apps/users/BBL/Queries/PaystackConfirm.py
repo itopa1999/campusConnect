@@ -1,9 +1,6 @@
 from http import HTTPStatus
-from django.conf import settings
-from django.shortcuts import redirect
 from apps.users.paystack import verify_paystack_payment
 from utils.base_result import BaseResultWithData
-from django.core.mail import send_mail
 
 class PaystackConfirmQuery:
     @staticmethod
