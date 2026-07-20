@@ -1,12 +1,14 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Avg
-
+from django.utils import timezone
 from apps.users.models import (Badge, ContactReport, FeatureFlag, Notification, PointPackage, PointPurchase, PointTransaction, User, VerificationToken)
 from common.admin import SoftDeleteAdmin
 
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
+
+from utils.enums import ReportStatusEnum
 
 
 @admin.register(User)
@@ -237,31 +239,33 @@ class BadgeAdmin(SoftDeleteAdmin):
 @admin.register(ContactReport)
 class ContactReportAdmin(SoftDeleteAdmin):
     list_display = (
-        'id', 
-        'issue_type_badge', 
-        'reporter_name', 
+        'id',
+        'issue_type_badge',
+        'reporter_name',
         'reporter_email',
-        'created_at', 
-        'is_reviewed', 
-        'is_deleted'
+        'status_badge',
+        'assigned_to',
+        'created_at',
+        'is_deleted',
     )
-    
     list_filter = (
         'issue_type',
-        'is_reviewed',
-        'is_deleted',
+        'status',
+        'assigned_to',
+        'escalated_to_admin',
         'created_at',
+        'is_deleted',
     )
-    
     search_fields = (
         'reporter_name',
         'reporter_email',
         'reported_user_email',
         'listing_identifier',
         'message',
-        'admin_notes'
+        'admin_notes',
+        'resolution_notes',
+        'escalated_note',
     )
-    
     readonly_fields = (
         'created_at',
         'created_by',
@@ -270,50 +274,52 @@ class ContactReportAdmin(SoftDeleteAdmin):
         'deleted_at',
         'deleted_by',
     )
-    
     list_per_page = 25
     date_hierarchy = 'created_at'
     ordering = ['-created_at']
-    
+    autocomplete_fields = ['assigned_to', 'resolved_by']
+
     fieldsets = (
         ('Reporter Information', {
             'fields': ('reporter_name', 'reporter_email'),
-            'classes': ('wide',),
         }),
         ('Issue Details', {
-            'fields': ('issue_type', 'message'),
-            'classes': ('wide',),
+            'fields': ('issue_type', 'message', 'listing_identifier', 'reported_user_email'),
         }),
-        ('Context (if applicable)', {
-            'fields': ('listing_identifier', 'reported_user_email'),
-            'classes': ('collapse', 'wide'),
+        ('Moderation Workflow', {
+            'fields': ('status', 'assigned_to', 'resolved_by', 'resolved_at', 'resolution_notes'),
         }),
-        ('Admin Handling', {
+        ('Escalation', {
+            'fields': ('escalated_to_admin', 'escalated_at', 'escalated_note'),
+        }),
+        ('Admin Handling (legacy)', {
             'fields': ('is_reviewed', 'admin_notes'),
-            'classes': ('wide',),
+            'classes': ('collapse',),
         }),
         ('Audit Trail', {
-            'fields': (
-                'created_at', 'created_by',
-                'modified_at', 'modified_by',
-                'is_deleted', 'deleted_at', 'deleted_by'
-            ),
+            'fields': ('created_at', 'created_by', 'modified_at', 'modified_by', 'is_deleted', 'deleted_at', 'deleted_by'),
             'classes': ('collapse',),
         }),
     )
-    
-    actions = ['mark_as_reviewed', 'mark_as_unreviewed']
-    
-    @admin.action(description='Mark selected reports as reviewed')
-    def mark_as_reviewed(self, request, queryset):
-        updated = queryset.update(is_reviewed=True)
-        self.message_user(request, f'{updated} report(s) marked as reviewed.')
-    
-    @admin.action(description='Mark selected reports as not reviewed')
-    def mark_as_unreviewed(self, request, queryset):
-        updated = queryset.update(is_reviewed=False)
-        self.message_user(request, f'{updated} report(s) marked as not reviewed.')
-    
+
+    actions = ['mark_as_resolved', 'assign_to_me', 'escalate_to_admin']
+
+    def status_badge(self, obj):
+        colors = {
+            'pending': '#ffc107',
+            'in_review': '#17a2b8',
+            'resolved': '#28a745',
+            'escalated': '#dc3545',
+        }
+        color = colors.get(obj.status, '#6c757d')
+        display = obj.get_status_display()
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem;">{}</span>',
+            color, display
+        )
+    status_badge.short_description = 'Status'
+    status_badge.admin_order_field = 'status'
+
     def issue_type_badge(self, obj):
         colors = {
             'report_listing': '#dc3545',
@@ -330,13 +336,27 @@ class ContactReportAdmin(SoftDeleteAdmin):
         )
     issue_type_badge.short_description = 'Issue Type'
     issue_type_badge.admin_order_field = 'issue_type'
-    
+
+    @admin.action(description='Mark selected reports as resolved')
+    def mark_as_resolved(self, request, queryset):
+        updated = queryset.update(status=ReportStatusEnum.RESOLVED.value, resolved_by=request.user, resolved_at=timezone.now())
+        self.message_user(request, f'{updated} report(s) marked as resolved.')
+
+    @admin.action(description='Assign selected reports to me')
+    def assign_to_me(self, request, queryset):
+        updated = queryset.update(assigned_to=request.user, status=ReportStatusEnum.IN_REVIEW.value)
+        self.message_user(request, f'{updated} report(s) assigned to you.')
+
+    @admin.action(description='Escalate selected reports to admin')
+    def escalate_to_admin(self, request, queryset):
+        updated = queryset.update(escalated_to_admin=True, escalated_at=timezone.now(), escalated_by=request.user, status=ReportStatusEnum.ESCALATED.value)
+        self.message_user(request, f'{updated} report(s) escalated to admin.')
+
     def save_model(self, request, obj, form, change):
         if not obj.pk:
             obj.created_by = request.user.username
         obj.modified_by = request.user.username
         super().save_model(request, obj, form, change)
-
 
 # ========== PointTransaction Inline ==========
 class PointTransactionInline(admin.TabularInline):

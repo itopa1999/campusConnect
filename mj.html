@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CampusHub – Student Marketplace</title>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+            padding: 0 0 80px 0;
+            /* space for fixed bottom nav */;
+        }
+
+        .app-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            background: #ffffff;
+            min-height: 100vh;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.04);
+        }
+
+        /* ===== HEADER ===== */
+        .app-header {
+            padding: 8px 20px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .app-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .app-header .logo i {
+            font-size: 24px;
+            color: #0d8a3e;
+            background: #eaf9ef;
+            padding: 6px;
+            border-radius: 12px;
+        }
+        .app-header .logo span {
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+            color: #1a1a1a;
+        }
+        .app-header .logo span small {
+            font-weight: 400;
+            font-size: 12px;
+            color: #888;
+            letter-spacing: 0;
+            margin-left: 2px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+        .header-actions i {
+            font-size: 20px;
+            color: #2c2c2c;
+            cursor: default;
+            transition: color 0.2s;
+        }
+        .header-actions i:hover {
+            color: #0d8a3e;
+        }
+        .badge-dot {
+            position: relative;
+        }
+        .badge-dot::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -4px;
+            width: 8px;
+            height: 8px;
+            background: #e74c3c;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+
+        /* ===== LOCATION BAR ===== */
+        .location-bar {
+            padding: 10px 20px 14px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            flex-wrap: wrap;
+        }
+        .location-bar i {
+            color: #0d8a3e;
+            font-size: 14px;
+        }
+        .location-bar .loc-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: #1a1a1a;
+            flex: 1;
+            min-width: 150px;
+        }
+        .location-bar .loc-text span {
+            font-weight: 400;
+            color: #888;
+        }
+        .location-bar .change-btn {
+            font-size: 12px;
+            font-weight: 600;
+            color: #0d8a3e;
+            background: #eaf9ef;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: default;
+        }
+
+        /* ===== SEARCH ===== */
+        .search-bar {
+            padding: 0 20px 16px;
+            background: #ffffff;
+        }
+        .search-bar .search-wrap {
+            display: flex;
+            align-items: center;
+            background: #f3f4f6;
+            border-radius: 28px;
+            padding: 8px 18px;
+            gap: 10px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .search-bar .search-wrap:focus-within {
+            border-color: #0d8a3e;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(13, 138, 62, 0.08);
+        }
+        .search-bar .search-wrap i {
+            color: #8e8e93;
+            font-size: 16px;
+        }
+        .search-bar .search-wrap input {
+            border: none;
+            background: transparent;
+            outline: none;
+            flex: 1;
+            font-size: 14px;
+            font-weight: 400;
+            color: #1a1a1a;
+            padding: 4px 0;
+            width: 100%;
+        }
+        .search-bar .search-wrap input::placeholder {
+            color: #a0a0a0;
+            font-weight: 400;
+        }
+        .search-bar .search-wrap .search-shortcut {
+            font-size: 11px;
+            color: #8e8e93;
+            background: #e8e8ed;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* ===== CATEGORIES ===== */
+        .categories {
+            padding: 4px 0 16px;
+            background: #ffffff;
+            border-bottom: 1px solid #f0f0f0;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .categories::-webkit-scrollbar {
+            display: none;
+        }
+        .categories .cat-scroll {
+            display: flex;
+            gap: 6px;
+            padding: 0 20px;
+        }
+        .categories .cat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #4a4a4a;
+            background: #f3f4f6;
+            transition: all 0.2s;
+            cursor: default;
+            flex-shrink: 0;
+        }
+        .categories .cat-item i {
+            font-size: 14px;
+        }
+        .categories .cat-item.active {
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+        .categories .cat-item.active i {
+            color: #ffffff;
+        }
+        .categories .cat-item:hover {
+            transform: scale(0.96);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            padding: 16px 20px 80px;
+            background: #f8f9fa;
+        }
+
+        /* Section Header */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 14px;
+        }
+        .section-header h2 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1a1a1a;
+            letter-spacing: -0.3px;
+        }
+        .section-header .see-all {
+            font-size: 12px;
+            font-weight: 600;
+            color: #8e8e93;
+            cursor: default;
+            white-space: nowrap;
+        }
+        .section-header .see-all:hover {
+            color: #0d8a3e;
+        }
+
+        /* ===== PRODUCT CARDS (Grid) ===== */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .product-card {
+            background: #ffffff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.25s ease;
+            cursor: default;
+            border: 1px solid #f0f0f0;
+        }
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+        }
+
+        .product-card .img-wrap {
+            position: relative;
+            background: #f0f2f5;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: #8e8e93;
+        }
+        .product-card .img-wrap .tag {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .product-card .img-wrap .tag.hot {
+            background: #e74c3c;
+        }
+        .product-card .img-wrap .tag.free {
+            background: #0d8a3e;
+        }
+
+        .product-card .img-wrap .wishlist-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: #555;
+            transition: all 0.2s;
+            cursor: default;
+        }
+        .product-card .img-wrap .wishlist-btn:hover {
+            background: #fff;
+            color: #e74c3c;
+            transform: scale(1.1);
+        }
+
+        .product-card .info {
+            padding: 10px 12px 12px;
+        }
+        .product-card .info .name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .product-card .info .price {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0d8a3e;
+            letter-spacing: -0.3px;
+        }
+        .product-card .info .price small {
+            font-size: 11px;
+            font-weight: 400;
+            color: #8e8e93;
+            text-decoration: line-through;
+            margin-left: 6px;
+        }
+        .product-card .info .meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+            font-size: 11px;
+            color: #8e8e93;
+        }
+        .product-card .info .meta .location {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .product-card .info .meta .location i {
+            font-size: 10px;
+        }
+        .product-card .info .meta .rating {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .product-card .info .meta .rating i {
+            color: #f5b342;
+            font-size: 11px;
+        }
+
+        /* ===== FEATURED / HORIZONTAL LIST ===== */
+        .featured-wrapper {
+            margin-bottom: 28px;
+        }
+        .featured-list {
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .featured-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .featured-item {
+            min-width: 200px;
+            background: #ffffff;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px 10px 10px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s;
+            cursor: default;
+        }
+        .featured-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        }
+        .featured-item .f-img {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #8e8e93;
+            flex-shrink: 0;
+        }
+        .featured-item .f-info {
+            flex: 1;
+        }
+        .featured-item .f-info .f-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        .featured-item .f-info .f-price {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0d8a3e;
+        }
+        .featured-item .f-info .f-meta {
+            font-size: 11px;
+            color: #8e8e93;
+        }
+
+        /* ===== MINI BANNER ===== */
+        .mini-banner {
+            background: #1a1a1a;
+            border-radius: 18px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+            cursor: default;
+            transition: all 0.2s;
+        }
+        .mini-banner:hover {
+            transform: scale(0.99);
+        }
+        .mini-banner .banner-text h3 {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        .mini-banner .banner-text p {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+        .mini-banner .banner-cta {
+            background: #0d8a3e;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 6px 0 12px;
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.92);
+            z-index: 1000;
+            max-width: 1280px;
+            margin: 0 auto;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+        }
+        .bottom-nav .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-size: 10px;
+            font-weight: 500;
+            color: #8e8e93;
+            cursor: default;
+            transition: color 0.2s;
+            padding: 2px 12px;
+            position: relative;
+        }
+        .bottom-nav .nav-item i {
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+        .bottom-nav .nav-item.active {
+            color: #1a1a1a;
+        }
+        .bottom-nav .nav-item.active i {
+            transform: scale(1.05);
+        }
+        .bottom-nav .nav-item .nav-badge {
+            position: absolute;
+            top: -2px;
+            right: 4px;
+            background: #e74c3c;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bottom-nav .nav-item.sell-btn {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 6px 20px;
+            border-radius: 30px;
+            flex-direction: row;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            margin-top: -18px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        .bottom-nav .nav-item.sell-btn i {
+            font-size: 16px;
+            color: #fff;
+        }
+        .bottom-nav .nav-item.sell-btn:hover {
+            transform: scale(0.96);
+        }
+
+        /* ===== RESPONSIVE ===== */
+
+        /* Small phones */
+        @media (max-width: 480px) {
+            .app-header .logo span {
+                font-size: 17px;
+            }
+            .product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 10px;
+            }
+            .product-card .img-wrap {
+                height: 100px;
+            }
+            .product-card .info .name {
+                font-size: 12px;
+            }
+            .product-card .info .price {
+                font-size: 14px;
+            }
+            .featured-item {
+                min-width: 170px;
+            }
+            .bottom-nav .nav-item {
+                font-size: 9px;
+                padding: 2px 6px;
+            }
+            .bottom-nav .nav-item i {
+                font-size: 18px;
+            }
+            .bottom-nav .nav-item.sell-btn {
+                padding: 4px 14px;
+                font-size: 11px;
+            }
+        }
+
+        /* Tablets & small desktops */
+        @media (min-width: 640px) {
+            .product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                gap: 18px;
+            }
+            .featured-item {
+                min-width: 240px;
+            }
+            .main-content {
+                padding: 20px 30px 100px;
+            }
+            .app-header {
+                padding: 12px 30px;
+            }
+            .location-bar {
+                padding: 12px 30px;
+            }
+            .search-bar {
+                padding: 0 30px 20px;
+            }
+            .categories .cat-scroll {
+                padding: 0 30px;
+            }
+        }
+
+        /* Laptops & large screens */
+        @media (min-width: 1024px) {
+            .app-container {
+                border-radius: 0;
+                box-shadow: none;
+                background: #f8f9fa;
+            }
+
+            .main-content {
+                padding: 24px 40px 100px;
+            }
+            .app-header {
+                padding: 16px 40px;
+            }
+            .location-bar {
+                padding: 14px 40px;
+            }
+            .search-bar {
+                padding: 0 40px 24px;
+            }
+            .categories .cat-scroll {
+                padding: 0 40px;
+                justify-content: center;
+            }
+            .categories .cat-item {
+                padding: 10px 24px;
+                font-size: 14px;
+            }
+
+            .product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 24px;
+            }
+            .product-card .img-wrap {
+                height: 160px;
+                font-size: 48px;
+            }
+            .product-card .info .name {
+                font-size: 15px;
+            }
+            .product-card .info .price {
+                font-size: 18px;
+            }
+
+            .featured-list {
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+            .featured-item {
+                min-width: 280px;
+                flex: 0 1 auto;
+            }
+
+            .mini-banner {
+                padding: 24px 32px;
+                border-radius: 24px;
+            }
+            .mini-banner .banner-text h3 {
+                font-size: 20px;
+            }
+            .mini-banner .banner-text p {
+                font-size: 14px;
+            }
+
+            .bottom-nav {
+                max-width: 1280px;
+                padding: 8px 0 16px;
+                border-radius: 20px 20px 0 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%;
+            }
+            .bottom-nav .nav-item {
+                font-size: 12px;
+            }
+            .bottom-nav .nav-item i {
+                font-size: 22px;
+            }
+        }
+
+        /* ===== ANIMATION ===== */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .product-card,
+        .featured-item,
+        .mini-banner {
+            animation: fadeUp 0.5s ease forwards;
+        }
+        .product-card:nth-child(2) {
+            animation-delay: 0.05s;
+        }
+        .product-card:nth-child(3) {
+            animation-delay: 0.1s;
+        }
+        .product-card:nth-child(4) {
+            animation-delay: 0.15s;
+        }
+
+        /* ===== SCROLLBAR HIDE ===== */
+        ::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+        }
+
+        /* ===== DEMO OVERLAY NOTE ===== */
+        .demo-note {
+            text-align: center;
+            font-size: 10px;
+            color: #bbb;
+            padding: 8px 0 4px;
+            letter-spacing: 0.3px;
+            background: #fff;
+            border-top: 1px solid #f0f0f0;
+        }
+        .demo-note span {
+            font-weight: 600;
+            color: #0d8a3e;
+        }
+
+        /* ===== UTILITIES ===== */
+        .text-ellipsis {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- ===== HEADER ===== -->
+        <div class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>CampusHub <small>NG</small></span>
+            </div>
+            <div class="header-actions">
+                <i class="fa-regular fa-bell badge-dot"></i>
+                <i class="fa-regular fa-user-circle"></i>
+            </div>
+        </div>
+
+        <!-- ===== LOCATION ===== -->
+        <div class="location-bar">
+            <i class="fa-solid fa-location-dot"></i>
+            <div class="loc-text">
+                University of Benin <span>• Ugbowo</span>
+            </div>
+            <div class="change-btn">Change</div>
+        </div>
+
+        <!-- ===== SEARCH ===== -->
+        <div class="search-bar">
+            <div class="search-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Search for textbooks, gadgets, food..." />
+                <span class="search-shortcut">⌘K</span>
+            </div>
+        </div>
+
+        <!-- ===== CATEGORIES ===== -->
+        <div class="categories">
+            <div class="cat-scroll">
+                <span class="cat-item active"><i class="fa-solid fa-house"></i> All</span>
+                <span class="cat-item"><i class="fa-solid fa-book"></i> Textbooks</span>
+                <span class="cat-item"><i class="fa-solid fa-laptop"></i> Gadgets</span>
+                <span class="cat-item"><i class="fa-solid fa-utensils"></i> Food</span>
+                <span class="cat-item"><i class="fa-solid fa-shirt"></i> Fashion</span>
+                <span class="cat-item"><i class="fa-solid fa-tools"></i> Services</span>
+                <span class="cat-item"><i class="fa-solid fa-futbol"></i> Sports</span>
+            </div>
+        </div>
+
+        <!-- ===== MAIN ===== -->
+        <div class="main-content">
+
+            <!-- Mini Banner -->
+            <div class="mini-banner">
+                <div class="banner-text">
+                    <h3>🎓 Fresher's Deal</h3>
+                    <p>Get 15% off your first purchase</p>
+                </div>
+                <span class="banner-cta">Shop now</span>
+            </div>
+
+            <!-- Section: Trending -->
+            <div class="section-header">
+                <h2>🔥 Trending on campus</h2>
+                <span class="see-all">See all</span>
+            </div>
+
+            <div class="product-grid">
+                <!-- Card 1 -->
+                <div class="product-card">
+                    <div class="img-wrap" style="background:#e8f0e8;">
+                        <span>📘</span>
+                        <span class="tag hot">HOT</span>
+                        <span class="wishlist-btn"><i class="fa-regular fa-heart"></i></span>
+                    </div>
+                    <div class="info">
+                        <div class="name">Engineering Mathematics</div>
+                        <div class="price">₦3,500 <small>₦5,000</small></div>
+                        <div class="meta">
+                            <span class="location"><i class="fa-solid fa-location-dot"></i> UNIBEN</span>
+                            <span class="rating"><i class="fa-solid fa-star"></i> 4.8</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="product-card">
+                    <div class="img-wrap" style="background:#f0e8e8;">
+                        <span>💻</span>
+                        <span class="tag free">LIKE NEW</span>
+                        <span class="wishlist-btn"><i class="fa-regular fa-heart"></i></span>
+                    </div>
+                    <div class="info">
+                        <div class="name">HP Laptop 15" Core i5</div>
+                        <div class="price">₦185,000</div>
+                        <div class="meta">
+                            <span class="location"><i class="fa-solid fa-location-dot"></i> UNILAG</span>
+                            <span class="rating"><i class="fa-solid fa-star"></i> 4.9</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="product-card">
+                    <div class="img-wrap" style="background:#f0f0e8;">
+                        <span>👟</span>
+                        <span class="tag">BARGAIN</span>
+                        <span class="wishlist-btn"><i class="fa-regular fa-heart"></i></span>
+                    </div>
+                    <div class="info">
+                        <div class="name">Nike Air Max 90</div>
+                        <div class="price">₦28,000 <small>₦45,000</small></div>
+                        <div class="meta">
+                            <span class="location"><i class="fa-solid fa-location-dot"></i> UNIBEN</span>
+                            <span class="rating"><i class="fa-solid fa-star"></i> 4.7</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="product-card">
+                    <div class="img-wrap" style="background:#e8e8f0;">
+                        <span>🍕</span>
+                        <span class="tag hot">POPULAR</span>
+                        <span class="wishlist-btn"><i class="fa-regular fa-heart"></i></span>
+                    </div>
+                    <div class="info">
+                        <div class="name">Jollof Rice & Chicken</div>
+                        <div class="price">₦2,200</div>
+                        <div class="meta">
+                            <span class="location"><i class="fa-solid fa-location-dot"></i> UNIBEN</span>
+                            <span class="rating"><i class="fa-solid fa-star"></i> 4.9</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Featured -->
+            <div class="section-header">
+                <h2>⭐ Featured sellers</h2>
+                <span class="see-all">See all</span>
+            </div>
+
+            <div class="featured-wrapper">
+                <div class="featured-list">
+                    <div class="featured-item">
+                        <div class="f-img" style="background:#eaf9ef;">📚</div>
+                        <div class="f-info">
+                            <div class="f-name">Bola's Bookshop</div>
+                            <div class="f-price">₦2,500+</div>
+                            <div class="f-meta">⭐ 4.9 • 230 sales</div>
+                        </div>
+                    </div>
+                    <div class="featured-item">
+                        <div class="f-img" style="background:#fef3e8;">📱</div>
+                        <div class="f-info">
+                            <div class="f-name">Gadget Hub UNIBEN</div>
+                            <div class="f-price">₦50,000+</div>
+                            <div class="f-meta">⭐ 4.8 • 189 sales</div>
+                        </div>
+                    </div>
+                    <div class="featured-item">
+                        <div class="f-img" style="background:#f0e8f0;">👗</div>
+                        <div class="f-info">
+                            <div class="f-name">Zara's Closet</div>
+                            <div class="f-price">₦12,000+</div>
+                            <div class="f-meta">⭐ 4.7 • 142 sales</div>
+                        </div>
+                    </div>
+                    <div class="featured-item">
+                        <div class="f-img" style="background:#e8f0f0;">📖</div>
+                        <div class="f-info">
+                            <div class="f-name">Med Student Supplies</div>
+                            <div class="f-price">₦6,000+</div>
+                            <div class="f-meta">⭐ 4.6 • 98 sales</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Quick Picks -->
+            <div class="section-header">
+                <h2>⚡ Quick picks</h2>
+                <span class="see-all">See all</span>
+            </div>
+
+            <div class="product-grid">
+                <div class="product-card">
+                    <div class="img-wrap" style="background:#f0f0f0;">
+                        <span>🎧</span>
+                        <span class="tag">NEW</span>
+                        <span class="wishlist-btn"><i class="fa-regular fa-heart"></i></span>
+                    </div>
+                    <div class="info">
+                        <div class="name">Wireless AirPods Pro</div>
+                        <div class="price">₦45,000</div>
+                        <div class="meta">
+                            <span class="location"><i class="fa-solid fa-location-dot"></i> UNILAG</span>
+                            <span class="rating"><i class="fa-solid fa-star"></i> 4.6</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="img-wrap" style="background:#e8f0e8;">
+                        <span>🧴</span>
+                        <span class="tag free">FREE</span>
+                        <span class="wishlist-btn"><i class="fa-regular fa-heart"></i></span>
+                    </div>
+                    <div class="info">
+                        <div class="name">Skincare Set (unused)</div>
+                        <div class="price">₦0 <small>₦8,500</small></div>
+                        <div class="meta">
+                            <span class="location"><i class="fa-solid fa-location-dot"></i> UNIBEN</span>
+                            <span class="rating"><i class="fa-solid fa-star"></i> 4.5</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="img-wrap" style="background:#f0e8e8;">
+                        <span>⚽</span>
+                        <span class="tag hot">DEAL</span>
+                        <span class="wishlist-btn"><i class="fa-regular fa-heart"></i></span>
+                    </div>
+                    <div class="info">
+                        <div class="name">Football Jersey (Man Utd)</div>
+                        <div class="price">₦8,000</div>
+                        <div class="meta">
+                            <span class="location"><i class="fa-solid fa-location-dot"></i> UNIBEN</span>
+                            <span class="rating"><i class="fa-solid fa-star"></i> 4.8</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="img-wrap" style="background:#e8e8f0;">
+                        <span>📓</span>
+                        <span class="tag">BARGAIN</span>
+                        <span class="wishlist-btn"><i class="fa-regular fa-heart"></i></span>
+                    </div>
+                    <div class="info">
+                        <div class="name">A4 Notebooks (Set of 5)</div>
+                        <div class="price">₦1,200</div>
+                        <div class="meta">
+                            <span class="location"><i class="fa-solid fa-location-dot"></i> UNILAG</span>
+                            <span class="rating"><i class="fa-solid fa-star"></i> 4.4</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== BOTTOM NAV ===== -->
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </div>
+            <div class="nav-item">
+                <i class="fa-solid fa-compass"></i>
+                <span>Explore</span>
+            </div>
+            <div class="nav-item sell-btn">
+                <i class="fa-solid fa-plus"></i>
+                <span>Sell</span>
+            </div>
+            <div class="nav-item">
+                <i class="fa-regular fa-message"></i>
+                <span>Chats</span>
+                <span class="nav-badge">3</span>
+            </div>
+            <div class="nav-item">
+                <i class="fa-regular fa-user"></i>
+                <span>Profile</span>
+            </div>
+        </div>
+
+        <!-- Demo note -->
+        <div class="demo-note">
+            <span>CampusHub</span> • real-world responsive app • designed for Nigerian students
+        </div>
+
+    </div>
+
+</body>
+</html>

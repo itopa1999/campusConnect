@@ -60,9 +60,17 @@ class PointPackagesFilter(filters.FilterSet):
     def filter_per_page(self, queryset, name, value):
         return queryset
     
-
 class TokenQueryParam(filters.FilterSet):
     token = filters.NumberFilter(field_name='token', lookup_expr='exact', required=True)
 
     class Meta:
         fields = ['token']
+
+
+class ListingsFilter(filters.FilterSet):
+    filter = filters.CharFilter(field_name='filter', required=False)
+    page = filters.NumberFilter(method='filter_page', required=False)
+    per_page = filters.NumberFilter(method='filter_per_page', required=False)
+    
+    class Meta:
+        fields = ['filter', 'page', 'per_page']

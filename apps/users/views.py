@@ -3,7 +3,6 @@ from apps.users.BBL.Commands.profile import ProfileCommand
 from apps.users.BBL.Queries.notification import NotificationQueries
 from apps.users.BBL.Queries.profile import ProfileQuery
 from apps.users.serializers import (BuyPointSerializer, ChangePasswordSerializer, ConfirmResetPasswordSerializer, LogoutSerializer, ProfilePictureSerializer, ProfileSerializer, ProfileUpdateSerializer, RefreshTokenSerializer, ReportSerializer, ResendVerificationEmailSerializer, RetryPurchaseSerailizer, UploadStudentIdSerializer, UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer)
-from common.filter import PaginationParamsFilter, PointPackagesFilter, TokenQueryParam
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
 from rest_framework import generics
@@ -53,9 +52,6 @@ class VerifyAccountEmailView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.ANON)]
-    filter_backends = [filters.DjangoFilterBackend]
-    filterset_class = TokenQueryParam
-
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('token', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description="Token"),
@@ -90,9 +86,6 @@ class VerifyForgetPasswordEmailView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.ANON)]
-    filter_backends = [filters.DjangoFilterBackend]
-    filterset_class = TokenQueryParam
-
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('token', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description="Token"),
@@ -377,9 +370,6 @@ class RefreshPointBalanceView(APIView):
 class PointPackagesView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
-    filter_backends = [filters.DjangoFilterBackend]
-    filterset_class = PointPackagesFilter
-
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('is_transaction', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
@@ -519,9 +509,6 @@ class UploadStudentIdView(generics.GenericAPIView):
 class GetAllNotificationsView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
-    filter_backends = [filters.DjangoFilterBackend]
-    filterset_class = PaginationParamsFilter
-
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),

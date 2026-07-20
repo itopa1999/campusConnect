@@ -47,6 +47,7 @@ class Category(BaseModel):
 
 class CampusHotspot(BaseModel):
     name = models.CharField(max_length=150)
+    slug = models.SlugField(max_length=100, null=True) 
     description = models.CharField(max_length=255, blank=True, null=True)
     sort_order = models.PositiveIntegerField(default=0)
     
@@ -56,6 +57,7 @@ class CampusHotspot(BaseModel):
             models.Index(fields=['is_deleted']),
             models.Index(fields=['sort_order']),
             models.Index(fields=['name']),
+            models.Index(fields=['slug']),
             models.Index(fields=['is_deleted', 'sort_order']),
         ]
         ordering = ['sort_order', 'name']

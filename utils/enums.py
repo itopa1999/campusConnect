@@ -80,6 +80,7 @@ class ListingStatusType(Enum):
     SOLD = 'sold'
     EXPIRED = 'expired'
     PENDING = 'pending'
+    HIDDEN = 'hidden'
 
     @classmethod
     def choices(cls):
@@ -259,3 +260,64 @@ class CacheKeysEnum(Enum):
         return key.value.format(**kwargs)
     
 
+
+
+class ModeratorActionTypeEnum(Enum):
+    APPROVE = 'approve'
+    REJECT = 'reject'
+    HIDE = 'hide'
+    DELETE = 'delete'
+    FLAG = 'flag'
+    UNFLAG = 'unflag'
+    WARNING = 'warning'
+    SUSPEND = 'suspend'
+    BAN = 'ban'
+    REINSTATE = 'reinstate'
+    RESOLVE_REPORT = 'resolve_report'
+    ESCALATE = 'escalate'
+    UNHIDE = 'unhide'
+    ASSIGN = 'assign'
+    REOPEN = 'reopen'
+    CREATE = 'create'
+    UPDATE = 'update'
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+    
+
+class ContentTypeEnum(Enum):
+    LISTING = 'listing'
+    REVIEW = 'review'
+    USER = 'user'
+    REPORT = 'report'
+    CATEGORY = 'category'
+    HOTSPOT = 'hotspot'
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+    
+
+
+class ReportStatusEnum(Enum):
+    PENDING = 'pending'
+    IN_REVIEW = 'in_review'
+    RESOLVED = 'resolved'
+    ESCALATED = 'escalated'
+
+    @classmethod
+    def choices(cls):
+        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]

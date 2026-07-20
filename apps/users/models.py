@@ -7,7 +7,7 @@ from django.core.validators import MinValueValidator, RegexValidator
 from datetime import timedelta
 import random
 from apps.users.manager import UserManager
-from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, TokenType
+from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, ReportStatusEnum, TokenType
 from utils.enums import IssueTypeEnum
 # Create your models here.
 import os
@@ -181,10 +181,41 @@ class ContactReport(BaseModel):
     is_reviewed = models.BooleanField(default=False, help_text="Admin has reviewed this report")
     admin_notes = models.TextField(blank=True, help_text="Internal notes from admin")
 
+    status = models.CharField(
+        max_length=20,
+        choices=ReportStatusEnum.choices(),
+        default=ReportStatusEnum.PENDING.value
+    )
+    assigned_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_reports'
+    )
+    resolved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resolved_reports'
+    )
+    resolved_at = models.DateTimeField(blank=True, null=True)
+    resolution_notes = models.TextField(blank=True)
+    escalated_to_admin = models.BooleanField(default=False)
+    escalated_at = models.DateTimeField(blank=True, null=True)
+    escalated_note = models.TextField(blank=True)
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = "Contact / Report"
         verbose_name_plural = "Contact / Reports"
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['assigned_to']),
+            models.Index(fields=['issue_type']),
+            models.Index(fields=['reporter_email']),
+        ]
 
     def __str__(self):
         return f"{self.get_issue_type_display()} - {self.reporter_name} ({self.created_at.date()})"

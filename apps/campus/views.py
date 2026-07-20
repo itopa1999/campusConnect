@@ -1,5 +1,4 @@
 from apps.campus.serializers import (ClaimSerializer, ListingAutoActivationSerializer, ListingSerializer, ListingUpdateSerializer, LostAndFoundSerializer, UpdateAdsViewSerializer, UploadLisitingImageSerializer)
-from common.filter import ApproveClaimParamsQuery, CategorizedListingsFilter, PaginationParamsFilter
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -51,10 +50,7 @@ class LostAndFoundView(generics.GenericAPIView):
 class LostAndFoundListView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.ANON)]
-    filter_backends = [filters.DjangoFilterBackend]
-    filterset_class = PaginationParamsFilter
-    
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.ANON)]    
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
@@ -80,10 +76,7 @@ class LostAndFoundClaimView(generics.GenericAPIView):
 class ApproveClaimView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.ANON)]
-    filter_backends = [filters.DjangoFilterBackend]
-    filterset_class = ApproveClaimParamsQuery
-    
+    throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.ANON)]    
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('claim_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description="Claim ID"),
@@ -210,10 +203,7 @@ class ListingAutoActivation(generics.GenericAPIView):
 class CategorizedListingsView(APIView):
     permission_classes = [AllowAny]
     permission_classes = []
-    throttle_classes = [CustomRateThrottle(rate=40, period=60, user_type=UserTypeEnum.AUTH)]
-    filter_backends = [filters.DjangoFilterBackend]
-    filterset_class = CategorizedListingsFilter
-    
+    throttle_classes = [CustomRateThrottle(rate=40, period=60, user_type=UserTypeEnum.AUTH)]    
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('section', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Section"),

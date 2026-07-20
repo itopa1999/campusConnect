@@ -18,16 +18,8 @@
 | **View all reviews** | Access all reviews left by users |
 | **Delete inappropriate reviews** | Remove spam, hateful, or fake reviews |
 | **Flag reviews** | Flag suspicious reviews for investigation |
-| **Approve reviews** | Approve reviews before they appear (if moderation is enabled) |
 
-### 1.3 User Content Moderation
-| Feature | Description |
-|---------|-------------|
-| **View user profiles** | Access detailed user profiles and activity history |
-| **Moderate comments** | Edit or delete comments on listings |
-| **Moderate reported content** | Review and act on content reported by users |
 
----
 
 ## 👤 2. USER MANAGEMENT
 
@@ -54,7 +46,6 @@
 | **Resolve reports** | Mark reports as resolved with notes on actions taken |
 | **Escalate reports** | Escalate serious cases to admins |
 | **View dispute history** | Track all disputes and their resolutions |
-| **Automated notifications** | Notify users when their report is resolved |
 
 ---
 
@@ -173,3 +164,214 @@
 - `GET /api/moderator/audit-log/` – View moderation audit trail
 
 ---
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Count, Q
+from django.utils import timezone
+from datetime import timedelta
+
+from apps.campus.models import Listing, Review
+from apps.users.models import User
+from apps.moderator.models import ModeratorAction, FlaggedContent, UserModeration
+from apps.users.models import ContactReport  # assuming ContactReport is in users app
+from utils.permissions import ConstantPermission
+from utils.enums import GroupNames, ReportStatusEnum, ContentTypeEnum
+from utils.pagination import CustomPagination
+
+
+class ModeratorDashboardStatsView(APIView):
+    """
+    Get aggregated statistics for the moderator dashboard.
+    """
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+
+    def get(self, request):
+        now = timezone.now()
+        today = now.date()
+        start_of_today = timezone.make_aware(
+            datetime.combine(today, datetime.min.time())
+        )
+
+        # ─── Listing stats ──────────────────────────────────────
+        listing_stats = {
+            'total': Listing.objects.filter(is_deleted=False).count(),
+            'active': Listing.objects.filter(is_deleted=False, status='active').count(),
+            'pending': Listing.objects.filter(is_deleted=False, status='pending').count(),
+            'expired': Listing.objects.filter(is_deleted=False, status='expired').count(),
+            'sold': Listing.objects.filter(is_deleted=False, status='sold').count(),
+            'flagged': FlaggedContent.objects.filter(
+                content_type=ContentTypeEnum.LISTING.value,
+                is_resolved=False,
+                is_deleted=False
+            ).count(),
+        }
+
+        # ─── Review stats ──────────────────────────────────────
+        review_stats = {
+            'total': Review.objects.filter(is_deleted=False).count(),
+            'flagged': FlaggedContent.objects.filter(
+                content_type=ContentTypeEnum.REVIEW.value,
+                is_resolved=False,
+                is_deleted=False
+            ).count(),
+        }
+
+        # ─── Report stats ──────────────────────────────────────
+        report_stats = {
+            'total': ContactReport.objects.filter(is_deleted=False).count(),
+            'pending': ContactReport.objects.filter(
+                status=ReportStatusEnum.PENDING.value,
+                is_deleted=False
+            ).count(),
+            'in_review': ContactReport.objects.filter(
+                status=ReportStatusEnum.IN_REVIEW.value,
+                is_deleted=False
+            ).count(),
+            'resolved': ContactReport.objects.filter(
+                status=ReportStatusEnum.RESOLVED.value,
+                is_deleted=False
+            ).count(),
+            'escalated': ContactReport.objects.filter(
+                status=ReportStatusEnum.ESCALATED.value,
+                is_deleted=False
+            ).count(),
+            # resolved rate
+            'resolved_rate': 0,
+        }
+        if report_stats['total'] > 0:
+            report_stats['resolved_rate'] = round(
+                (report_stats['resolved'] / report_stats['total']) * 100, 1
+            )
+
+        # ─── User stats ────────────────────────────────────────
+        user_stats = {
+            'total': User.objects.filter(is_deleted=False).count(),
+            'new_today': User.objects.filter(
+                is_deleted=False,
+                created_at__gte=start_of_today
+            ).count(),
+            'suspended': UserModeration.objects.filter(
+                is_suspended=True
+            ).count(),
+            'banned': UserModeration.objects.filter(
+                is_banned=True
+            ).count(),
+        }
+
+        # ─── Recent activity (summary) ────────────────────────
+        recent_actions = ModeratorAction.objects.filter(
+            is_deleted=False
+        ).select_related('moderator').order_by('-created_at')[:10]
+
+        recent_activity = [
+            {
+                'id': action.id,
+                'moderator': action.moderator.get_full_name() or action.moderator.email,
+                'action': action.get_action_type_display(),
+                'content_type': action.get_content_type_display(),
+                'content_id': action.content_id,
+                'created_at': action.created_at.isoformat(),
+                'reason': action.reason[:100] if action.reason else '',
+            }
+            for action in recent_actions
+        ]
+
+        data = {
+            'listing_stats': listing_stats,
+            'review_stats': review_stats,
+            'report_stats': report_stats,
+            'user_stats': user_stats,
+            'recent_activity': recent_activity,
+            'last_updated': now.isoformat(),
+        }
+
+        return Response({
+            'is_success': True,
+            'message': 'Moderation dashboard stats retrieved successfully',
+            'data': data,
+        })
+
+
+class ModeratorRecentActivityView(APIView):
+    """
+    Get paginated recent moderation actions with detailed content info.
+    """
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+
+    def get(self, request):
+        paginator = CustomPagination()
+        page = request.GET.get('page', 1)
+        per_page = request.GET.get('per_page', 20)
+
+        queryset = ModeratorAction.objects.filter(
+            is_deleted=False
+        ).select_related('moderator').order_by('-created_at')
+
+        paginated = paginator.paginate_queryset(queryset, request, page, per_page)
+
+        results = []
+        for action in paginated:
+            # Fetch related content title/name
+            content_display = self._get_content_display(action.content_type, action.content_id)
+            results.append({
+                'id': action.id,
+                'moderator': action.moderator.get_full_name() or action.moderator.email,
+                'action': action.get_action_type_display(),
+                'content_type': action.get_content_type_display(),
+                'content_id': action.content_id,
+                'content_display': content_display,
+                'reason': action.reason,
+                'metadata': action.metadata,
+                'ip_address': action.ip_address,
+                'created_at': action.created_at.isoformat(),
+            })
+
+        return Response({
+            'is_success': True,
+            'message': 'Recent activity retrieved successfully',
+            'data': {
+                'items': results,
+                'page': paginator.page,
+                'per_page': paginator.per_page,
+                'total_pages': paginator.total_pages,
+                'total_items': paginator.total_items,
+            }
+        })
+
+    def _get_content_display(self, content_type, content_id):
+        """
+        Helper to fetch a human-readable representation of the content.
+        """
+        try:
+            if content_type == ContentTypeEnum.LISTING.value:
+                listing = Listing.objects.only('title').get(id=content_id, is_deleted=False)
+                return listing.title
+            elif content_type == ContentTypeEnum.USER.value:
+                user = User.objects.only('first_name', 'last_name', 'email').get(id=content_id, is_deleted=False)
+                return user.get_full_name() or user.email
+            elif content_type == ContentTypeEnum.REVIEW.value:
+                review = Review.objects.select_related('from_user', 'to_user').get(id=content_id, is_deleted=False)
+                return f"Review by {review.from_user.email} → {review.to_user.email}"
+            elif content_type == ContentTypeEnum.REPORT.value:
+                report = ContactReport.objects.get(id=content_id, is_deleted=False)
+                return f"Report #{report.id} - {report.get_issue_type_display()}"
+        except Exception:
+            return f"ID {content_id} (deleted or not found)"
+        return f"ID {content_id}"
+
+
+
+
+
+# | Feature | Description |
+# |---------|-------------|
+# | **Listing statistics** | Total listings, active, pending, flagged, reported |
+# | **User statistics** | Total users, new users, suspended/banned users |
+# | **Review statistics** | Average rating, total reviews, flagged reviews |
+# | **Report statistics** | Total reports, resolved rate, common violation types |
+# | **Activity logs** | View all moderation actions taken (audit trail) |

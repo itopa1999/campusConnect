@@ -103,7 +103,7 @@ class TestCreateListing:
         listing = Listing.objects.get(id=result.data["listing_id"])
         assert listing.title == "Test Laptop"
         assert listing.price == Decimal("500.00")
-        assert listing.status == ListingStatusType.ACTIVE.value
+        assert listing.status == ListingStatusType.PENDING.value
         assert listing.hotspots.count() == len(valid_listing_data["hotspot_ids"])
 
     def test_create_listing_insufficient_points(self, test_user_low_points, valid_listing_data):

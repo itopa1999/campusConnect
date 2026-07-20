@@ -4,7 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 from apps.campus.models import Listing
 from apps.users.models import Notification, User
-from utils.Tasks.backgroundTask import background_task_send_auto_reactivate_listing_emails, background_task_send_banner_expired_emails, background_task_send_expired_listing_emails, background_task_send_hot_sales_expired_emails
+# from utils.Tasks.backgroundTask import background_task_send_auto_reactivate_listing_emails, background_task_send_banner_expired_emails, background_task_send_expired_listing_emails, background_task_send_hot_sales_expired_emails
 from utils.constant_helper import ConstantHelper
 from utils.enums import ListingStatusType, NotificationEnum, PointTransactionTypeEnum
 from utils.helpers import UpdatePointsService
@@ -16,6 +16,8 @@ BATCH_SIZE = 1000
 class PeriodTasksHelper:
     @staticmethod
     def process_check_expired_listings():
+        from utils.Tasks.backgroundTask import background_task_send_expired_listing_emails
+        from utils.Tasks.backgroundTask import background_task_send_auto_reactivate_listing_emails
         op = OperationLogger("TaskScheduler.check_expired_listings")
         op.start()
 
@@ -150,6 +152,7 @@ class PeriodTasksHelper:
         """
         Disable banner ads for listings where the banner promotion has expired.
         """
+        from utils.Tasks.backgroundTask import background_task_send_banner_expired_emails
         op = OperationLogger("TaskScheduler.process_check_banner_ads_expired_listings")
         op.start()
 
@@ -211,6 +214,7 @@ class PeriodTasksHelper:
         """
         Disable Hot Sales promotion for listings where the promotion has expired.
         """
+        from utils.Tasks.backgroundTask import background_task_send_hot_sales_expired_emails
         op = OperationLogger("TaskScheduler.process_check_hot_sales_ads_expired_listings")
         op.start()
 
