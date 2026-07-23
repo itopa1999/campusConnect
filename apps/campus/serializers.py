@@ -38,22 +38,25 @@ class ListingSerializer(serializers.ModelSerializer):
 class LostAndFoundSerializer(serializers.ModelSerializer):
     class Meta:
         model = LostAndFound
-        fields = [
-            'id', 'item_name', 'description', 'location', 'date_found',
-            'status', 'verification1', 'answer1', 'verification2', 'answer2',
-            'full_name', 'email', 'phone', 'department', 'image'
+        fields = '__all__'
+        read_only_fields = [
+            "id",
+            "status",
+            "full_name",
+            "email",
+            "phone",
+            "department",
         ]
-        read_only_fields = ['id', 'status']
 
 
 class ClaimSerializer(serializers.ModelSerializer):
     class Meta:
         model = Claim
         fields = [
-            'id', 'lost_item', 'answer1', 'answer2',
-            'full_name', 'email', 'phone'
+            'id', 'lost_item', 'answer1', 'answer2'
+            
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'full_name', 'email', 'phone']
 
 
 class UploadLisitingImageSerializer(serializers.Serializer):

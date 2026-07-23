@@ -207,8 +207,7 @@ class UserCommand:
             # ─── Unban ─────────────────────────────────────────────
             moderation.is_banned = False
             moderation.banned_at = None
-            moderation.ban_reason = reason
-            moderation.save(update_fields=['is_banned', 'banned_at', 'ban_reason'])
+            moderation.save(update_fields=['is_banned', 'banned_at'])
             user.is_active = True
             user.save(update_fields=['is_active'])
 

@@ -1,4 +1,6 @@
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.utils import timezone
+from datetime import datetime
 from apps.campus.models import LostAndFound
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
@@ -7,13 +9,19 @@ from utils.enums import CacheKeysEnum, LostAndFoundStatusEnum
 
 class GetLostItemsQuery:
     @staticmethod
-    def get_items(request) -> BaseResultWithData:
+    def get_items(request, filters=None) -> BaseResultWithData:
         """
         Fetch paginated lost items (excludes answer1 and answer2).
+        Supports filtering by item_name, description, location, date_from, date_to.
         """
+        # Use provided filters or fallback to request.GET
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
 
-        page = request.GET.get('page', 1)
-        per_page = request.GET.get('per_page', 10)
+        page = filters.get('page', 1)
+        per_page = filters.get('per_page', 10)
 
         try:
             page = int(page)
@@ -30,21 +38,54 @@ class GetLostItemsQuery:
         if per_page > 100:
             per_page = 100
 
+        filter_keys = ['item_name', 'description', 'location', 'date_from', 'date_to']
+        filter_values = []
+        for key in filter_keys:
+            value = filters.get(key)
+            if value is not None:
+                filter_values.append((key, value.strip() if isinstance(value, str) else value))
+        filter_values.sort(key=lambda x: x[0])
+        filter_str = '&'.join(f"{k}={v}" for k, v in filter_values)
+
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.LOST_ITEMS,
             page=page,
-            per_page=per_page
+            per_page=per_page,
+            filters=filter_str
         )
 
         def build_lost_items_data():
             """Heavy computation callback – runs only on cache miss."""
+            # --- Start with base queryset ---
             queryset = LostAndFound.objects.filter(
                 is_deleted=False,
                 status=LostAndFoundStatusEnum.OPEN.value
-            ).order_by('-created_at')
+            )
+
+            # --- Apply filters ---
+            item_name = filters.get('item_name')
+            if item_name:
+                queryset = queryset.filter(item_name__icontains=item_name)
+
+            description = filters.get('description')
+            if description:
+                queryset = queryset.filter(description__icontains=description)
+
+            location = filters.get('found_location')
+            if location:
+                queryset = queryset.filter(location__icontains=location)
+
+            date_from = filters.get('found_date_from')
+            if date_from:
+                queryset = queryset.filter(date_found__gte=date_from)
+            date_to = filters.get('found_date_to')
+            if date_to:
+                queryset = queryset.filter(date_found__lte=date_to)
+
+            # --- Ordering ---
+            queryset = queryset.order_by('-created_at')
 
             paginator = Paginator(queryset, per_page)
-
             try:
                 items_page = paginator.page(page)
             except PageNotAnInteger:
@@ -52,7 +93,7 @@ class GetLostItemsQuery:
             except EmptyPage:
                 items_page = paginator.page(paginator.num_pages)
 
-            # Build safe data list (exclude answers)
+            # --- Build safe data list (exclude answers) ---
             items_data = []
             for item in items_page:
                 image_url = None
@@ -73,14 +114,12 @@ class GetLostItemsQuery:
             return {
                 'items': items_data,
                 'pagination': {
-                    'current_page': items_page.number,
-                    'total_pages': paginator.num_pages,
-                    'total_items': paginator.count,
-                    'per_page': per_page,
-                    'has_next': items_page.has_next(),
-                    'has_previous': items_page.has_previous(),
-                    'next_page_number': items_page.next_page_number() if items_page.has_next() else None,
-                    'previous_page_number': items_page.previous_page_number() if items_page.has_previous() else None,
+                    "page": items_page.number,
+                    "per_page": per_page,
+                    "total_pages": paginator.num_pages,
+                    "total_items": paginator.count,
+                    "has_next": items_page.has_next(),
+                    "has_previous": items_page.has_previous(),
                 }
             }
 
@@ -88,17 +127,15 @@ class GetLostItemsQuery:
             data = GlobalCache.get_or_set(
                 key=cache_key,
                 callback=build_lost_items_data,
-                timeout=3600,     
+                timeout=3600,
                 lock_timeout=30,
                 max_wait=5.0,
             )
-
             return BaseResultWithData(
                 message="Lost items retrieved successfully.",
                 data=data,
                 status_code=200
             )
-
         except Exception as e:
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",

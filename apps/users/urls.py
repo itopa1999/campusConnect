@@ -1,7 +1,7 @@
 from django.urls import path, include
 
 from apps.users.views import (BuyPointView, ChangePasswordView, ConfirmResetPasswordView, CreateAccountView, DeleteAllNotificationView, 
-                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, LoginView, LogoutUserView, 
+                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, GetPointPurchasedView, GetTransactionView, LoginView, LogoutUserView, 
                               MarkAllNotificationAsReadView, MonnifyPointsConfirmView, NotificationDeleteView, NotificationMarkAsReadView, 
                               PaystackPointsConfirmView, PointPackagesView, ProfileView, RefreshPointBalanceView, RefreshTokenView, 
                               ResendVerificationEmailView, RetryPurchaseView, SubmitReportView, UploadProfilePictureView, UploadStudentIdView, 
@@ -27,6 +27,8 @@ urlpatterns = [
 
 
         path("point-packages", PointPackagesView.as_view(), name="point_packages"),
+        path("get-transactions", GetTransactionView.as_view(), name="get_transactions"),
+        path("get-purchase", GetPointPurchasedView.as_view(), name="get_purchases"),
         path("buy-points-initial", BuyPointView.as_view(), name="buy_points_initial"),
         path('paystack-points-confirm/<str:reference>', PaystackPointsConfirmView.as_view(), name='paystack-points-confirm'),
         path('monnify-confirm/<str:reference>', MonnifyPointsConfirmView.as_view(), name='monnify-confirm'),

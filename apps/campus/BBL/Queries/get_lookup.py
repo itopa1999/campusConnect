@@ -6,7 +6,7 @@ from utils.enums import AdvertTypeEnum, BadgeListingType, CacheKeysEnum, Listing
 
 class LookUpQuery:
     @staticmethod
-    def get_lookup(request) -> BaseResultWithData:
+    def get_lookup(request, filters=None) -> BaseResultWithData:
         """
         Return all lookup data needed for the create‑listing page:
         - categories (id, name, icon, description)
@@ -14,52 +14,86 @@ class LookUpQuery:
         - badge choices (value, label)
         - Type choices (value, label)
         """
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
+
+        filter_keys = ['is_category', 'is_hotspot', 'is_badge_choices', 'is_type_choices', 'is_advert_type']
+        filter_parts = []
+        for key in filter_keys:
+            value = filters.get(key)
+            if value is not None and value != '':
+                filter_parts.append(f"{key}={value}")
+        filter_parts.sort()
+        filter_str = '&'.join(filter_parts)
+
+        cache_key = CacheKeysEnum.format(CacheKeysEnum.LOOKUP_DATA, filters = filter_str)
+        def is_true(value):
+            if value is None:
+                return False
+
+            return str(value).lower() in ("true", "1", "yes")
         
-        cache_key = CacheKeysEnum.LOOKUP_DATA.value
-
         def build_lookup_data():
-            """Heavy computation callback – runs only on cache miss."""
-            
-            categories_qs = Category.objects.filter(is_deleted=False).order_by('sort_order', 'name')
-            categories = [
-                {
-                    'id': cat.id,
-                    'name': cat.name,
-                    'icon': cat.icon,
-                    'description': cat.description,
-                }
-                for cat in categories_qs
-            ]
+            data = {}
 
-            # Fetch hotspots (active, not deleted) – one query, no N+1
-            hotspots_qs = CampusHotspot.objects.filter(is_deleted=False).order_by('sort_order', 'name')
-            hotspots = [
-                {
-                    'id': hs.id,
-                    'name': hs.name,
-                    'description': hs.description,
-                }
-                for hs in hotspots_qs
-            ]
+            # Categories
+            if is_true(filters.get("is_category")):
+                categories_qs = Category.objects.filter(
+                    is_deleted=False
+                ).order_by("sort_order", "name")
 
-            # Badge choices from enum – no database query
-            badge_choices = [
-                {'value': choice[0], 'label': choice[1]}
-                for choice in BadgeListingType.choices()
-            ]
+                data["categories"] = [
+                    {
+                        "id": cat.id,
+                        "name": cat.name,
+                        "icon": cat.icon,
+                        "description": cat.description,
+                    }
+                    for cat in categories_qs
+                ]
 
-            type_choices = [
-                {'value': choice[0], 'label': choice[1]}
-                for choice in ListingType.choices()
-            ]
+            # Hotspots
+            if is_true(filters.get("is_hotspot")):
+                hotspots_qs = CampusHotspot.objects.filter(
+                    is_deleted=False
+                ).order_by("sort_order", "name")
 
-            return {
-                'categories': categories,
-                'hotspots': hotspots,
-                'badge_choices': badge_choices,
-                'type_choices': type_choices,
-                'advert_type': AdvertTypeEnum.choices()
-            }
+                data["hotspots"] = [
+                    {
+                        "id": hs.id,
+                        "name": hs.name,
+                        "description": hs.description,
+                    }
+                    for hs in hotspots_qs
+                ]
+
+            # Badge choices
+            if is_true(filters.get("is_badge_choices")):
+                data["badge_choices"] = [
+                    {
+                        "value": choice[0],
+                        "label": choice[1],
+                    }
+                    for choice in BadgeListingType.choices()
+                ]
+
+            # Listing type choices
+            if is_true(filters.get("is_type_choices")):
+                data["type_choices"] = [
+                    {
+                        "value": choice[0],
+                        "label": choice[1],
+                    }
+                    for choice in ListingType.choices()
+                ]
+
+            # Advert type choices
+            if is_true(filters.get("is_advert_type")):
+                data["advert_type"] = AdvertTypeEnum.choices()
+
+            return data
 
         # ── Atomic cache get-or-set with stampede protection ──
         data = GlobalCache.get_or_set(

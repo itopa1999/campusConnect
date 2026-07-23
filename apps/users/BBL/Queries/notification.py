@@ -8,31 +8,42 @@ from utils.helpers import humanize_date
 
 class NotificationQueries:
     @staticmethod
-    def get_notification(request, user) -> BaseResultWithData:
+    def get_notification(request, user, filters=None) -> BaseResultWithData:
         """Retrieve paginated notifications for a user."""
-        page = request.GET.get('page', 1)
-        per_page = request.GET.get('per_page', 10)
-
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
+        
+        page = filters.get('page', 1)
+        per_page = filters.get('per_page', 10)
         try:
             page = int(page)
         except (ValueError, TypeError):
             page = 1
-
         try:
             per_page = int(per_page)
         except (ValueError, TypeError):
             per_page = 10
-
         if per_page < 1:
             per_page = 1
         if per_page > 100:
             per_page = 100
+        filter_keys = ['is_read', 'date_from', 'date_to']
+        filter_parts = []
+        for key in filter_keys:
+            value = filters.get(key)
+            if value is not None and value != '':
+                filter_parts.append(f"{key}={value}")
+        filter_parts.sort()
+        filter_str = '&'.join(filter_parts)
 
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.NOTIFICATIONS,
             user_id=user.id,
             page=page,
-            per_page=per_page
+            per_page=per_page,
+            filters = filter_str
         )
 
         def build_notifications_data():
@@ -41,8 +52,25 @@ class NotificationQueries:
                 user=user,
                 is_deleted=False
             ).select_related('user').order_by('-created_at')
-
             unread_messages_counts = queryset.filter(is_read=False).count()
+
+            is_read = filters.get('is_read')
+            if is_read is not None:
+                if is_read.lower() in ('true', '1', 'yes'):
+                    queryset = queryset.filter(is_read=True)
+                else:
+                    queryset = queryset.filter(is_read=False)
+            date_from = filters.get("date_from")
+            if date_from:
+                queryset = queryset.filter(
+                    created_at__date__gte=date_from
+                )
+
+            date_to = filters.get("date_to")
+            if date_to:
+                queryset = queryset.filter(
+                    created_at__date__lte=date_to
+                )
 
             # Pagination logic
             paginator = Paginator(queryset, per_page)
@@ -54,7 +82,7 @@ class NotificationQueries:
                 page_obj = paginator.page(paginator.num_pages)
 
             notifications_list = []
-            for notification in page_obj.object_list:
+            for notification in page_obj:
                 notifications_list.append({
                     "id": notification.id,
                     "notification_type": notification.notification_type,
@@ -68,11 +96,14 @@ class NotificationQueries:
             return {
                 "notifications": notifications_list,
                 "unread_messages_counts": unread_messages_counts,
-                "page": page_obj.number,
-                "total_pages": paginator.num_pages,
-                "total_count": paginator.count,
-                "has_next": page_obj.has_next(),
-                "has_previous": page_obj.has_previous()
+                'pagination': {
+                    "page": page_obj.number,
+                    "per_page": per_page,
+                    "total_pages": paginator.num_pages,
+                    "total_items": paginator.count,
+                    "has_next": page_obj.has_next(),
+                    "has_previous": page_obj.has_previous(),
+                }
             }
 
         data = GlobalCache.get_or_set(

@@ -1,6 +1,6 @@
 from django.urls import path, include
 
-from apps.campus.views import (ApproveClaimView, CategorizedListingsView, GetDashboardView, GetIndexDefaultLisitingView, GetLookUpView, ListingAutoActivation, ListingDetailView, ListingDetailsView, ListingView, LostAndFoundClaimView, LostAndFoundListView, LostAndFoundView, MarkAsSoldView, UpdateAdsView, UploadImageView)
+from apps.campus.views import (ApproveClaimView, CategorizedListingsView, GetDashboardLisitingView, GetDashboardUpCommingExpirationLisitingView, GetDashboardView, GetIndexDefaultLisitingView, GetLookUpView, ListingAutoActivation, ListingDetailView, ListingDetailsView, ListingView, LostAndFoundClaimView, LostAndFoundListView, LostAndFoundView, MarkAsSoldView, UpdateAdsView, UploadImageView)
 
 
 
@@ -11,6 +11,8 @@ urlpatterns = [
         include(
             [
                 path("dashboard", GetDashboardView.as_view(), name="campus-dashboard"),
+                path("dashboard-upcoming-listing", GetDashboardUpCommingExpirationLisitingView.as_view(), name="campus-dashboard-upcoming-listing"),
+                path("dashboard-listing", GetDashboardLisitingView.as_view(), name="campus-dashboard-listing"),
                 path("index-products", GetIndexDefaultLisitingView.as_view(), name="get_index_products"),
                 path("get-lookup", GetLookUpView.as_view(), name="get_lookup"),
 

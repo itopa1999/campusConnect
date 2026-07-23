@@ -8,12 +8,12 @@ from utils.enums import CacheKeysEnum
 class PointPackagesQueries:
 
     @staticmethod
-    def _format_price_per_point(price_per_point):
+    def _format_price_per_point(price_per_point) -> BaseResultWithData:
         """Helper to round price per point to 2 decimal places."""
         return round(price_per_point, 2)
 
     @staticmethod
-    def get_point_packages(request=None):
+    def get_point_packages():
         """Return serialized list of point packages."""
 
         cache_key = CacheKeysEnum.POINT_PACKAGES.value
@@ -44,17 +44,50 @@ class PointPackagesQueries:
             max_wait=5.0,
         )
 
-        return data
+        return BaseResultWithData(
+            message="point packages retrieved successfully",
+            data=data,
+            status_code=200
+        )
     
     @staticmethod
-    def get_purchases(user, page=1, per_page=10)-> BaseResultWithData:
+    def get_purchases(request, filters=None)-> BaseResultWithData:
         """Retrieve paginated purchase history for a user."""
+        user = request.user
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
+        
+        page = filters.get('page', 1)
+        per_page = filters.get('per_page', 10)
+        try:
+            page = int(page)
+        except (ValueError, TypeError):
+            page = 1
+        try:
+            per_page = int(per_page)
+        except (ValueError, TypeError):
+            per_page = 10
+        if per_page < 1:
+            per_page = 1
+        if per_page > 100:
+            per_page = 100
+        filter_keys = ['reference', 'status', 'gateway', 'points_awarded', 'date_from', 'date_to']
+        filter_parts = []
+        for key in filter_keys:
+            value = filters.get(key)
+            if value is not None and value != '':
+                filter_parts.append(f"{key}={value}")
+        filter_parts.sort()
+        filter_str = '&'.join(filter_parts)
 
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.PURCHASES,
             user_id=user.id,
             page=page,
-            per_page=per_page
+            per_page=per_page,
+            filters = filter_str
         )
 
         def build_purchases_data():
@@ -62,6 +95,42 @@ class PointPackagesQueries:
             queryset = PointPurchase.objects.filter(
                 user=user
             ).select_related('package').order_by('-created_at')
+
+            reference = filters.get("reference")
+            if reference:
+                queryset = queryset.filter(
+                    payment_reference__icontains=reference
+                )
+            
+            status = filters.get("status")
+            if status:
+                queryset = queryset.filter(
+                    status__iexact=status
+                )
+
+            gateway = filters.get("gateway")
+            if gateway:
+                queryset = queryset.filter(
+                    gateway__iexact=gateway
+                )
+
+            points_awarded = filters.get("points_awarded")
+            if points_awarded:
+                queryset = queryset.filter(
+                    points_awarded=points_awarded
+                )
+
+            date_from = filters.get("date_from")
+            if date_from:
+                queryset = queryset.filter(
+                    created_at__date__gte=date_from
+                )
+
+            date_to = filters.get("date_to")
+            if date_to:
+                queryset = queryset.filter(
+                    created_at__date__lte=date_to
+                )
 
             paginator = Paginator(queryset, per_page)
             try:
@@ -72,7 +141,7 @@ class PointPackagesQueries:
                 page_obj = paginator.page(paginator.num_pages)
 
             purchase_list = []
-            for purchase in page_obj.object_list:
+            for purchase in page_obj:
                 pkg = purchase.package
                 purchase_list.append({
                     'id': purchase.id,
@@ -96,11 +165,14 @@ class PointPackagesQueries:
 
             return {
                 'items': purchase_list,
-                'page': page_obj.number,
-                'total_pages': paginator.num_pages,
-                'total_count': paginator.count,
-                'has_next': page_obj.has_next(),
-                'has_previous': page_obj.has_previous(),
+                'pagination': {
+                    "page": page_obj.number,
+                    "per_page": per_page,
+                    "total_pages": paginator.num_pages,
+                    "total_items": paginator.count,
+                    "has_next": page_obj.has_next(),
+                    "has_previous": page_obj.has_previous(),
+                }
             }
 
         data = GlobalCache.get_or_set(
@@ -119,14 +191,42 @@ class PointPackagesQueries:
     
 
     @staticmethod
-    def get_transactions(user, page=1, per_page=10)-> BaseResultWithData:
+    def get_transactions(request, filters=None)-> BaseResultWithData:
         """Retrieve paginated transaction history for a user."""
+        user = request.user
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
 
+        page = filters.get('page', 1)
+        per_page = filters.get('per_page', 10)
+        try:
+            page = int(page)
+        except (ValueError, TypeError):
+            page = 1
+        try:
+            per_page = int(per_page)
+        except (ValueError, TypeError):
+            per_page = 10
+        if per_page < 1:
+            per_page = 1
+        if per_page > 100:
+            per_page = 100
+        filter_keys = ['transaction_type', 'reference', 'date_from', 'date_to']
+        filter_parts = []
+        for key in filter_keys:
+            value = filters.get(key)
+            if value is not None and value != '':
+                filter_parts.append(f"{key}={value}")
+        filter_parts.sort()
+        filter_str = '&'.join(filter_parts)
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.TRANSACTIONS,
             user_id=user.id,
             page=page,
-            per_page=per_page
+            per_page=per_page,
+            filters = filter_str
         )
 
         def build_transactions_data():
@@ -134,6 +234,30 @@ class PointPackagesQueries:
             queryset = PointTransaction.objects.filter(
                 user=user
             ).select_related('purchase').order_by('-created_at')
+
+            transaction_type = filters.get("transaction_type")
+            if transaction_type:
+                queryset = queryset.filter(
+                    transaction_type__iexact=transaction_type
+                )
+
+            reference = filters.get("reference")
+            if reference:
+                queryset = queryset.filter(
+                    reference__icontains=reference
+                )
+
+            date_from = filters.get("date_from")
+            if date_from:
+                queryset = queryset.filter(
+                    created_at__date__gte=date_from
+                )
+
+            date_to = filters.get("date_to")
+            if date_to:
+                queryset = queryset.filter(
+                    created_at__date__lte=date_to
+                )
 
             paginator = Paginator(queryset, per_page)
             try:
@@ -144,7 +268,7 @@ class PointPackagesQueries:
                 page_obj = paginator.page(paginator.num_pages)
 
             transaction_list = []
-            for txn in page_obj.object_list:
+            for txn in page_obj:
                 transaction_list.append({
                     'id': txn.id,
                     'amount': txn.amount,
@@ -159,11 +283,14 @@ class PointPackagesQueries:
 
             return {
                 'items': transaction_list,
-                'page': page_obj.number,
-                'total_pages': paginator.num_pages,
-                'total_count': paginator.count,
-                'has_next': page_obj.has_next(),
-                'has_previous': page_obj.has_previous(),
+                'pagination': {
+                    "page": page_obj.number,
+                    "per_page": per_page,
+                    "total_pages": paginator.num_pages,
+                    "total_items": paginator.count,
+                    "has_next": page_obj.has_next(),
+                    "has_previous": page_obj.has_previous(),
+                }
             }
 
         data = GlobalCache.get_or_set(

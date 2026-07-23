@@ -142,10 +142,14 @@ class UserQuery:
             message="Users retrieved successfully",
             data={
                 'items': items,
-                'page': page_obj.number,
-                'per_page': per_page,
-                'total_pages': paginator.num_pages,
-                'total_items': paginator.count,
+                'pagination': {
+                    "page": page_obj.number,
+                    "per_page": per_page,
+                    "total_pages": paginator.num_pages,
+                    "total_items": paginator.count,
+                    "has_next": page_obj.has_next(),
+                    "has_previous": page_obj.has_previous(),
+                }
             },
             status_code=200
         )

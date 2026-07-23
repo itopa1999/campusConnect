@@ -36,36 +36,45 @@ class GetIndexDefaultLisitingView(APIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
+# ──────────────────────────────────────────────
+# AUTHENTICATED VIEWS
+# ──────────────────────────────────────────────
+
+
+# TODO make lost and found authenticated.
+# TODO favorite
 class LostAndFoundView(generics.GenericAPIView):
     serializer_class = LostAndFoundSerializer
-    permission_classes = [AllowAny]
-    authentication_classes = []
-    throttle_classes = [CustomRateThrottle(rate=5, period=3600, user_type=UserTypeEnum.ANON)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=5, period=3600, user_type=UserTypeEnum.AUTH)]
     
     def post(self, request):
-        result = LostandFoundCommand.create_item(request.data)
+        result = LostandFoundCommand.create_item(request.user, request.data)
         return Response(result.to_dict(), status=result.status_code)
 
 
 class LostAndFoundListView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
-    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.ANON)]    
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]    
     @swagger_auto_schema(
         manual_parameters=[
+            openapi.Parameter('item_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('description', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('found_location', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('found_date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('found_date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         ]
     )
     def get(self, request):
-        result = GetLostItemsQuery.get_items(request)
+        result = GetLostItemsQuery.get_items(request, request.GET.dict())
         return Response(result.to_dict(), status=result.status_code)
 
 
 class LostAndFoundClaimView(generics.GenericAPIView):
     serializer_class = ClaimSerializer
-    permission_classes = [AllowAny]
-    authentication_classes = []
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.ANON)]
     
     def post(self, request):
@@ -74,8 +83,7 @@ class LostAndFoundClaimView(generics.GenericAPIView):
 
 
 class ApproveClaimView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.ANON)]    
     @swagger_auto_schema(
         manual_parameters=[
@@ -93,9 +101,6 @@ class ApproveClaimView(APIView):
         return render(request, 'claim-approve.html', context)
 
 
-# ──────────────────────────────────────────────
-# AUTHENTICATED VIEWS
-# ──────────────────────────────────────────────
 
 class GetDashboardView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
@@ -103,14 +108,50 @@ class GetDashboardView(APIView):
     def get(self, request):
         result = DashboardQuery.get_dashboard(request)
         return Response(result.to_dict(), status=result.status_code)
+    
+
+class GetDashboardLisitingView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('category_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('listing_type', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('badge', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+        ]
+    )
+    def get(self, request):
+        result = DashboardQuery.get_dashboard_listing(request, request.GET.dict())
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class GetDashboardUpCommingExpirationLisitingView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+    def get(self, request):
+        result = DashboardQuery.get_expiring_listing(request)
+        return Response(result.to_dict(), status=result.status_code)
 
 
 class GetLookUpView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
-    
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('is_category', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('is_hotspot', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('is_badge_choices', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('is_type_choices', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('is_advert_type', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+        ]
+    )
     def get(self, request):
-        result = LookUpQuery.get_lookup(request)
+        result = LookUpQuery.get_lookup(request, request.GET.dict())
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -201,19 +242,24 @@ class ListingAutoActivation(generics.GenericAPIView):
 
 
 class CategorizedListingsView(APIView):
-    permission_classes = [AllowAny]
-    permission_classes = []
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=40, period=60, user_type=UserTypeEnum.AUTH)]    
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter('section', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Section"),
+            openapi.Parameter('section', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('price', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('category_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('listing_type', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('badge', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         ]
     )
     def get(self, request):
-        print(request.COOKIES)
-        result = ListingQuery.get_categorized_listings(request, request.user)
+        result = ListingQuery.get_categorized_listings(request, request.user, request.GET.dict())
         return Response(result.to_dict(), status=result.status_code)
 
 

@@ -367,73 +367,52 @@ class RefreshPointBalanceView(APIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
-class PointPackagesView(APIView):
+class GetTransactionView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter('is_transaction', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
-            openapi.Parameter('is_purchase', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('transaction_type', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('reference', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         ]
     )
     def get(self, request):
-        is_transaction = request.GET.get('is_transaction', 'false')
-        is_purchase = request.GET.get('is_purchase', 'false')
+        result = PointPackagesQueries.get_transactions(request, request.GET.dict())
+        return Response(result.to_dict(), status=result.status_code)
+    
 
-        is_transaction_bool = is_transaction.lower() in ('true', '1', 'yes', 'y')
-        is_purchase_bool = is_purchase.lower() in ('true', '1', 'yes', 'y')
+class GetPointPurchasedView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('reference', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('status', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('gateway', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('completed_at', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('points_awarded', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+        ]
+    )
+    def get(self, request):
+        result = PointPackagesQueries.get_purchases(request, request.GET.dict())
+        return Response(result.to_dict(), status=result.status_code)
+    
 
-        packages = PointPackagesQueries.get_point_packages(request)
-        data = {'point_packages': packages}
-        if is_transaction_bool:
-            page = request.GET.get('page', 1)
-            per_page = request.GET.get('per_page', 10)
-            try:
-                page = int(page)
-            except (ValueError, TypeError):
-                page = 1
-            try:
-                per_page = int(per_page)
-            except (ValueError, TypeError):
-                per_page = 10
-            if per_page < 1:
-                per_page = 1
-            if per_page > 100:
-                per_page = 100
-            txn_result = PointPackagesQueries.get_transactions(request.user, page, per_page)
-            if txn_result.is_success:
-                data['transactions'] = txn_result.data
-            else:
-                return Response(txn_result.to_dict(), status=txn_result.status_code)
-
-        if is_purchase_bool:
-            page = request.GET.get('page', 1)
-            per_page = request.GET.get('per_page', 10)
-            try:
-                page = int(page)
-            except (ValueError, TypeError):
-                page = 1
-            try:
-                per_page = int(per_page)
-            except (ValueError, TypeError):
-                per_page = 10
-            if per_page < 1:
-                per_page = 1
-            if per_page > 100:
-                per_page = 100
-            purchase_result = PointPackagesQueries.get_purchases(request.user, page, per_page)
-            if purchase_result.is_success:
-                data['purchases'] = purchase_result.data
-            else:
-                return Response(purchase_result.to_dict(), status=purchase_result.status_code)
-
-        return Response({
-            'is_success': True,
-            'message': 'Data retrieved successfully',
-            'data': data
-        }, status=200)
+class PointPackagesView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
+    def get(self, request):
+        result = PointPackagesQueries.get_point_packages()
+        return Response(result.to_dict(), status=result.status_code)
+        
 
 
 class BuyPointView(generics.GenericAPIView):
@@ -511,12 +490,15 @@ class GetAllNotificationsView(APIView):
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
+            openapi.Parameter('is_read', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         ]
     )
     def get(self, request, *args, **kwargs):
-        result = NotificationQueries.get_notification(request, request.user)
+        result = NotificationQueries.get_notification(request, request.user, request.GET.dict())
         return Response(result.to_dict(), status=result.status_code)
 
 

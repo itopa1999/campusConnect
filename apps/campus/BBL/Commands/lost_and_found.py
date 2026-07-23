@@ -1,4 +1,5 @@
 from django.db import OperationalError, transaction
+from apps.users.models import User
 from rest_framework import serializers
 from apps.campus.models import Claim, LostAndFound
 from apps.campus.serializers import ClaimSerializer, LostAndFoundSerializer  # you'll need this
@@ -11,7 +12,7 @@ from utils.log_helpers import OperationLogger
 
 class LostandFoundCommand:
     @staticmethod
-    def create_item(data: dict) -> BaseResultWithData:
+    def create_item(user: User, data: dict) -> BaseResultWithData:
         """
         Create a lost item report after performing validations:
         - All required fields present
@@ -32,20 +33,6 @@ class LostandFoundCommand:
         if data.get('image') == '':
             data.pop('image', None)
 
-        # --- Required fields validation ---
-        required_fields = [
-            'item_name', 'description', 'location', 'date_found',
-            'verification1', 'answer1', 'verification2', 'answer2',
-            'full_name', 'email', 'department'
-        ]
-        missing = [f for f in required_fields if not data.get(f)]
-        if missing:
-            op.fail(f"Missing required fields for creating item {data.get('item_name')}", exc={'missing': missing})
-            return BaseResultWithData(
-                message=f"Missing required fields: {', '.join(missing)}",
-                status_code=400
-            )
-
         # --- Image validation (if provided) ---
         image = data.get('image')
         if image:
@@ -64,6 +51,20 @@ class LostandFoundCommand:
                     status_code=400
                 )
 
+        open_items_count = LostAndFound.objects.filter(
+            email=user.email,
+            status=LostAndFoundStatusEnum.OPEN.value,
+        ).count()
+
+        if open_items_count >= 3:
+            op.fail(
+                f"User {user.email} has reached the maximum number of open lost and found items."
+            )
+            return BaseResultWithData(
+                message="You can only have a maximum of 3 open lost and found items at a time. Please close or claim an existing item before creating a new one.",
+                status_code=400,
+            )
+
         # --- Serializer validation ---
         serializer = LostAndFoundSerializer(data=data)
         try:
@@ -79,7 +80,12 @@ class LostandFoundCommand:
         # --- Save ---
         try:
             with transaction.atomic():
-                item = serializer.save()
+                item = serializer.save(
+                    full_name=user.get_full_name(),
+                    email=user.email,
+                    phone=user.phone,
+                    department=user.department,
+                )
                 op.success(f"Lost item reported: {item.item_name}")
                 return BaseResultWithData(
                     message="Item reported successfully.",
@@ -106,30 +112,16 @@ class LostandFoundCommand:
         op = OperationLogger(f"ClaimCommand.create_claim for item_id: {data.get('lost_item_id')}", data=data)
         op.start()
 
+        user = request.user
+
         # ---- 1. Extract and validate required fields ----
-        lost_item_id = data.get('lost_item_id')
+        lost_item_id = data.get('lost_item')
         answer1 = data.get('answer1')
         answer2 = data.get('answer2')
-        full_name = data.get('full_name')
-        email = data.get('email')
-        phone = data.get('phone', '')
-
-        if not all([lost_item_id, answer1, answer2, full_name, email]):
-            missing = []
-            if not lost_item_id: missing.append('lost_item_id')
-            if not answer1: missing.append('answer1')
-            if not answer2: missing.append('answer2')
-            if not full_name: missing.append('full_name')
-            if not email: missing.append('email')
-            op.fail(f"Missing required fields while creating claim for lost_item ID {data.get('lost_item_id')}", exc={'missing': missing})
-            return BaseResultWithData(
-                message=f"Missing required fields: {', '.join(missing)}",
-                status_code=400
-            )
 
         # ---- 2. Fetch the lost item ----
         try:
-            item = LostAndFound.objects.get(id=lost_item_id, is_deleted=False)
+            item = LostAndFound.objects.get(id=int(lost_item_id), is_deleted=False)
         except LostAndFound.DoesNotExist:
             op.fail(f"Item ID {lost_item_id} not found")
             return BaseResultWithData(
@@ -145,9 +137,9 @@ class LostandFoundCommand:
                 status_code=400
             )
 
-        existing_claims_count = Claim.objects.filter(lost_item=item, email=email).count()
+        existing_claims_count = Claim.objects.filter(lost_item=item, email=user.email).count()
         if existing_claims_count >= 2:
-            op.fail(f"Max claims limit reached for Email: {email}")
+            op.fail(f"Max claims limit reached for Email: {user.email}")
             return BaseResultWithData(
                 message="You have already submitted the maximum number of claims (2) for this item.",
                 status_code=400
@@ -158,9 +150,6 @@ class LostandFoundCommand:
             'lost_item': item.id,
             'answer1': answer1,
             'answer2': answer2,
-            'full_name': full_name,
-            'email': email,
-            'phone': phone or None,
         }
         serializer = ClaimSerializer(data=claim_data)
 
@@ -176,7 +165,11 @@ class LostandFoundCommand:
 
         try:
             with transaction.atomic():
-                claim = serializer.save()
+                claim = serializer.save(
+                    full_name=user.get_full_name(),
+                    email=user.email,
+                    phone=user.phone,
+                )
         except Exception as e:
             op.fail(f"Unexpected error during claim creation for lost_item_id {data.get('lost_item_id')}", exc=e)
             return BaseResultWithData(

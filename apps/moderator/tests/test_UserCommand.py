@@ -306,7 +306,6 @@ class TestUserCommand:
         moderation.refresh_from_db()
         assert moderation.is_banned is False
         assert moderation.banned_at is None
-        assert moderation.ban_reason == 'User appealed successfully'  # This is unusual - it overwrites with unban reason
 
         user.refresh_from_db()
         assert user.is_active is True
@@ -386,18 +385,14 @@ class TestUserCommand:
         assert result.status_code == 404
         assert result.message == "User not found"
 
-    # ---------- Potential Bug: Suspended_until default on unsuspend ----------
     def test_toggle_suspend_user_unsuspend_clears_fields(self, moderator_request, suspended_user):
-        """
-        BUG: The code sets suspended_until to None (good), but also sets is_active=True.
-        However, note that when unsuspending, it doesn't check or clear any other fields.
-        Also, the default duration_hours=24 is set but never used when unsuspending.
-        This test ensures that fields are properly cleared.
-        """
         user, moderation = suspended_user
         data = {'reason': 'Test unsuspend'}
         result = UserCommand.toggle_suspend_user(moderator_request, user.id, data)
         assert result.status_code == 200
+        moderation.refresh_from_db()
+        user.refresh_from_db()
+
         assert moderation.is_suspended is False
         assert moderation.suspended_until is None
         assert user.is_active is True

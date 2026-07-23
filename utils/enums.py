@@ -231,18 +231,20 @@ class CacheKeysEnum(Enum):
 
     # ANNO and Student
     DASHBOARD = "get_dashboard_{user_id}"
+    DASHBOARD_UPCOMING_EXPIRATION_LISTING = "get_upcoming_expiration_listing_{user_id}"
+    DASHBOARD_LISTING = "get_dashboard_listing_{user_id}_{page}_{per_page}_{filters}"
     GET_POINTS_BALANCE = "get_points_balance_{user_id}"
-    LOOKUP_DATA = "lookup_data"
+    LOOKUP_DATA = "lookup_data_{filters}"
     INDEX_PRODUCTS = "index_products"
     LISTING_DETAIL = "listing_detail_{user_id}_{listing_id}"
-    CATEGORIZED_LISTINGS = "categorized_listings_{user_id}_{section}_{page}_{per_page}"
-    LOST_ITEMS = "lost_items_{page}_{per_page}"
+    CATEGORIZED_LISTINGS = "categorized_listings_{user_id}_{section}_{page}_{per_page}_{filters}"
+    LOST_ITEMS = "lost_items_{page}_{per_page}_{filters}"
     POINT_PACKAGES = "point_packages"
-    PURCHASES = "purchases_{user_id}_{page}_{per_page}"
-    TRANSACTIONS = "transactions_{user_id}_{page}_{per_page}"
+    PURCHASES = "purchases_{user_id}_{page}_{per_page}_{filters}"
+    TRANSACTIONS = "transactions_{user_id}_{page}_{per_page}_{filters}"
     PROFILE = "profile_{user_id}"
     PUBLIC_LISTING_DETAILS = "public_listing_details_{user_id}_{listing_id}"
-    NOTIFICATIONS = "notifications_{user_id}_{page}_{per_page}"
+    NOTIFICATIONS = "notifications_{user_id}_{page}_{per_page}_{filters}"
     NOTIFICATION_HEADER = "notifications_header_{user_id}"
 
 

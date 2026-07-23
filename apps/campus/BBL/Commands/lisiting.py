@@ -70,7 +70,6 @@ class ListingCommand:
 
         # --- 1. Points check ---
         current_points = UpdatePointsService.check_points(user)
-        print(current_points, total_points_needed)
         if current_points < total_points_needed:
             op.fail(f"Insufficient points for listing: {data.get('title')}")
             return BaseResultWithData(
@@ -585,7 +584,6 @@ class ListingCommand:
             with transaction.atomic():
                 if listing.image and listing.image.name:
                     try:
-                        print("reaches here", listing.image.path)
                         default_storage.delete(listing.image.path)
                     except Exception as e:
                         op.fail(f"Could not delete old picture for listing: {listing.title}: {e}")

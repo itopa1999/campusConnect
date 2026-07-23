@@ -115,84 +115,139 @@ class ListingQuery:
                 status_code=500
             )
         
+
     @staticmethod
-    def get_categorized_listings(request, user=None) -> BaseResultWithData:
-        section = request.GET.get('section')
-        page = int(request.GET.get('page', 1))
-        per_page = int(request.GET.get('per_page', 8))
+    def get_categorized_listings(request, user, filters=None) -> BaseResultWithData:
+        """
+        Fetch categorized listings with section-based rules.
+        """
+        # --- Parse filters ---
+        if filters is None:
+            filters = request.GET.dict() if request else {}
+        else:
+            filters = dict(filters)
 
-        try:
-            page = int(page)
-        except (ValueError, TypeError):
-            page = 1
+        # --- Pagination (only relevant for non-banner sections) ---
+        page = int(filters.get('page', 1))
+        per_page = int(filters.get('per_page', 8))
+        per_page = max(1, min(per_page, 100))
 
-        try:
-            per_page = int(per_page)
-        except (ValueError, TypeError):
-            per_page = 8
-
-        if per_page < 1:
-            per_page = 1
-        if per_page > 100:
-            per_page = 100
-
-        if section not in ['banner', 'hot_sales', 'departmental', 'for_you']:
+        # --- Section validation ---
+        section = filters.get('section')
+        valid_sections = ['banner', 'hot_sales', 'departmental', 'for_you', 'search']
+        if section not in valid_sections:
             return BaseResultWithData(
                 message='Invalid section parameter',
                 status_code=400
             )
 
-        # Build cache key – use a placeholder for unauthenticated users
-        user_id = user.id if user and hasattr(user, 'id') else 'anonymous'
+        # --- Build cache key (filters only for search) ---
+        if section == 'search':
+            filter_keys = ['price', 'category_name', 'listing_type', 'search', 'badge', 'date_from', 'date_to']
+            filter_parts = []
+            for key in filter_keys:
+                value = filters.get(key)
+                if value is not None and value != '':
+                    filter_parts.append(f"{key}={value}")
+            filter_parts.sort()
+            filter_str = '&'.join(filter_parts)
+        else:
+            filter_str = ''
+
+        # User is always authenticated, so user.id is safe
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.CATEGORIZED_LISTINGS,
-            user_id=user_id,
+            user_id=user.id,
             section=section,
-            page=page,
-            per_page=per_page
+            page=page if section != 'banner' else 1,
+            per_page=per_page if section != 'banner' else 0,
+            filters=filter_str
         )
 
         def build_categorized_listings_data():
-            """Heavy computation callback – runs only on cache miss."""
+            """Callback executed on cache miss."""
+            # --- Base queryset ---
             base_qs = Listing.objects.filter(
                 status=ListingStatusType.ACTIVE.value,
                 is_deleted=False,
                 user__is_active=True
-            ).exclude(user__groups__name=GroupNames.ADMIN.value).select_related('user', 'category')
-            base_qs = base_qs.prefetch_related('hotspots')
+            ).exclude(user__groups__name=GroupNames.ADMIN.value)
+            base_qs = base_qs.select_related('user', 'category').prefetch_related('hotspots')
 
-            # Determine if the user is authenticated and has a department
-            is_authenticated = user and user.is_authenticated
-            user_dept = user.department if is_authenticated and hasattr(user, 'department') else None
-
+            # --- Section-specific logic ---
             if section == 'banner':
-                qs = base_qs.filter(is_ads_banner=True)
-            elif section == 'hot_sales':
+                qs = base_qs.filter(is_ads_banner=True).order_by('-created_at')
+                items = []
+                for listing in qs:
+                    image_url = None
+                    if listing.image and request:
+                        image_url = request.build_absolute_uri(listing.image.url)
+                    hotspots = list(listing.hotspots.values_list('name', flat=True))
+                    items.append({
+                        'id': listing.id,
+                        'title': listing.title,
+                        'price': float(listing.price) if listing.price else 0,
+                        'category': listing.category.name if listing.category else '',
+                        'image': image_url,
+                        'badge': listing.listing_type,
+                        'hotspots': hotspots,
+                    })
+                return {'items': items}   # no pagination
+
+            # --- Sections that require user context (user is always authenticated) ---
+            if section == 'hot_sales':
                 qs = base_qs.filter(is_hot_sales=True)
             elif section == 'departmental':
-                # If not authenticated or no department, return empty
-                if not is_authenticated or not user_dept:
-                    return {
-                        'items': [],
-                        'page': 1,
-                        'per_page': per_page,
-                        'total_pages': 0,
-                        'total_items': 0
-                    }
-                qs = base_qs.filter(user__department__icontains=user_dept)
+                user_dept = getattr(user, 'department', None)
+                if user_dept:
+                    qs = base_qs.filter(user__department__icontains=user_dept)
+                else:
+                    qs = base_qs.none()  # no department → empty result
             elif section == 'for_you':
+                user_dept = getattr(user, 'department', None)
                 qs = base_qs.exclude(is_ads_banner=True).exclude(is_hot_sales=True)
-                if is_authenticated and user_dept:
+                if user_dept:
                     qs = qs.exclude(user__department__icontains=user_dept)
-            else:
-                return {
-                    'items': [],
-                    'page': 1,
-                    'per_page': per_page,
-                    'total_pages': 0,
-                    'total_items': 0
-                }
+            elif section == 'search':
+                qs = base_qs
+                # Apply search filters (only if present)
+                price = filters.get('price')
+                if price is not None:
+                    try:
+                        max_price = float(price)
+                        qs = qs.filter(price__lte=max_price)
+                    except ValueError:
+                        pass
 
+                category_name = filters.get('category_name')
+                if category_name:
+                    qs = qs.filter(category__name__icontains=category_name)
+
+                listing_type = filters.get('listing_type')
+                if listing_type:
+                    qs = qs.filter(listing_type__icontains=listing_type)
+
+                search = filters.get('search')
+                if search:
+                    qs = qs.filter(
+                        Q(title__icontains=search) |
+                        Q(description__icontains=search)
+                    )
+
+                badge = filters.get('badge')
+                if badge:
+                    qs = qs.filter(badge__icontains=badge)
+
+                date_from = filters.get('date_from')
+                if date_from:
+                    qs = qs.filter(created_at__gte=date_from)
+                date_to = filters.get('date_to')
+                if date_to:
+                    qs = qs.filter(created_at__lte=date_to)
+            else:
+                qs = base_qs.none()  # fallback
+
+            # --- Order and paginate (all non-banner sections) ---
             qs = qs.order_by('-created_at')
             paginator = Paginator(qs, per_page)
             page_obj = paginator.get_page(page)
@@ -200,27 +255,32 @@ class ListingQuery:
             items = []
             for listing in page_obj:
                 image_url = None
-                if listing.image:
+                if listing.image and request:
                     image_url = request.build_absolute_uri(listing.image.url)
-                hotspots = list(listing.hotspots.all())
+                hotspots = list(listing.hotspots.values_list('name', flat=True))
                 items.append({
                     'id': listing.id,
                     'title': listing.title,
                     'price': float(listing.price) if listing.price else 0,
                     'category': listing.category.name if listing.category else '',
-                    'image': image_url if listing.image else None,
+                    'image': image_url,
                     'badge': listing.listing_type,
-                    'hotspots': [h.name for h in hotspots]
+                    'hotspots': hotspots,
                 })
 
             return {
                 'items': items,
-                'page': page_obj.number,
-                'per_page': per_page,
-                'total_pages': page_obj.paginator.num_pages,
-                'total_items': page_obj.paginator.count
+                'pagination': {
+                    'page': page_obj.number,
+                    'per_page': per_page,
+                    'total_pages': paginator.num_pages,
+                    'total_items': paginator.count,
+                    'has_next': page_obj.has_next(),
+                    'has_previous': page_obj.has_previous(),
+                },
             }
 
+        # --- Cache or compute ---
         data = GlobalCache.get_or_set(
             key=cache_key,
             callback=build_categorized_listings_data,
@@ -234,7 +294,6 @@ class ListingQuery:
             data=data,
             status_code=200
         )
-        
 
     @staticmethod
     def listing_details(request, listing_id: int) -> BaseResultWithData:
