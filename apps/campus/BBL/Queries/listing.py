@@ -189,8 +189,6 @@ class ListingQuery:
                         'price': float(listing.price) if listing.price else 0,
                         'category': listing.category.name if listing.category else '',
                         'image': image_url,
-                        'badge': listing.listing_type,
-                        'hotspots': hotspots,
                     })
                 return {'items': items}   # no pagination
 
@@ -257,7 +255,7 @@ class ListingQuery:
                 image_url = None
                 if listing.image and request:
                     image_url = request.build_absolute_uri(listing.image.url)
-                hotspots = list(listing.hotspots.values_list('name', flat=True))
+                hotspots = listing.hotspots.values_list("name", flat=True).first() or "Campus"
                 items.append({
                     'id': listing.id,
                     'title': listing.title,
