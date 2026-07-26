@@ -1,3 +1,4 @@
+from apps.users.models import User
 import pytest
 from unittest.mock import patch
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -30,6 +31,19 @@ def lost_item_data():
         "phone": "08012345678",
     }
 
+
+@pytest.fixture
+def test_user(db):
+    user = User.objects.create_user(
+        email="test@example.com",
+        password="testpass",
+        first_name="Test",
+        last_name="User",
+        department="Computer Science",
+        phone="08012345678",
+    )
+    return user
+
 @pytest.fixture
 def lost_item(db, lost_item_data):
     data = lost_item_data.copy()
@@ -58,54 +72,54 @@ def mock_email_task():
 
 class TestCreateItem:
 
-    def test_create_item_success(self, db, lost_item_data):
-        result = LostandFoundCommand.create_item(lost_item_data)
+    def test_create_item_success(self, db, user, lost_item_data):
+        result = LostandFoundCommand.create_item(user, lost_item_data)
         assert result.is_success is True
         assert result.status_code == 201
         assert "id" in result.data
         item = LostAndFound.objects.get(id=result.data["id"])
         assert item.item_name == "Lost Wallet"
-        assert item.email == "john@example.com"
+        assert item.email == user.email
 
-    def test_create_item_missing_fields(self, db, lost_item_data):
+    def test_create_item_missing_fields(self, db, user, lost_item_data):
         data = lost_item_data.copy()
         data.pop("item_name")
-        result = LostandFoundCommand.create_item(data)
+        result = LostandFoundCommand.create_item(user, data)
         assert result.is_success is False
         assert result.status_code == 400
         assert "Missing required fields" in result.message
         assert "item_name" in result.message
 
-    def test_create_item_image_too_large(self, db, lost_item_data):
+    def test_create_item_image_too_large(self, db, user, lost_item_data):
         image = SimpleUploadedFile("large.jpg", b"x" * (ConstantHelper.IMAGE_SIZE + 1), content_type="image/jpeg")
         data = lost_item_data.copy()
         data["image"] = image
-        result = LostandFoundCommand.create_item(data)
+        result = LostandFoundCommand.create_item(user, data)
         assert result.is_success is False
         assert result.status_code == 400
         assert "Image file size must not exceed" in result.message
 
-    def test_create_item_invalid_image_format(self, db, lost_item_data):
+    def test_create_item_invalid_image_format(self, db, user, lost_item_data):
         image = SimpleUploadedFile("test.gif", b"GIF87a", content_type="image/gif")
         data = lost_item_data.copy()
         data["image"] = image
-        result = LostandFoundCommand.create_item(data)
+        result = LostandFoundCommand.create_item(user, data)
         assert result.is_success is False
         assert result.status_code == 400
         assert "Only JPG, PNG, and WEBP images are allowed" in result.message
 
     @patch("apps.campus.BBL.Commands.lost_and_found.LostAndFoundSerializer")
-    def test_create_item_serializer_validation_error(self, mock_serializer, db, lost_item_data):
+    def test_create_item_serializer_validation_error(self, mock_serializer, db, user, lost_item_data):
         mock_serializer.return_value.is_valid.side_effect = serializers.ValidationError({"item_name": "Invalid"})
-        result = LostandFoundCommand.create_item(lost_item_data)
+        result = LostandFoundCommand.create_item(user, lost_item_data)
         assert result.is_success is False
         assert result.status_code == 400
         assert "Validation failed" in result.message
 
-    def test_create_item_with_empty_image_string(self, db, lost_item_data):
+    def test_create_item_with_empty_image_string(self, db, user, lost_item_data):
         data = lost_item_data.copy()
         data["image"] = ""
-        result = LostandFoundCommand.create_item(data)
+        result = LostandFoundCommand.create_item(user, data)
         assert result.is_success is True
         item = LostAndFound.objects.get(id=result.data["id"])
         assert item.image == ""
@@ -114,19 +128,19 @@ class TestCreateItem:
 
 class TestCreateClaim:
 
-    def test_create_claim_success(self, rf, db, lost_item, claim_data, mock_email_task):
+    def test_create_claim_success(self, rf, db, user, lost_item, claim_data, mock_email_task):
         request = rf.post("/fake-url")
         result = LostandFoundCommand.create_claim(request, claim_data)
         assert result.is_success is True
         assert result.status_code == 200
         assert "If your answer is right" in result.message
 
-        claim = Claim.objects.get(lost_item=lost_item, email="jane@example.com")
-        assert claim.full_name == "Jane Smith"
+        claim = Claim.objects.get(lost_item=lost_item, email=user.user)
+        assert claim.full_name == user.get_full_name()
         assert claim.answer1 == "Black"
         mock_email_task[0].assert_called_once()
 
-    def test_create_claim_missing_fields(self, rf, db, lost_item):
+    def test_create_claim_missing_fields(self, rf, db, user, lost_item):
         data = {"lost_item_id": lost_item.id}
         request = rf.post("/fake-url")
         result = LostandFoundCommand.create_claim(request, data)
@@ -134,7 +148,7 @@ class TestCreateClaim:
         assert result.status_code == 400
         assert "Missing required fields" in result.message
 
-    def test_create_claim_item_not_found(self, rf, db):
+    def test_create_claim_item_not_found(self, rf, db, user):
         data = {"lost_item_id": 9999, "answer1": "a", "answer2": "b", "full_name": "X", "email": "x@x.com"}
         request = rf.post("/fake-url")
         result = LostandFoundCommand.create_claim(request, data)

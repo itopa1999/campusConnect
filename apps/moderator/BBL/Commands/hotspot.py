@@ -10,7 +10,7 @@ from utils.log_helpers import OperationLogger
 class HotspotCommand:
     @staticmethod
     @transaction.atomic
-    def create_hotspot(request, validated_data):
+    def create_hotspot(request, validated_data) -> BaseResultWithData:
         op = OperationLogger("ModeratorHotspotCommand.create_hotspot", user=request.user.id)
         op.start()
 
@@ -62,7 +62,7 @@ class HotspotCommand:
 
     @staticmethod
     @transaction.atomic
-    def update_hotspot(request, hotspot_id, validated_data):
+    def update_hotspot(request, hotspot_id, validated_data) -> BaseResultWithData:
         op = OperationLogger("ModeratorHotspotCommand.update_hotspot", hotspot_id=hotspot_id)
         op.start()
 
@@ -124,7 +124,7 @@ class HotspotCommand:
 
     @staticmethod
     @transaction.atomic
-    def toggle_delete_hotspot(request, hotspot_id, validated_data):
+    def toggle_delete_hotspot(request, hotspot_id, validated_data) -> BaseResultWithData:
         op = OperationLogger("ModeratorHotspotCommand.toggle_delete_hotspot", hotspot_id=hotspot_id)
         op.start()
 

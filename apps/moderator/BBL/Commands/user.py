@@ -12,7 +12,7 @@ User = get_user_model()
 
 class UserCommand:
     @staticmethod
-    def _ensure_moderation(user):
+    def _ensure_moderation(user) -> UserModeration:
         """Ensure UserModeration exists for the user."""
         moderation, created = UserModeration.objects.get_or_create(user=user)
         return moderation
@@ -63,6 +63,8 @@ class UserCommand:
             ip_address=request.META.get('REMOTE_ADDR'),
         )
 
+        # TODO implement to notify the user.
+
         op.success(f"Warning issued to user {user_id}")
         return BaseResultWithData(
             message="Warning issued successfully",
@@ -73,7 +75,7 @@ class UserCommand:
     # ─── Toggle Suspend ─────────────────────────────────────────────
     @staticmethod
     @transaction.atomic
-    def toggle_suspend_user(request, user_id, validated_data):
+    def toggle_suspend_user(request, user_id, validated_data)-> BaseResultWithData:
         """
         Suspend or unsuspend a user.
         If suspended, set is_active=False and store suspension details.
@@ -164,6 +166,8 @@ class UserCommand:
                 ip_address=request.META.get('REMOTE_ADDR'),
             )
 
+            # TODO implement to notify the user.
+
             op.success(f"User {user_id} suspended until {suspended_until}")
             return BaseResultWithData(
                 message=f"User suspended until {suspended_until.strftime('%Y-%m-%d %H:%M')}",
@@ -174,7 +178,7 @@ class UserCommand:
     # ─── Toggle Ban ──────────────────────────────────────────────────
     @staticmethod
     @transaction.atomic
-    def toggle_ban_user(request, user_id, validated_data):
+    def toggle_ban_user(request, user_id, validated_data)-> BaseResultWithData:
         """
         Ban or unban a user.
         If banned, set is_active=False and store ban details.
@@ -253,6 +257,8 @@ class UserCommand:
                 ip_address=request.META.get('REMOTE_ADDR'),
             )
 
+            # TODO implement to notify the user.
+
             op.success(f"User {user_id} banned")
             return BaseResultWithData(
                 message="User banned permanently",
@@ -263,7 +269,7 @@ class UserCommand:
     # ─── Toggle Soft Delete ────────────────────────────────────────
     @staticmethod
     @transaction.atomic
-    def toggle_delete_user(request, user_id, validated_data):
+    def toggle_delete_user(request, user_id, validated_data)-> BaseResultWithData:
         """
         Soft delete or restore a user.
         """
@@ -307,6 +313,8 @@ class UserCommand:
             },
             ip_address=request.META.get('REMOTE_ADDR'),
         )
+
+        # TODO implement to notify the user.
 
         op.success(f"User {user_id} delete toggled to {new_deleted}")
         return BaseResultWithData(

@@ -144,6 +144,23 @@ class Listing(BaseModel):
         super().save(*args, **kwargs)
 
 
+
+class Favourite(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
+    listing = models.ForeignKey('Listing', on_delete=models.CASCADE, related_name='favorited_by')
+
+    class Meta:
+        unique_together = ('user', 'listing')
+        indexes = [
+            models.Index(fields=['user', 'listing']),
+            models.Index(fields=['created_at']),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user} ❤️ {self.listing}"
+
+
 class ListingHotspot(BaseModel):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE)
     hotspot = models.ForeignKey(CampusHotspot, on_delete=models.CASCADE)
@@ -198,7 +215,7 @@ class LostAndFound(BaseModel):
     description = models.TextField()
     location = models.CharField(max_length=500)
     date_found = models.DateField()
-    status = models.CharField(max_length=20, choices=LostAndFoundStatusEnum.choices(), default='open', db_index=True)
+    status = models.CharField(max_length=20, choices=LostAndFoundStatusEnum.choices(), default=LostAndFoundStatusEnum.PENDING.value, db_index=True)
     verification1 = models.CharField(max_length=500)
     answer1 = models.CharField(max_length=500)
     verification2 = models.CharField(max_length=500)

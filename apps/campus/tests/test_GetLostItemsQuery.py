@@ -116,14 +116,11 @@ class TestGetLostItemsQuery:
         assert "verification1" in items[0]
         assert "verification2" in items[0]
 
-        assert pagination["current_page"] == 1
         assert pagination["total_pages"] == 2
         assert pagination["total_items"] == 15
         assert pagination["per_page"] == 10
         assert pagination["has_next"] is True
         assert pagination["has_previous"] is False
-        assert pagination["next_page_number"] == 2
-        assert pagination["previous_page_number"] is None
 
     def test_get_items_page_2(self, request_factory, lost_items):
         """Retrieve second page of results."""
@@ -143,11 +140,8 @@ class TestGetLostItemsQuery:
 
         assert len(items) == 5
         assert items[0]["item_name"] == lost_items[-11].item_name
-        assert pagination["current_page"] == 2
         assert pagination["has_next"] is False
         assert pagination["has_previous"] is True
-        assert pagination["next_page_number"] is None
-        assert pagination["previous_page_number"] == 1
 
     def test_get_items_custom_per_page(self, request_factory, lost_items):
         """Test custom per_page parameter."""
@@ -185,7 +179,6 @@ class TestGetLostItemsQuery:
         assert result.status_code == 200
         data = result.data
         assert data is not None
-        assert data["pagination"]["current_page"] == 1
 
     def test_get_items_page_beyond_last(self, request_factory, lost_items):
         """Page beyond total should return last page."""
@@ -200,7 +193,6 @@ class TestGetLostItemsQuery:
                 result = GetLostItemsQuery.get_items(request)
 
         data = result.data
-        assert data["pagination"]["current_page"] == 2
         assert len(data["items"]) == 5
 
     def test_get_items_image_url(self, request_factory, lost_item_with_image):

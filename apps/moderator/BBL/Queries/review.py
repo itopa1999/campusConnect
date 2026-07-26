@@ -10,7 +10,7 @@ from utils.log_helpers import OperationLogger
 
 class ReviewQuery:
     @staticmethod
-    def get_all_reviews(request, filters=None):
+    def get_all_reviews(request, filters=None) -> BaseResultWithData:
         """
         Retrieve all reviews with optional filters.
         Filters: from_user, to_user, listing, rating, is_flagged, is_deleted,
@@ -19,8 +19,13 @@ class ReviewQuery:
         op = OperationLogger("ModeratorReviewQuery.get_all_reviews", user=request.user.id)
         op.start()
 
-        page = filters.get('page', 1) if filters else request.GET.get('page', 1)
-        per_page = filters.get('per_page', 20) if filters else request.GET.get('per_page', 20)
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
+
+        page = filters.get('page', 1)
+        per_page = filters.get('per_page', 20)
         try:
             page = int(page)
             per_page = int(per_page)
@@ -33,70 +38,66 @@ class ReviewQuery:
             per_page = 20
 
         queryset = Review.objects.select_related('from_user', 'to_user', 'listing')
-
-        if filters is None:
-            filters = request.GET.dict()
             
         # ─── Apply filters ──────────────────────────────────────
-        if filters:
-            # From user
-            from_user_id = filters.get('from_user_id')
-            if from_user_id:
-                queryset = queryset.filter(from_user_id=from_user_id)
+        # From user
+        from_user_id = filters.get('from_user_id')
+        if from_user_id:
+            queryset = queryset.filter(from_user_id=from_user_id)
 
-            # To user
-            to_user_id = filters.get('to_user_id')
-            if to_user_id:
-                queryset = queryset.filter(to_user_id=to_user_id)
+        # To user
+        to_user_id = filters.get('to_user_id')
+        if to_user_id:
+            queryset = queryset.filter(to_user_id=to_user_id)
 
-            # Listing
-            listing_id = filters.get('listing_id')
-            if listing_id:
-                queryset = queryset.filter(listing_id=listing_id)
+        # Listing
+        listing_id = filters.get('listing_id')
+        if listing_id:
+            queryset = queryset.filter(listing_id=listing_id)
 
-            # Rating
-            rating = filters.get('rating')
-            if rating:
-                queryset = queryset.filter(rating=rating)
+        # Rating
+        rating = filters.get('rating')
+        if rating:
+            queryset = queryset.filter(rating=rating)
 
-            # Search (comment, from_user, to_user)
-            search = filters.get('search')
-            if search:
-                queryset = queryset.filter(
-                    Q(comment__icontains=search) |
-                    Q(from_user__email__icontains=search) |
-                    Q(from_user__first_name__icontains=search) |
-                    Q(from_user__last_name__icontains=search) |
-                    Q(to_user__email__icontains=search) |
-                    Q(to_user__first_name__icontains=search) |
-                    Q(to_user__last_name__icontains=search)
-                )
+        # Search (comment, from_user, to_user)
+        search = filters.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(comment__icontains=search) |
+                Q(from_user__email__icontains=search) |
+                Q(from_user__first_name__icontains=search) |
+                Q(from_user__last_name__icontains=search) |
+                Q(to_user__email__icontains=search) |
+                Q(to_user__first_name__icontains=search) |
+                Q(to_user__last_name__icontains=search)
+            )
 
-            # Flagged status
-            is_flagged = filters.get('is_flagged')
-            if is_flagged is not None:
-                flagged_ids = FlaggedContent.objects.filter(
-                    content_type=ContentTypeEnum.REVIEW.value,
-                    is_resolved=False,
-                    is_deleted=False
-                ).values_list('content_id', flat=True)
-                if is_flagged:
-                    queryset = queryset.filter(id__in=flagged_ids)
-                else:
-                    queryset = queryset.exclude(id__in=flagged_ids)
+        # Flagged status
+        is_flagged = filters.get('is_flagged')
+        if is_flagged is not None:
+            flagged_ids = FlaggedContent.objects.filter(
+                content_type=ContentTypeEnum.REVIEW.value,
+                is_resolved=False,
+                is_deleted=False
+            ).values_list('content_id', flat=True)
+            if is_flagged:
+                queryset = queryset.filter(id__in=flagged_ids)
+            else:
+                queryset = queryset.exclude(id__in=flagged_ids)
 
-            # Deleted status
-            is_deleted = filters.get('is_deleted')
-            if is_deleted is not None:
-                queryset = queryset.filter(is_deleted=is_deleted)
+        # Deleted status
+        is_deleted = filters.get('is_deleted')
+        if is_deleted is not None:
+            queryset = queryset.filter(is_deleted=is_deleted)
 
-            # Date range
-            date_from = filters.get('date_from')
-            if date_from:
-                queryset = queryset.filter(created_at__gte=date_from)
-            date_to = filters.get('date_to')
-            if date_to:
-                queryset = queryset.filter(created_at__lte=date_to)
+        # Date range
+        date_from = filters.get('date_from')
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        date_to = filters.get('date_to')
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
 
         # ─── Pagination ────────────────────────────────────────
         paginator = Paginator(queryset, per_page)
@@ -157,7 +158,7 @@ class ReviewQuery:
         )
 
     @staticmethod
-    def get_review_detail(request, review_id):
+    def get_review_detail(request, review_id) -> BaseResultWithData:
         """
         Get detailed review information including moderation history.
         """

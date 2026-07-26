@@ -14,7 +14,7 @@ User = get_user_model()
 class ReportCommand:
     @staticmethod
     @transaction.atomic
-    def resolve_report(request, report_id, validated_data):
+    def resolve_report(request, report_id, validated_data) -> BaseResultWithData:
         """
         Mark a report as resolved.
         """
@@ -81,7 +81,7 @@ class ReportCommand:
 
     @staticmethod
     @transaction.atomic
-    def escalate_report(request, report_id, validated_data):
+    def escalate_report(request, report_id, validated_data) -> BaseResultWithData:
         """
         Escalate a report to admin.
         """
@@ -148,7 +148,7 @@ class ReportCommand:
 
     @staticmethod
     @transaction.atomic
-    def assign_report(request, report_id, validated_data):
+    def assign_report(request, report_id, validated_data) -> BaseResultWithData:
         """
         Assign a report to a moderator.
         """
@@ -214,7 +214,7 @@ class ReportCommand:
 
     @staticmethod
     @transaction.atomic
-    def toggle_reopen_report(request, report_id, validated_data):
+    def toggle_reopen_report(request, report_id, validated_data) -> BaseResultWithData:
         """
         Reopen a resolved report (set status back to pending/in_review).
         """

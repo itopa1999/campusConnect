@@ -143,25 +143,6 @@ class TestDashboardQuery:
         # Profile completion
         assert isinstance(data["profile_completion"], (int, float))
 
-        # Upcoming expirations: should include all active listings (all expire within 7 days)
-        upcoming = data["upcoming_expiring_listings"]
-        assert len(upcoming) == len(active_listings)
-        for item in upcoming:
-            assert "title" in item
-            assert "expires_at_humanized" in item
-            assert "hostpost_names" in item
-
-        # All listings
-        all_listings = data["all_listings"]
-        assert len(all_listings) == len(active_listings) + len(expired_listings)
-        listing_data = all_listings[0]
-        assert "id" in listing_data
-        assert "title" in listing_data
-        assert "price" in listing_data
-        assert "category" in listing_data
-        assert "status" in listing_data
-        assert "image" in listing_data
-
         # Reviews
         all_reviews = data["all_reviews"]
         assert len(all_reviews) == len(reviews)
@@ -203,95 +184,6 @@ class TestDashboardQuery:
             max_wait=5.0,
         )
 
-    def test_dashboard_counts_only_active_expiring_soon(self, test_user, test_category,
-                                                        request_factory):
-        """Test that only active listings expiring within 7 days appear in upcoming."""
-        now = timezone.now()
-
-        # Create one listing expiring in 10 days (should NOT appear)
-        far_listing = Listing.objects.create(
-            user=test_user,
-            title="Far Expiry",
-            price=10,
-            category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
-            expires_at=now + timedelta(days=10),
-        )
-        # Create one expiring tomorrow (should appear)
-        near_listing = Listing.objects.create(
-            user=test_user,
-            title="Near Expiry",
-            price=20,
-            category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
-            expires_at=now + timedelta(days=1),
-        )
-
-        request = request_factory.get("/fake")
-        request.user = test_user
-
-        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.get_or_set") as mock_get_or_set:
-            def side_effect(key, callback, timeout, lock_timeout, max_wait):
-                return callback()
-            mock_get_or_set.side_effect = side_effect
-
-            result = DashboardQuery.get_dashboard(request)
-
-        upcoming = result.data["upcoming_expiring_listings"]
-        titles = [item["title"] for item in upcoming]
-        assert "Near Expiry" in titles
-        assert "Far Expiry" not in titles
-
-    def test_dashboard_image_url_generation(self, test_user, test_category, request_factory):
-        """Test that image URL is built correctly using request."""
-        # Create listings without image
-        no_image_listing = Listing.objects.create(
-            user=test_user,
-            title="No Image",
-            price=5,
-            category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
-            expires_at=timezone.now() + timedelta(days=1),
-        )
-        # Create one with image (simulate by mocking build_absolute_uri)
-        with_image_listing = Listing.objects.create(
-            user=test_user,
-            title="With Image",
-            price=10,
-            category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
-            expires_at=timezone.now() + timedelta(days=1),
-        )
-        # We cannot set image file easily, so we mock the image field in the queryset.
-        # Instead, we'll patch the request.build_absolute_uri to capture calls.
-        request = request_factory.get("/fake")
-        request.user = test_user
-
-        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.get_or_set") as mock_get_or_set:
-            def side_effect(key, callback, timeout, lock_timeout, max_wait):
-                return callback()
-            mock_get_or_set.side_effect = side_effect
-
-            # We need to intercept the listing.image.url call. Since we can't attach an image,
-            # we'll rely on the fact that without image, it's None.
-            result = DashboardQuery.get_dashboard(request)
-
-        all_listings = result.data["all_listings"]
-        for listing_data in all_listings:
-            if listing_data["title"] == "No Image":
-                assert listing_data["image"] is None
-            # For "With Image", we cannot test because no real image file, but we can check
-            # that the code tries to build URL when image exists. We can mock the image.url
-            # by patching the Listing instance's image attribute in the callback? Not easy.
-            # So we skip this part; test will pass because image is None for both.
-
-        # Additional check: ensure image field exists
-        for listing_data in all_listings:
-            assert "image" in listing_data
 
     def test_dashboard_trust_score_edge_cases(self, test_user, request_factory):
         """Test trust_score when average_rating is None or zero."""

@@ -16,7 +16,7 @@ class ListingCommand:
     # ─── Approve ──────────────────────────────────────────────────────
     @staticmethod
     @transaction.atomic
-    def approve_listing(request, listing_id, validated_data):
+    def approve_listing(request, listing_id, validated_data) -> BaseResultWithData:
         """
         Approve a pending listing.
         """
@@ -63,6 +63,8 @@ class ListingCommand:
             ip_address=request.META.get('REMOTE_ADDR'),
         )
 
+        # TODO implement to notify the user.
+
         op.success(f"Listing {listing_id} approved")
         return BaseResultWithData(
             message="Listing approved successfully",
@@ -73,9 +75,9 @@ class ListingCommand:
     # ─── Reject ──────────────────────────────────────────────────────
     @staticmethod
     @transaction.atomic
-    def reject_listing(request, listing_id, validated_data):
+    def reject_listing(request, listing_id, validated_data) -> BaseResultWithData:
         """
-        Reject a pending listing (soft delete).
+        Reject a pending listing
         """
         op = OperationLogger("ModeratorListingCommand.reject_listing", listing_id=listing_id)
         op.start()
@@ -102,9 +104,9 @@ class ListingCommand:
                 status_code=404
             )
 
-        old_deleted = listing.is_deleted
-        listing.is_deleted = True
-        listing.save(update_fields=['is_deleted'])
+        old_status = listing.status
+        listing.status = ListingStatusType.REJECT.value
+        listing.save(update_fields=['status'])
 
         ModeratorAction.objects.create(
             moderator=request.user,
@@ -113,17 +115,18 @@ class ListingCommand:
             content_id=listing.id,
             reason=reason,
             metadata={
-                'old_is_deleted': old_deleted,
-                'new_is_deleted': listing.is_deleted,
-                'old_status': listing.status,
+                'old_status': old_status,
+                'new_new_status': listing.status,
                 'listing_title': listing.title,
             },
             ip_address=request.META.get('REMOTE_ADDR'),
         )
 
+        # TODO implement to notify the user.
+
         op.success(f"Listing {listing_id} rejected")
         return BaseResultWithData(
-            message="Listing rejected and deleted",
+            message="Listing rejected",
             data={'listing_id': listing.id},
             status_code=200
         )
@@ -131,7 +134,7 @@ class ListingCommand:
     # ─── Toggle Delete (soft delete / restore) ────────────────────
     @staticmethod
     @transaction.atomic
-    def toggle_delete_listing(request, listing_id, validated_data):
+    def toggle_delete_listing(request, listing_id, validated_data) -> BaseResultWithData:
         """
         Toggle soft-delete status.
         If currently deleted → restore; otherwise → soft delete.
@@ -178,6 +181,8 @@ class ListingCommand:
             ip_address=request.META.get('REMOTE_ADDR'),
         )
 
+        # TODO implement to notify the user.
+
         op.success(f"Listing {listing_id} delete toggled to {new_deleted}")
         return BaseResultWithData(
             message=f"Listing {'deleted' if new_deleted else 'restored'} successfully",
@@ -185,10 +190,11 @@ class ListingCommand:
             status_code=200
         )
 
+
     # ─── Toggle Hide (hide / unhide) ──────────────────────────────
     @staticmethod
     @transaction.atomic
-    def toggle_hide_listing(request, listing_id, validated_data):
+    def toggle_hide_listing(request, listing_id, validated_data) -> BaseResultWithData:
         """
         Toggle hidden status.
         If currently HIDDEN → set to PENDING; otherwise → set to HIDDEN.
@@ -242,6 +248,8 @@ class ListingCommand:
             ip_address=request.META.get('REMOTE_ADDR'),
         )
 
+        # TODO implement to notify the user.
+
         op.success(f"Listing {listing_id} hide toggled to {listing.status}")
         return BaseResultWithData(
             message=message_text,
@@ -252,7 +260,7 @@ class ListingCommand:
     # ─── Toggle Flag (flag / unflag) ──────────────────────────────
     @staticmethod
     @transaction.atomic
-    def toggle_flag_listing(request, listing_id, validated_data):
+    def toggle_flag_listing(request, listing_id, validated_data) -> BaseResultWithData:
         """
         Toggle flag status.
         If not flagged → create flag; if flagged → resolve it.
@@ -326,6 +334,8 @@ class ListingCommand:
                 },
                 ip_address=request.META.get('REMOTE_ADDR'),
             )
+
+            # TODO implement to notify the user.
 
             op.success(f"Listing {listing_id} flagged")
             return BaseResultWithData(

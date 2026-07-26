@@ -2,9 +2,13 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
-
+from django.core.exceptions import ImproperlyConfigured
 
 load_dotenv()
+
+KEY_ID = os.environ.get('KEY_ID')
+if not KEY_ID:
+    raise ImproperlyConfigured("KEY_ID environment variable is not set")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -58,7 +62,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    
+    'utils.Middlewares.middlewares.KeyIDMiddleware',
     'utils.Middlewares.threadlocals.CurrentUserMiddleware',
     
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -249,6 +253,11 @@ SWAGGER_SETTINGS = {
             "name": "Authorization",
             "in": "header",
         },
+        'api_key': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'X-Key-Id'
+        }
     },
     "USE_SESSION_AUTH": False,
     "PERSIST_AUTH": True,

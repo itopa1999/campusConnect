@@ -23,7 +23,8 @@ class UserAdmin(SoftDeleteAdmin):
         'average_rating',
         'sold_items',
         'is_active',
-        'date_joined'
+        'date_joined',
+        'is_deleted'
     )
     list_filter = (
         'is_active',
@@ -153,7 +154,7 @@ class UserAdmin(SoftDeleteAdmin):
 
 @admin.register(VerificationToken)
 class VerificationTokenAdmin(SoftDeleteAdmin):
-    list_display = ('user_email', 'token_type', 'status_badge', 'created_at')
+    list_display = ('user_email', 'token_type', 'status_badge', 'created_at', 'is_deleted')
     list_filter = ('token_type', 'is_used', 'created_at')
     search_fields = ('user__email', 'token')
     
@@ -200,7 +201,7 @@ class VerificationTokenAdmin(SoftDeleteAdmin):
 
 @admin.register(Badge)
 class BadgeAdmin(SoftDeleteAdmin):
-    list_display = ('name', 'description_short', 'icon_preview')
+    list_display = ('name', 'description_short', 'icon_preview', 'is_deleted')
     search_fields = ('name', 'description')
     
     readonly_fields = (
@@ -378,7 +379,7 @@ class PointTransactionInline(admin.TabularInline):
 # ========== PointPackage Admin ==========
 @admin.register(PointPackage)
 class PointPackageAdmin(SoftDeleteAdmin):
-    list_display = ('points', 'price', 'price_per_point_display', 'savings_percentage_display', 'is_popular', 'is_best_value', 'sort_order')
+    list_display = ('points', 'price', 'price_per_point_display', 'savings_percentage_display', 'is_popular', 'is_best_value', 'sort_order', 'is_deleted')
     list_filter = ('is_popular', 'is_best_value', 'sort_order')
     search_fields = ('description',)
     ordering = ('sort_order', 'points')
@@ -440,7 +441,7 @@ class PointPackageAdmin(SoftDeleteAdmin):
 # ========== PointPurchase Admin ==========
 @admin.register(PointPurchase)
 class PointPurchaseAdmin(SoftDeleteAdmin):
-    list_display = ('user_link', 'package_link', 'points_awarded', 'gateway', 'amount_paid', 'status', 'completed_at', 'created_at')
+    list_display = ('user_link', 'package_link', 'points_awarded', 'gateway', 'amount_paid', 'status', 'completed_at', 'created_at', 'is_deleted')
     list_filter = ('status', 'completed_at', 'created_at')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'package__description', 'payment_reference')
     raw_id_fields = ('user', 'package')
@@ -503,7 +504,7 @@ class PointPurchaseAdmin(SoftDeleteAdmin):
 # ========== PointTransaction Admin ==========
 @admin.register(PointTransaction)
 class PointTransactionAdmin(SoftDeleteAdmin):
-    list_display = ('id', 'user_link', 'amount', 'balance_after', 'transaction_type_display', 'description', 'created_at')
+    list_display = ('id', 'user_link', 'amount', 'balance_after', 'transaction_type_display', 'description', 'created_at', 'is_deleted')
     list_filter = ('transaction_type', 'created_at')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'description', 'reference')
     
@@ -557,6 +558,7 @@ class FeatureFlagAdmin(SoftDeleteAdmin):
         'users_count',
         'created_at',
         'modified_at',
+        'is_deleted'
     )
     list_filter = (
         'is_active',

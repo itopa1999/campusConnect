@@ -13,7 +13,7 @@ User = get_user_model()
 
 class UserQuery:
     @staticmethod
-    def get_all_users(request, filters=None):
+    def get_all_users(request, filters=None) -> BaseResultWithData:
         """
         Retrieve all users with optional filters.
         Filters: search (name/email), is_suspended, is_banned, is_active, is_deleted,
@@ -21,9 +21,12 @@ class UserQuery:
         """
         op = OperationLogger("ModeratorUserQuery.get_all_users", user=request.user.id)
         op.start()
-
-        page = filters.get('page', 1) if filters else request.GET.get('page', 1)
-        per_page = filters.get('per_page', 20) if filters else request.GET.get('per_page', 20)
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
+        page = filters.get('page', 1)
+        per_page = filters.get('per_page', 20)
         try:
             page = int(page)
             per_page = int(per_page)
@@ -44,54 +47,53 @@ class UserQuery:
         queryset = queryset.prefetch_related('moderation').select_related('moderation')
 
         # ─── Apply filters ──────────────────────────────────────
-        if filters:
-            # Search by email, first_name, last_name
-            search = filters.get('search')
-            if search:
-                queryset = queryset.filter(
-                    Q(email__icontains=search) |
-                    Q(first_name__icontains=search) |
-                    Q(last_name__icontains=search)
-                )
+        # Search by email, first_name, last_name
+        search = filters.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(email__icontains=search) |
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search)
+            )
 
-            # Department
-            department = filters.get('department')
-            if department:
-                queryset = queryset.filter(department__icontains=department)
+        # Department
+        department = filters.get('department')
+        if department:
+            queryset = queryset.filter(department__icontains=department)
 
-            # Suspended
-            is_suspended = filters.get('is_suspended')
-            if is_suspended is not None:
-                if is_suspended:
-                    queryset = queryset.filter(moderation__is_suspended=True)
-                else:
-                    queryset = queryset.filter(moderation__is_suspended=False)
+        # Suspended
+        is_suspended = filters.get('is_suspended')
+        if is_suspended is not None:
+            if is_suspended:
+                queryset = queryset.filter(moderation__is_suspended=True)
+            else:
+                queryset = queryset.filter(moderation__is_suspended=False)
 
-            # Banned
-            is_banned = filters.get('is_banned')
-            if is_banned is not None:
-                if is_banned:
-                    queryset = queryset.filter(moderation__is_banned=True)
-                else:
-                    queryset = queryset.filter(moderation__is_banned=False)
+        # Banned
+        is_banned = filters.get('is_banned')
+        if is_banned is not None:
+            if is_banned:
+                queryset = queryset.filter(moderation__is_banned=True)
+            else:
+                queryset = queryset.filter(moderation__is_banned=False)
 
-            # Active (Django is_active)
-            is_active = filters.get('is_active')
-            if is_active is not None:
-                queryset = queryset.filter(is_active=is_active)
+        # Active (Django is_active)
+        is_active = filters.get('is_active')
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active)
 
-            # Deleted (if not already handled)
-            is_deleted = filters.get('is_deleted')
-            if is_deleted is not None and is_deleted is not True:
-                queryset = queryset.filter(is_deleted=is_deleted)
+        # Deleted (if not already handled)
+        is_deleted = filters.get('is_deleted')
+        if is_deleted is not None and is_deleted is not True:
+            queryset = queryset.filter(is_deleted=is_deleted)
 
-            # Date joined range
-            date_from = filters.get('date_from')
-            if date_from:
-                queryset = queryset.filter(date_joined__gte=date_from)
-            date_to = filters.get('date_to')
-            if date_to:
-                queryset = queryset.filter(date_joined__lte=date_to)
+        # Date joined range
+        date_from = filters.get('date_from')
+        if date_from:
+            queryset = queryset.filter(date_joined__gte=date_from)
+        date_to = filters.get('date_to')
+        if date_to:
+            queryset = queryset.filter(date_joined__lte=date_to)
 
         # ─── Pagination ────────────────────────────────────────
         paginator = Paginator(queryset, per_page)
@@ -155,7 +157,7 @@ class UserQuery:
         )
 
     @staticmethod
-    def get_user_detail(request, user_id):
+    def get_user_detail(request, user_id) -> BaseResultWithData:
         """
         Get detailed user information including listings, reviews, moderation history.
         """

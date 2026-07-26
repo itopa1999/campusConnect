@@ -11,7 +11,7 @@ from utils.log_helpers import OperationLogger
 
 class ListingQuery:
     @staticmethod
-    def get_all_listings(request, filters=None):
+    def get_all_listings(request, filters=None) -> BaseResultWithData:
         """
             Retrieve all listings with optional filters.
             filters should be a dict (e.g., request.GET) with possible keys:
@@ -20,8 +20,13 @@ class ListingQuery:
         op = OperationLogger("ModeratorListingQuery.get_all_listings", user=request.user.id)
         op.start()
 
-        page = filters.get('page', 1) if filters else request.GET.get('page', 1)
-        per_page = filters.get('per_page', 20) if filters else request.GET.get('per_page', 20)
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
+
+        page = filters.get('page', 1)
+        per_page = filters.get('per_page', 20)
         try:
             page = int(page)
             per_page = int(per_page)
@@ -35,69 +40,64 @@ class ListingQuery:
 
         queryset = Listing.objects.select_related('user', 'category').prefetch_related('hotspots')
 
-        if filters is None:
-            filters = request.GET.dict()
+        # Status filter
+        status = filters.get('status')
+        if status:
+            queryset = queryset.filter(status__iexact=status)
 
-        # ─── Apply filters ──────────────────────────────────────
-        if filters:
-            # Status filter
-            status = filters.get('status')
-            if status:
-                queryset = queryset.filter(status__iexact=status)
+        # Category filter
+        category_id = filters.get('category_id')
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
 
-            # Category filter
-            category_id = filters.get('category_id')
-            if category_id:
-                queryset = queryset.filter(category_id=category_id)
+        # Listing type filter
+        listing_type = filters.get('listing_type')
+        if listing_type:
+            queryset = queryset.filter(listing_type=listing_type)
 
-            # Listing type filter
-            listing_type = filters.get('listing_type')
-            if listing_type:
-                queryset = queryset.filter(listing_type=listing_type)
+        # Search by title or user email/full name
+        search = filters.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(user__email__icontains=search) |
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search)
+            )
 
-            # Search by title or user email/full name
-            search = filters.get('search')
-            if search:
-                queryset = queryset.filter(
-                    Q(title__icontains=search) |
-                    Q(user__email__icontains=search) |
-                    Q(user__first_name__icontains=search) |
-                    Q(user__last_name__icontains=search)
-                )
+        # Flagged status
+        is_flagged = filters.get('is_flagged')
+        if is_flagged is not None:
+            if is_flagged.lower() in ('true', '1', 'yes'):
+                flagged_ids = FlaggedContent.objects.filter(
+                    content_type=ContentTypeEnum.LISTING.value,
+                    is_resolved=False,
+                    is_deleted=False
+                ).values_list('content_id', flat=True)
+                queryset = queryset.filter(id__in=flagged_ids)
+            else:
+                flagged_ids = FlaggedContent.objects.filter(
+                    content_type=ContentTypeEnum.LISTING.value,
+                    is_resolved=False,
+                    is_deleted=False
+                ).values_list('content_id', flat=True)
+                queryset = queryset.exclude(id__in=flagged_ids)
 
-            # Flagged status
-            is_flagged = filters.get('is_flagged')
-            if is_flagged is not None:
-                if is_flagged.lower() in ('true', '1', 'yes'):
-                    flagged_ids = FlaggedContent.objects.filter(
-                        content_type=ContentTypeEnum.LISTING.value,
-                        is_resolved=False,
-                        is_deleted=False
-                    ).values_list('content_id', flat=True)
-                    queryset = queryset.filter(id__in=flagged_ids)
-                else:
-                    flagged_ids = FlaggedContent.objects.filter(
-                        content_type=ContentTypeEnum.LISTING.value,
-                        is_resolved=False,
-                        is_deleted=False
-                    ).values_list('content_id', flat=True)
-                    queryset = queryset.exclude(id__in=flagged_ids)
+        # Deleted status
+        is_deleted = filters.get('is_deleted')
+        if is_deleted is not None:
+            if is_deleted.lower() in ('true', '1', 'yes'):
+                queryset = queryset.filter(is_deleted=True)
+            else:
+                queryset = queryset.filter(is_deleted=False)
 
-            # Deleted status
-            is_deleted = filters.get('is_deleted')
-            if is_deleted is not None:
-                if is_deleted.lower() in ('true', '1', 'yes'):
-                    queryset = queryset.filter(is_deleted=True)
-                else:
-                    queryset = queryset.filter(is_deleted=False)
-
-            # Date range
-            date_from = filters.get('date_from')
-            if date_from:
-                queryset = queryset.filter(created_at__gte=date_from)
-            date_to = filters.get('date_to')
-            if date_to:
-                queryset = queryset.filter(created_at__lte=date_to)
+        # Date range
+        date_from = filters.get('date_from')
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        date_to = filters.get('date_to')
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
 
         # ─── Annotate flagged status ──────────────────────────
         flagged_listing_ids = FlaggedContent.objects.filter(
@@ -160,7 +160,7 @@ class ListingQuery:
         )
 
     @staticmethod
-    def get_listing_detail(request, listing_id):
+    def get_listing_detail(request, listing_id) -> BaseResultWithData:
         """
         Get detailed listing information including moderation history.
         """

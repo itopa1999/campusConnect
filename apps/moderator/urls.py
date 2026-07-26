@@ -17,6 +17,13 @@ from apps.moderator.views import (
     ModeratorListingToggleDeleteView,
     ModeratorListingToggleHideView,
     ModeratorListingToggleFlagView,
+    ModeratorLostItemApproveView,
+    ModeratorLostItemDetailView,
+    ModeratorLostItemListView,
+    ModeratorLostItemRejectView,
+    ModeratorLostItemToggleDeleteView,
+    ModeratorLostItemToggleFlagView,
+    ModeratorLostItemToggleHideView,
     ModeratorReportAssignView,
     ModeratorReportDetailView,
     ModeratorReportEscalateView,
@@ -47,7 +54,6 @@ urlpatterns = [
                 
                 # LISTING MANAGEMENT
                 path('listings', ModeratorListingListView.as_view(), name='moderator-listings'),
-                path('listings/<int:listing_id>', ModeratorListingDetailView.as_view(), name='moderator-listings-actions'),
                 path('listings/<int:listing_id>', ModeratorListingDetailView.as_view(), name='moderator-listing-detail'),
                 path('listings/<int:listing_id>/approve', ModeratorListingApproveView.as_view(), name='moderator-listing-approve'),
                 path('listings/<int:listing_id>/reject', ModeratorListingRejectView.as_view(), name='moderator-listing-reject'),
@@ -93,7 +99,14 @@ urlpatterns = [
                 path('hotspots/<int:hotspot_id>/update', ModeratorUpdateHotspotView.as_view(), name='moderator-hotspots-update'),
                 path('hotspots/<int:hotspot_id>/toggle-delete/', ModeratorHotspotToggleDeleteView.as_view(), name='moderator-hotspots-toggle-delete'),
             
-
+                # LOSTANDFOUND MANAGEMENT
+                path('lost-items', ModeratorLostItemListView.as_view(), name='moderator-lost-items'),
+                path('lost-items/<int:lost_item_id>', ModeratorLostItemDetailView.as_view(), name='moderator-lost-item-detail'),
+                path('lost-items/<int:lost_item_id>/approve', ModeratorLostItemApproveView.as_view(), name='moderator-lost-item-approve'),
+                path('lost-items/<int:lost_item_id>/reject', ModeratorLostItemRejectView.as_view(), name='moderator-lost-item-reject'),
+                path('lost-items/<int:lost_item_id>/toggle-delete', ModeratorLostItemToggleDeleteView.as_view(), name='moderator-lost-item-delete'),
+                path('lost-items/<int:lost_item_id>/toggle-hide', ModeratorLostItemToggleHideView.as_view(), name='moderator-lost-item-hide'),
+                path('lost-items/<int:lost_item_id>/toggle-flag', ModeratorLostItemToggleFlagView.as_view(), name='moderator-lost-item-flag'),
 
             ]
         )

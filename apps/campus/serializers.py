@@ -1,5 +1,7 @@
 
 
+from decimal import Decimal
+
 from rest_framework import serializers
 from apps.campus.models import Claim, Listing, Category, CampusHotspot, LostAndFound
 
@@ -94,7 +96,7 @@ class ListingUpdateSerializer(serializers.Serializer):
         max_digits=10,
         decimal_places=2,
         required=True,
-        min_value=0,
+        min_value=Decimal('0.00'),
         error_messages={
             'required': 'Price is required.',
             'min_value': 'Price cannot be negative.'

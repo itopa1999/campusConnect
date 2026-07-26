@@ -4,12 +4,28 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Avg
 
-from apps.campus.models import (CampusHotspot, Category, Claim, Listing, 
+from apps.campus.models import (CampusHotspot, Category, Claim, Favourite, Favourite, Listing, 
                                 ListingHotspot, LostAndFound, Review)
 from common.admin import SoftDeleteAdmin
 
 # ==================== INLINES ====================
+class FavouriteInline(admin.TabularInline):
+    """Show which users have favourited this listing"""
+    model = Favourite
+    extra = 0
+    fields = ('user_link', 'created_at')
+    readonly_fields = ('user_link', 'created_at')
+    can_delete = True
+    verbose_name = "Favourited by"
+    verbose_name_plural = "Favourited by"
 
+    def user_link(self, obj):
+        url = reverse('admin:users_user_change', args=[obj.user.id])
+        display_name = obj.user.get_full_name() or obj.user.email
+        return format_html('<a href="{}">{}</a>', url, display_name)
+    user_link.short_description = 'User'
+
+    
 class ListingHotspotInline(admin.TabularInline):
     """Show which hotspots a listing can meet at"""
     model = ListingHotspot
@@ -139,9 +155,9 @@ class ListingAdmin(SoftDeleteAdmin):
         'title', 'user_link', 'category',
         'price', 'listing_type', 'badge',
         'status', 'expires_at', 'is_expired',
-        'created_at',
+        'created_at', 'favourite_count',
         'is_hot_sales', 'is_hot_sales_expires_at',
-        'is_ads_banner', 'is_ads_banner_expires_at', 'auto_reactivate'
+        'is_ads_banner', 'is_ads_banner_expires_at', 'auto_reactivate', 'is_deleted'
     )
     list_filter = (
         'listing_type', 'status', 'category', 'is_deleted',
@@ -162,7 +178,7 @@ class ListingAdmin(SoftDeleteAdmin):
     )
     
     autocomplete_fields = ['user', 'category']
-    inlines = [ListingHotspotInline]
+    inlines = [ListingHotspotInline, FavouriteInline]
     date_hierarchy = 'created_at'
     actions = ['mark_active', 'mark_sold', 'mark_expired', 'extend_expiry']
 
@@ -230,6 +246,11 @@ class ListingAdmin(SoftDeleteAdmin):
             listing.save()
     extend_expiry.short_description = "Extend expiry +30 days"
 
+    def favourite_count(self, obj):
+        return obj.favourited_by.count()
+    favourite_count.short_description = '❤️ Favs'
+    favourite_count.admin_order_field = 'favourited_by__count'
+
     def get_queryset(self, request):
         queryset = super().get_queryset(request).select_related('user', 'category')
         queryset = queryset.prefetch_related('hotspots')
@@ -238,7 +259,7 @@ class ListingAdmin(SoftDeleteAdmin):
 
 @admin.register(ListingHotspot)
 class ListingHotspotAdmin(SoftDeleteAdmin):
-    list_display = ('listing_link', 'hotspot_link', 'created_at')
+    list_display = ('listing_link', 'hotspot_link', 'is_deleted')
     list_filter = ('hotspot',)
     autocomplete_fields = ['listing', 'hotspot']
     search_fields = ('listing__title', 'hotspot__name')
@@ -276,7 +297,7 @@ class ListingHotspotAdmin(SoftDeleteAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(SoftDeleteAdmin):
-    list_display = ('from_user_link', 'to_user_link', 'listing_link', 'rating', 'comment_preview', 'created_at')
+    list_display = ('id', 'from_user_link', 'to_user_link', 'listing_link', 'rating', 'comment_preview', 'is_deleted')
     list_filter = ('rating', 'created_at')
     search_fields = ('from_user__email', 'to_user__email', 'listing__title', 'comment')
     raw_id_fields = ('from_user', 'to_user', 'listing')
@@ -332,7 +353,7 @@ class ReviewAdmin(SoftDeleteAdmin):
 
 @admin.register(LostAndFound)
 class LostAndFoundAdmin(SoftDeleteAdmin):
-    list_display = ('item_name', 'location', 'date_found', 'status', 'full_name', 'email', 'claimed_by', 'created_at')
+    list_display = ('item_name', 'location', 'date_found', 'status', 'full_name', 'email', 'claimed_by', 'is_deleted')
     list_filter = ('status', 'date_found', 'department', 'created_at')
     search_fields = ('item_name', 'description', 'location', 'full_name', 'email', 'department')
     
@@ -383,7 +404,7 @@ class LostAndFoundAdmin(SoftDeleteAdmin):
 
 @admin.register(Claim)
 class ClaimAdmin(SoftDeleteAdmin):
-    list_display = ('lost_item_link', 'full_name', 'email', 'phone', 'answers_match', 'created_at')
+    list_display = ('id', 'lost_item_link', 'full_name', 'email', 'phone', 'answers_match', 'is_deleted')
     list_filter = ('created_at',)
     search_fields = ('lost_item__item_name', 'full_name', 'email', 'phone')
     raw_id_fields = ('lost_item',)
@@ -433,3 +454,43 @@ class ClaimAdmin(SoftDeleteAdmin):
     def mark_active(self, request, queryset):
         queryset.update(is_deleted=False)
     mark_active.short_description = "Mark as active"
+
+
+@admin.register(Favourite)
+class FavouriteAdmin(SoftDeleteAdmin):
+    list_display = ('id','user_link', 'listing_link', 'created_at', 'is_deleted')
+    list_filter = ('created_at',)
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'listing__title')
+    raw_id_fields = ('user', 'listing')
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+    )
+
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'listing')
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
+            'classes': ('collapse',)
+        })
+    )
+
+    def user_link(self, obj):
+        url = reverse('admin:users_user_change', args=[obj.user.id])
+        display_name = obj.user.get_full_name() or obj.user.email
+        return format_html('<a href="{}">{}</a>', url, display_name)
+    user_link.short_description = 'User'
+    user_link.admin_order_field = 'user__first_name'
+
+    def listing_link(self, obj):
+        url = reverse('admin:campus_listing_change', args=[obj.listing.id])
+        return format_html('<a href="{}">{}</a>', url, obj.listing.title)
+    listing_link.short_description = 'Listing'
+    listing_link.admin_order_field = 'listing__title'

@@ -1,6 +1,12 @@
 from django.urls import path, include
 
-from apps.campus.views import (ApproveClaimView, CategorizedListingsView, GetDashboardLisitingView, GetDashboardUpCommingExpirationLisitingView, GetDashboardView, GetIndexDefaultLisitingView, GetLookUpView, ListingAutoActivation, ListingDetailView, ListingDetailsView, ListingView, LostAndFoundClaimView, LostAndFoundListView, LostAndFoundView, MarkAsSoldView, UpdateAdsView, UploadImageView)
+from apps.campus.views import (AddFavouriteListingView, 
+        ApproveClaimView, CategorizedListingsView, 
+        GetDashboardLisitingView, GetDashboardReviewsView, GetDashboardUpCommingExpirationLisitingView, 
+        GetDashboardView, GetIndexDefaultLisitingView, GetLookUpView, 
+        ListFavouriteListingView, ListingAutoActivation, ListingDetailView, 
+        ListingDetailsView, ListingView, LostAndFoundClaimView, LostAndFoundListView, 
+        LostAndFoundView, MarkAsSoldView, UpdateAdsView, UploadImageView)
 
 
 
@@ -13,6 +19,8 @@ urlpatterns = [
                 path("dashboard", GetDashboardView.as_view(), name="campus-dashboard"),
                 path("dashboard-upcoming-listing", GetDashboardUpCommingExpirationLisitingView.as_view(), name="campus-dashboard-upcoming-listing"),
                 path("dashboard-listing", GetDashboardLisitingView.as_view(), name="campus-dashboard-listing"),
+                path("dashboard-reviews", GetDashboardReviewsView.as_view(), name="campus-dashboard-reviews"),
+
                 path("index-products", GetIndexDefaultLisitingView.as_view(), name="get_index_products"),
                 path("get-lookup", GetLookUpView.as_view(), name="get_lookup"),
 
@@ -25,11 +33,13 @@ urlpatterns = [
                 path('listings/categorized', CategorizedListingsView.as_view(), name='categorized_listings'),
                 path('listing-details/<int:listing_id>', ListingDetailsView.as_view(), name='listing_details'),
 
-
                 path("report-lost-item", LostAndFoundView.as_view(), name="report_lost_item"),
                 path('lost-and-found/reports', LostAndFoundListView.as_view(), name='lost_and_found_report'),
                 path('lost-and-found/claim', LostAndFoundClaimView.as_view(), name='lost-and-found-claim'),
                 path('approve-claim', ApproveClaimView.as_view(), name='approve_claim'),
+
+                path("add-favourite/<int:listing_id>", AddFavouriteListingView.as_view(), name="add_favourite"),
+                path('list-favourites', ListFavouriteListingView.as_view(), name='list_favourites'),
             ]
         )
     )

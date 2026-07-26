@@ -6,7 +6,7 @@ from django.db.models import Count, Q
 
 class HotspotQuery:
     @staticmethod
-    def get_all_hotspots(request, filters=None):
+    def get_all_hotspots(request, filters=None) -> BaseResultWithData:
         op = OperationLogger("ModeratorHotspotQuery.get_all_hotspots", user=request.user.id)
         op.start()
 
@@ -28,7 +28,7 @@ class HotspotQuery:
         )
 
         # Search
-        search = filters.get('search') if filters else None
+        search = filters.get('search')
         if search:
             queryset = queryset.filter(name__icontains=search)
 
@@ -70,7 +70,7 @@ class HotspotQuery:
         )
 
     @staticmethod
-    def get_hotspot_id_detail(request, hotspot_id):
+    def get_hotspot_id_detail(request, hotspot_id) -> BaseResultWithData:
         op = OperationLogger("ModeratorHotspotQuery.get_hotspot_id_detail", hotspot_id=hotspot_id)
         op.start()
 

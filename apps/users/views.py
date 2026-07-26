@@ -16,7 +16,7 @@ from apps.users.BBL.Queries.FlutterConfirm import FlutterwaveConfirmQuery
 from apps.users.BBL.Queries.PaystackConfirm import PaystackConfirmQuery
 from apps.users.BBL.Queries.point_packages import PointPackagesQueries
 from utils.base_result import BaseResultWithData
-from utils.enums import GroupNames
+from utils.enums import GroupNames, PlatformEnum
 from utils.helpers import UpdatePointsService
 from utils.permissions import ConstantPermission
 from .BBL.Commands.account_command import AccountCommand
@@ -130,28 +130,28 @@ class LoginView(generics.GenericAPIView):
         response = Response(result.to_dict(), status=result.status_code)
         access_token = result.data.get('access_token')
         refresh_token = result.data.get('refresh_token')
-
-        access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
-        refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
-
-        response.set_cookie(
-            'access_token',
-            access_token,
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite='None', # TODO make this Lax
-            max_age=access_lifetime_seconds,
-            path='/',
-        )
-        response.set_cookie(
-            'refresh_token',
-            refresh_token,
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite='None',
-            max_age=refresh_lifetime_seconds,
-            path='/',
-        )
+        
+        if result.data.get('platform') == PlatformEnum.WEB.value:
+            access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+            refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+            response.set_cookie(
+                'access_token',
+                access_token,
+                httponly=True,
+                secure=settings.COOKIE_SECURE,
+                samesite=settings.COOKIE_SAMESITE,
+                max_age=access_lifetime_seconds,
+                path='/',
+            )
+            response.set_cookie(
+                'refresh_token',
+                refresh_token,
+                httponly=True,
+                secure=settings.COOKIE_SECURE,
+                samesite=settings.COOKIE_SAMESITE,
+                max_age=refresh_lifetime_seconds,
+                path='/',
+            )
 
         return response
     
@@ -176,8 +176,9 @@ class RefreshTokenView(generics.GenericAPIView):
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.ANON)]
 
     def post(self, request):
-        refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh_token')
-        result = AuthCommand.RefreshToken(request, refresh_token)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = AuthCommand.RefreshToken(request, serializer.validated_data)
         if result.status_code != 200:
             response = Response(result.to_dict(), status=result.status_code)
             self._clear_auth_cookies(response)
@@ -195,7 +196,7 @@ class RefreshTokenView(generics.GenericAPIView):
             access_token,
             httponly=True,
             secure=settings.COOKIE_SECURE,
-            samesite='None',
+            samesite=settings.COOKIE_SAMESITE,
             max_age=access_lifetime_seconds,
             path='/',
         )
@@ -204,7 +205,7 @@ class RefreshTokenView(generics.GenericAPIView):
             refresh_token,
             httponly=True,
             secure=settings.COOKIE_SECURE,
-            samesite='None',
+            samesite=settings.COOKIE_SAMESITE,
             max_age=refresh_lifetime_seconds,
             path='/',
         )
@@ -218,7 +219,7 @@ class RefreshTokenView(generics.GenericAPIView):
             '',
             httponly=True,
             secure=settings.COOKIE_SECURE,
-            samesite='None',
+            samesite=settings.COOKIE_SAMESITE,
             max_age=0,
             expires='Thu, 01 Jan 1970 00:00:00 GMT',
             path='/',
@@ -228,7 +229,7 @@ class RefreshTokenView(generics.GenericAPIView):
             '',
             httponly=True,
             secure=settings.COOKIE_SECURE,
-            samesite='None',
+            samesite=settings.COOKIE_SAMESITE,
             max_age=0,
             expires='Thu, 01 Jan 1970 00:00:00 GMT',
             path='/',
@@ -317,9 +318,21 @@ class LogoutUserView(generics.GenericAPIView):
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
 
     def post(self, request):
-        refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh_token')
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        platform = serializer.validated_data.get('platform')
+        refresh_token_str = None
+        if platform == PlatformEnum.WEB.value:
+            refresh_token_str = request.COOKIES.get('refresh_token')                
+        else:
+            refresh_token_str = serializer.validated_data.get('refresh_token')
+        if not refresh_token_str:
+            return Response(
+                    {"message": "Refresh token required."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         try:
-            token = RefreshToken(refresh_token)
+            token = RefreshToken(refresh_token_str)
             token.blacklist()
             response = Response({"message": "Logged out successfully"}, status=200)
             self._clear_auth_cookies(response)
@@ -335,7 +348,7 @@ class LogoutUserView(generics.GenericAPIView):
             '',
             httponly=True,
             secure=settings.COOKIE_SECURE,
-            samesite='None',
+            samesite=settings.COOKIE_SAMESITE,
             max_age=0,
             expires='Thu, 01 Jan 1970 00:00:00 GMT',
             path='/',
@@ -345,7 +358,7 @@ class LogoutUserView(generics.GenericAPIView):
             '',
             httponly=True,
             secure=settings.COOKIE_SECURE,
-            samesite='None',
+            samesite=settings.COOKIE_SAMESITE,
             max_age=0,
             expires='Thu, 01 Jan 1970 00:00:00 GMT',
             path='/',

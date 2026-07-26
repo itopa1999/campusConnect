@@ -10,7 +10,7 @@ from utils.log_helpers import OperationLogger
 class CategoryCommand:
     @staticmethod
     @transaction.atomic
-    def create_category(request, validated_data):
+    def create_category(request, validated_data) -> BaseResultWithData:
         op = OperationLogger("ModeratorCategoryCommand.create_category", user=request.user.id)
         op.start()
 
@@ -64,7 +64,7 @@ class CategoryCommand:
 
     @staticmethod
     @transaction.atomic
-    def update_category(request, category_id, validated_data):
+    def update_category(request, category_id, validated_data) -> BaseResultWithData:
         op = OperationLogger("ModeratorCategoryCommand.update_category", category_id=category_id)
         op.start()
 
@@ -130,7 +130,7 @@ class CategoryCommand:
 
     @staticmethod
     @transaction.atomic
-    def toggle_delete_category(request, category_id, validated_data):
+    def toggle_delete_category(request, category_id, validated_data) -> BaseResultWithData:
         op = OperationLogger("ModeratorCategoryCommand.toggle_delete_category", category_id=category_id)
         op.start()
 

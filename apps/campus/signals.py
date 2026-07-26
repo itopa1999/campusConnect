@@ -1,7 +1,7 @@
 from django.db.models.signals import post_delete, pre_save, post_save
 from django.dispatch import receiver
 
-from apps.campus.models import CampusHotspot, Category, Listing, LostAndFound, Review
+from apps.campus.models import CampusHotspot, Category, Favourite, Listing, LostAndFound, Review
 from apps.users.models import PointPackage, PointPurchase, PointTransaction
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
@@ -123,6 +123,12 @@ def point_purchase_changed(sender, instance, **kwargs):
 def point_transaction_changed(sender, instance, **kwargs):
     invalidate_user_point_caches(instance.user_id)
 
+
+@receiver(post_save, sender=Favourite)
+@receiver(post_delete, sender=Favourite)
+def favourite_changed(sender, instance, **kwargs):
+    key = f'favourite_{instance.user_id}_'
+    GlobalCache.delete_prefix(key)
 
 
 def invalidate_dashboard_cache(user_id):

@@ -32,7 +32,7 @@ urlpatterns = [
         path("buy-points-initial", BuyPointView.as_view(), name="buy_points_initial"),
         path('paystack-points-confirm/<str:reference>', PaystackPointsConfirmView.as_view(), name='paystack-points-confirm'),
         path('monnify-confirm/<str:reference>', MonnifyPointsConfirmView.as_view(), name='monnify-confirm'),
-        path('flutterwave-points-confirm/<str:reference>', FlutterwavePointsConfirmView.as_view(), name='flutterwave-points-confirm'),  # noqa: F821
+        path('flutterwave-points-confirm/<str:reference>', FlutterwavePointsConfirmView.as_view(), name='flutterwave-points-confirm'), 
         path('retry-purchase', RetryPurchaseView.as_view(), name='retry-payment') 
     ])),
     path("report/", include([

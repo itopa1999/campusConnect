@@ -16,7 +16,7 @@ class ReviewCommand:
     # ─── Toggle Delete (soft delete / restore) ────────────────────
     @staticmethod
     @transaction.atomic
-    def toggle_delete_review(request, review_id, validated_data):
+    def toggle_delete_review(request, review_id, validated_data)-> BaseResultWithData:
         """
         Toggle soft-delete status of a review.
         If currently deleted → restore; otherwise → soft delete.
@@ -63,6 +63,8 @@ class ReviewCommand:
             ip_address=request.META.get('REMOTE_ADDR'),
         )
 
+        # TODO implement to notify the user.
+
         op.success(f"Review {review_id} delete toggled to {new_deleted}")
         return BaseResultWithData(
             message=f"Review {'deleted' if new_deleted else 'restored'} successfully",
@@ -73,7 +75,7 @@ class ReviewCommand:
     # ─── Toggle Flag (flag / unflag) ──────────────────────────────
     @staticmethod
     @transaction.atomic
-    def toggle_flag_review(request, review_id, validated_data):
+    def toggle_flag_review(request, review_id, validated_data) -> BaseResultWithData:
         """
         Toggle flag status of a review.
         If not flagged → create flag; if flagged → resolve it.
@@ -147,6 +149,8 @@ class ReviewCommand:
                 },
                 ip_address=request.META.get('REMOTE_ADDR'),
             )
+
+            # TODO implement to notify the user.
 
             op.success(f"Review {review_id} flagged")
             return BaseResultWithData(

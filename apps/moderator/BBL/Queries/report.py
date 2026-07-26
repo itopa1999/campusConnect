@@ -13,7 +13,7 @@ User = get_user_model()
 
 class ReportQuery:
     @staticmethod
-    def get_all_reports(request, filters=None):
+    def get_all_reports(request, filters=None) -> BaseResultWithData:
         """
         Retrieve all reports with optional filters.
         Filters: status, issue_type, assigned_to, escalated_to_admin,
@@ -22,8 +22,13 @@ class ReportQuery:
         op = OperationLogger("ModeratorReportQuery.get_all_reports", user=request.user.id)
         op.start()
 
-        page = filters.get('page', 1) if filters else request.GET.get('page', 1)
-        per_page = filters.get('per_page', 20) if filters else request.GET.get('per_page', 20)
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
+
+        page = filters.get('page', 1)
+        per_page = filters.get('per_page', 20)
         try:
             page = int(page)
             per_page = int(per_page)
@@ -37,49 +42,45 @@ class ReportQuery:
 
         queryset = ContactReport.objects.filter(is_deleted=False).select_related('assigned_to', 'resolved_by')
 
-        if filters is None:
-            filters = request.GET.dict()
-
         # ─── Apply filters ──────────────────────────────────────
-        if filters:
-            # Status
-            status = filters.get('status')
-            if status:
-                queryset = queryset.filter(status=status)
+        # Status
+        status = filters.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
 
-            # Issue type
-            issue_type = filters.get('issue_type')
-            if issue_type:
-                queryset = queryset.filter(issue_type=issue_type)
+        # Issue type
+        issue_type = filters.get('issue_type')
+        if issue_type:
+            queryset = queryset.filter(issue_type=issue_type)
 
-            # Assigned to
-            assigned_to = filters.get('assigned_to')
-            if assigned_to:
-                queryset = queryset.filter(assigned_to_id=assigned_to)
+        # Assigned to
+        assigned_to = filters.get('assigned_to')
+        if assigned_to:
+            queryset = queryset.filter(assigned_to_id=assigned_to)
 
-            # Escalated to admin
-            escalated = filters.get('escalated_to_admin')
-            if escalated is not None:
-                queryset = queryset.filter(escalated_to_admin=escalated)
+        # Escalated to admin
+        escalated = filters.get('escalated_to_admin')
+        if escalated is not None:
+            queryset = queryset.filter(escalated_to_admin=escalated)
 
-            # Search (reporter name, email, message)
-            search = filters.get('search')
-            if search:
-                queryset = queryset.filter(
-                    Q(reporter_name__icontains=search) |
-                    Q(reporter_email__icontains=search) |
-                    Q(message__icontains=search) |
-                    Q(listing_identifier__icontains=search) |
-                    Q(reported_user_email__icontains=search)
-                )
+        # Search (reporter name, email, message)
+        search = filters.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(reporter_name__icontains=search) |
+                Q(reporter_email__icontains=search) |
+                Q(message__icontains=search) |
+                Q(listing_identifier__icontains=search) |
+                Q(reported_user_email__icontains=search)
+            )
 
-            # Date range
-            date_from = filters.get('date_from')
-            if date_from:
-                queryset = queryset.filter(created_at__gte=date_from)
-            date_to = filters.get('date_to')
-            if date_to:
-                queryset = queryset.filter(created_at__lte=date_to)
+        # Date range
+        date_from = filters.get('date_from')
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        date_to = filters.get('date_to')
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
 
         # ─── Pagination ────────────────────────────────────────
         paginator = Paginator(queryset, per_page)
@@ -138,7 +139,7 @@ class ReportQuery:
         )
 
     @staticmethod
-    def get_report_detail(request, report_id):
+    def get_report_detail(request, report_id) -> BaseResultWithData:
         """
         Get detailed report information including moderation history.
         """

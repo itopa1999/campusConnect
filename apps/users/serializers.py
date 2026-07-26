@@ -18,6 +18,8 @@ class UserCreationSerializer(serializers.Serializer):
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(max_length=128, write_only=True, required=True)
+    platform = serializers.CharField(required=True)
+
 
 
 class UserForgotPasswordSerializer(serializers.Serializer):
@@ -41,9 +43,11 @@ class ReportSerializer(serializers.Serializer):
 
 class LogoutSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(max_length=5000, write_only=True, required=False)
-
+    platform = serializers.CharField(required=True)
+    
 class RefreshTokenSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(max_length=5000, write_only=True, required=False)
+    platform = serializers.CharField(required=True)
 
 class ConfirmResetPasswordSerializer(serializers.Serializer):
     user_id = serializers.CharField(max_length=200, write_only=True, required=True)

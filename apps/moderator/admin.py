@@ -21,7 +21,7 @@ class ModeratorActionAdmin(SoftDeleteAdmin):
         'content_type_badge',
         'content_id',
         'reason_preview',
-        'created_at',
+        'is_deleted',
     )
     list_filter = (
         'action_type',
@@ -131,7 +131,7 @@ class FlaggedContentAdmin(SoftDeleteAdmin):
         'flagged_by_link',
         'reason_preview',
         'is_resolved_badge',
-        'created_at',
+        'is_deleted',
     )
     list_filter = (
         'content_type',
@@ -246,6 +246,7 @@ class UserModerationAdmin(SoftDeleteAdmin):
         'is_banned_badge',
         'banned_at',
         'modified_at',
+        'is_deleted'
     )
     list_filter = (
         'is_suspended',
@@ -365,6 +366,7 @@ class ModeratorNoteAdmin(SoftDeleteAdmin):
         'note_preview',
         'is_private_badge',
         'created_at',
+        'is_deleted'
     )
     list_filter = (
         'content_type',

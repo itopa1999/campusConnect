@@ -77,6 +77,7 @@ class ListingType(Enum):
 
 class ListingStatusType(Enum):
     ACTIVE = 'active'
+    REJECT = 'reject'
     SOLD = 'sold'
     EXPIRED = 'expired'
     PENDING = 'pending'
@@ -138,6 +139,9 @@ class BadgeChoiceEnum(Enum):
     
 
 class LostAndFoundStatusEnum(Enum):
+    PENDING = 'pending'
+    REJECT = 'reject'
+    HIDDEN = 'hide'
     OPEN = "open"
     CLAIMED = "claimed"
     EXPIRED = "expired"
@@ -233,6 +237,7 @@ class CacheKeysEnum(Enum):
     DASHBOARD = "get_dashboard_{user_id}"
     DASHBOARD_UPCOMING_EXPIRATION_LISTING = "get_upcoming_expiration_listing_{user_id}"
     DASHBOARD_LISTING = "get_dashboard_listing_{user_id}_{page}_{per_page}_{filters}"
+    DASHBOARD_REVIEW = "get_dashboard_review_{user_id}_{page}_{per_page}_{filters}"
     GET_POINTS_BALANCE = "get_points_balance_{user_id}"
     LOOKUP_DATA = "lookup_data_{filters}"
     INDEX_PRODUCTS = "index_products"
@@ -246,6 +251,7 @@ class CacheKeysEnum(Enum):
     PUBLIC_LISTING_DETAILS = "public_listing_details_{user_id}_{listing_id}"
     NOTIFICATIONS = "notifications_{user_id}_{page}_{per_page}_{filters}"
     NOTIFICATION_HEADER = "notifications_header_{user_id}"
+    FAVOURITE = "favourite_{user_id}_{page}_{per_page}_{filters}"
 
 
     # Moderator
@@ -299,6 +305,7 @@ class ContentTypeEnum(Enum):
     REPORT = 'report'
     CATEGORY = 'category'
     HOTSPOT = 'hotspot'
+    LOST_ITEM = 'lost_item'
 
     @classmethod
     def choices(cls):
@@ -319,6 +326,21 @@ class ReportStatusEnum(Enum):
     @classmethod
     def choices(cls):
         return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+
+
+class PlatformEnum(Enum):
+    SWAGGER = 'swagger'
+    WEB = 'web'
+    POSTMAN = 'postman'
+    MOBILE = 'mobile'
+
+    @classmethod
+    def choices(cls):
+        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
 
     @classmethod
     def values(cls):

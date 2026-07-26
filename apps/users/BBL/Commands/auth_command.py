@@ -8,7 +8,7 @@ from utils.log_helpers import logger, OperationLogger
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from django.conf import settings
 
-from utils.enums import NotificationEnum, TokenType
+from utils.enums import NotificationEnum, PlatformEnum, TokenType
 from utils.helpers import create_notification, is_email_verified
 
 class AuthCommand:    
@@ -16,8 +16,9 @@ class AuthCommand:
     def Execute(request, validated_data) -> BaseResultWithData:
         email = validated_data.get('email')
         password = validated_data.get('password')
+        platform = validated_data.get('platform')
         op = OperationLogger(f"AuthCommand.Execute login for user: {email}", email=email)
-        op.start()
+        op.start()                        
         try:
             # is_valid, message = validate_ui_email(email)
             # if not is_valid:
@@ -27,7 +28,13 @@ class AuthCommand:
             #         data=None,
             #         status_code=400
             #     )
-            
+            allowed_values = [choice[0] for choice in PlatformEnum.choices()]
+            if platform not in allowed_values:
+                op.fail(f"[AuthCommand.Execute] invalid platform for email: {email}")
+                return BaseResultWithData(
+                    message=f"Platform must be one of: {', '.join(allowed_values)}",
+                    status_code=400
+                )
             user = User.objects.filter(email=email, is_deleted=False).first()
             
             if not user:
@@ -79,15 +86,14 @@ class AuthCommand:
                 data={
                     'access_token': access_token,
                     'refresh_token': refresh_token,
+                    'platform': platform,
                     'user': {
                     "user_id": user.id,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
                     "email": user.email,
                     "profile_pic": profile_pic_url,
                     "point_bal": user.points or 0,
                     "trusting_score": user.average_rating,
-                    "is_email_verified": user.email_verified,
+                    "is_student_id_verified": user.student_id_verified,
                     "is_hall_verified": user.hall_verified,
                     }
                 },
@@ -317,20 +323,24 @@ class AuthCommand:
             )
 
     @staticmethod
-    def RefreshToken(request, refresh_token_str)-> BaseResultWithData:
+    def RefreshToken(request, validated_data)-> BaseResultWithData:
         """
         Verify refresh token, rotate tokens, and blacklist the old refresh token.
         Returns new access token and new refresh token.
         """
-        op = OperationLogger("AuthCommand.RefreshToken", refresh_token=refresh_token_str)
+        op = OperationLogger("AuthCommand.RefreshToken", data=validated_data)
         op.start()
-
+        platform = validated_data.get('platform')
+        refresh_token_str = None
+        if platform == PlatformEnum.WEB.value:
+            refresh_token_str = request.COOKIES.get('refresh_token')                
+        else:
+            refresh_token_str = validated_data.get('refresh_token')
         if not refresh_token_str:
             return BaseResultWithData(
                 message= "Refresh token is required.",
                 status_code=400
             )
-
         try:
             # 1. Validate the incoming refresh token
             try:
@@ -391,13 +401,11 @@ class AuthCommand:
                 'refresh_token': str(new_refresh),
                 'user': {
                     'user_id': user.id,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
                     'email': user.email,
                     'profile_pic': profile_pic_url,
                     'point_bal': user.points if user.points else 0,
                     'trusting_score': user.average_rating,
-                    'is_email_verified': user.email_verified,
+                    'is_student_id_verified': user.student_id_verified,
                     'is_hall_verified' : user.hall_verified
                 }
             }

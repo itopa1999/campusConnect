@@ -1,6 +1,7 @@
 from apps.moderator.BBL.Commands.category import CategoryCommand
 from apps.moderator.BBL.Commands.hotspot import HotspotCommand
 from apps.moderator.BBL.Commands.listing import ListingCommand
+from apps.moderator.BBL.Commands.lost_and_found import LostAndFoundCommand
 from apps.moderator.BBL.Commands.report import ReportCommand
 from apps.moderator.BBL.Commands.review import ReviewCommand
 from apps.moderator.BBL.Commands.user import UserCommand
@@ -8,6 +9,7 @@ from apps.moderator.BBL.Queries.category import CategoryQuery
 from apps.moderator.BBL.Queries.get_dashboard import DashboardQuery
 from apps.moderator.BBL.Queries.hotspot import HotspotQuery
 from apps.moderator.BBL.Queries.listing import ListingQuery
+from apps.moderator.BBL.Queries.lost_and_found import LostAndFoundQuery
 from apps.moderator.BBL.Queries.report import ReportQuery
 from apps.moderator.BBL.Queries.review import ReviewQuery
 from apps.moderator.BBL.Queries.user import UserQuery
@@ -120,6 +122,94 @@ class ModeratorListingToggleFlagView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = ListingCommand.toggle_flag_listing(request, listing_id, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class ModeratorLostItemListView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('status', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('is_flagged', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('is_deleted', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+        ]
+    )
+    def get(self, request):
+        result = LostAndFoundQuery.get_all_lost_items(request, request.GET.dict())
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class ModeratorLostItemDetailView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+
+    def get(self, request, lost_item_id):
+        result = LostAndFoundQuery.get_lost_item_detail(request, lost_item_id)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class ModeratorLostItemApproveView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    serializer_class = ReasonSerializer
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+
+    def patch(self, request, lost_item_id):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = LostAndFoundCommand.approve_lost_item(request, lost_item_id, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+class ModeratorLostItemRejectView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    serializer_class = ReasonSerializer
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+
+    def patch(self, request, lost_item_id):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = LostAndFoundCommand.reject_lost_item(request, lost_item_id, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class ModeratorLostItemToggleDeleteView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    serializer_class = ReasonSerializer
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+
+    def patch(self, request, lost_item_id):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = LostAndFoundCommand.toggle_delete_lost_item(request, lost_item_id, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class ModeratorLostItemToggleHideView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    serializer_class = ReasonSerializer
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+
+    def patch(self, request, lost_item_id):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = LostAndFoundCommand.toggle_hide_lost_item(request, lost_item_id, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class ModeratorLostItemToggleFlagView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    serializer_class = ResolutionNoteSerializer
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+
+    def patch(self, request, lost_item_id):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = LostAndFoundCommand.toggle_flag_lost_item(request, lost_item_id, serializer.validated_data)
         return Response(result.to_dict(), status=result.status_code)
 
 

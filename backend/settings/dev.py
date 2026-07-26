@@ -48,6 +48,19 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
 ]
 
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-key-id',
+]
+
 BASE_FRONTEND_URL = os.environ.get("BASE_FRONTEND_URL")
 
 # Payment Gateway Keys
@@ -62,3 +75,4 @@ FLUTTERWAVE_VERIFY_URL=os.getenv('FLUTTERWAVE_VERIFY_URL')
 
 
 COOKIE_SECURE = False
+COOKIE_SAMESITE = 'None' if COOKIE_SECURE else 'Lax'

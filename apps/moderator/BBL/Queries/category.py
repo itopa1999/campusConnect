@@ -6,9 +6,14 @@ from utils.log_helpers import OperationLogger
 
 class CategoryQuery:
     @staticmethod
-    def get_all_categories(request, filters=None):
+    def get_all_categories(request, filters=None)-> BaseResultWithData:
         op = OperationLogger("ModeratorCategoryQuery.get_all_categories", user=request.user.id)
         op.start()
+
+        if filters is None:
+            filters = request.GET.dict()
+        else:
+            filters = dict(filters)
 
         page = filters.get('page', 1) if filters else request.GET.get('page', 1)
         per_page = filters.get('per_page', 20) if filters else request.GET.get('per_page', 20)
@@ -26,7 +31,7 @@ class CategoryQuery:
         queryset = Category.objects.filter(is_deleted=False)
 
         # Search
-        search = filters.get('search') if filters else None
+        search = filters.get('search')
         if search:
             queryset = queryset.filter(name__icontains=search)
 
@@ -70,7 +75,7 @@ class CategoryQuery:
         )
 
     @staticmethod
-    def get_category_detail(request, category_id):
+    def get_category_detail(request, category_id)-> BaseResultWithData:
         op = OperationLogger("ModeratorCategoryQuery.get_category_detail", category_id=category_id)
         op.start()
 

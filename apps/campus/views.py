@@ -1,3 +1,5 @@
+from apps.campus.BBL.Commands.favourite import FavouriteCommand
+from apps.campus.BBL.Queries.favourite import FavouriteQuery
 from apps.campus.serializers import (ClaimSerializer, ListingAutoActivationSerializer, ListingSerializer, ListingUpdateSerializer, LostAndFoundSerializer, UpdateAdsViewSerializer, UploadLisitingImageSerializer)
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
@@ -40,9 +42,6 @@ class GetIndexDefaultLisitingView(APIView):
 # AUTHENTICATED VIEWS
 # ──────────────────────────────────────────────
 
-
-# TODO make lost and found authenticated.
-# TODO favorite
 class LostAndFoundView(generics.GenericAPIView):
     serializer_class = LostAndFoundSerializer
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
@@ -108,7 +107,23 @@ class GetDashboardView(APIView):
     def get(self, request):
         result = DashboardQuery.get_dashboard(request)
         return Response(result.to_dict(), status=result.status_code)
+
+
+class GetDashboardReviewsView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+        ]
+    )
+    def get(self, request):
+        result = DashboardQuery.get_dashboard_reviews(request, request.GET.dict())
+        return Response(result.to_dict(), status=result.status_code)
     
+
 
 class GetDashboardLisitingView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
@@ -270,3 +285,35 @@ class ListingDetailsView(APIView):
     def get(self, request, listing_id):
         result = ListingQuery.listing_details(request, listing_id)
         return Response(result.to_dict(), status=result.status_code)
+
+
+class AddFavouriteListingView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
+    
+    def post(self, request, listing_id):
+        result = FavouriteCommand.toggle_favourite(request.user, listing_id)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class ListFavouriteListingView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('price', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('category_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('listing_type', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('badge', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+        ]
+    )
+    def get(self, request):
+        result = FavouriteQuery.get_favourites(request, request.GET.dict())
+        return Response(result.to_dict(), status=result.status_code)
+
+
