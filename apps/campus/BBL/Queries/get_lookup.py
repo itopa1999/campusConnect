@@ -1,7 +1,7 @@
 from apps.campus.models import Category, CampusHotspot
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
-from utils.enums import AdvertTypeEnum, BadgeListingType, CacheKeysEnum, ListingType
+from utils.enums import AdvertTypeEnum, BadgeListingTypeEnum, CacheKeysEnum, ListingTypeEnum
 
 
 class LookUpQuery:
@@ -76,7 +76,7 @@ class LookUpQuery:
                         "value": choice[0],
                         "label": choice[1],
                     }
-                    for choice in BadgeListingType.choices()
+                    for choice in BadgeListingTypeEnum.choices()
                 ]
 
             # Listing type choices
@@ -86,7 +86,7 @@ class LookUpQuery:
                         "value": choice[0],
                         "label": choice[1],
                     }
-                    for choice in ListingType.choices()
+                    for choice in ListingTypeEnum.choices()
                 ]
 
             # Advert type choices

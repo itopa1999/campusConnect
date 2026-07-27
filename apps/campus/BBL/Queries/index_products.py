@@ -2,7 +2,7 @@ from django.utils import timezone
 from apps.campus.models import Listing
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
-from utils.enums import CacheKeysEnum, GroupNames, ListingStatusType
+from utils.enums import CacheKeysEnum, GroupNamesEnum, ListingStatusTypeEnum
 
 
 class IndexProductsQuery:
@@ -16,10 +16,10 @@ class IndexProductsQuery:
             now = timezone.now()
 
             queryset = Listing.objects.filter(
-                status=ListingStatusType.ACTIVE.value,
+                status=ListingStatusTypeEnum.ACTIVE.value,
                 is_deleted=False,
                 expires_at__gt=now,
-                user__groups__name=GroupNames.ADMIN.value
+                user__groups__name=GroupNamesEnum.ADMIN.value
             ).select_related('category', 'user').prefetch_related('hotspots').order_by('-created_at')[:limit]
 
             listings_data = []

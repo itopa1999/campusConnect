@@ -6,7 +6,7 @@ from apps.campus.models import Listing
 from apps.users.models import Notification, User
 # from utils.Tasks.backgroundTask import background_task_send_auto_reactivate_listing_emails, background_task_send_banner_expired_emails, background_task_send_expired_listing_emails, background_task_send_hot_sales_expired_emails
 from utils.constant_helper import ConstantHelper
-from utils.enums import ListingStatusType, NotificationEnum, PointTransactionTypeEnum
+from utils.enums import ListingStatusTypeEnum, NotificationEnum, PointTransactionTypeEnum
 from utils.helpers import UpdatePointsService
 from utils.log_helpers import OperationLogger
 import datetime
@@ -29,7 +29,7 @@ class PeriodTasksHelper:
             listings = list(
                 Listing.objects.select_related("user")
                 .filter(
-                    status=ListingStatusType.ACTIVE.value,
+                    status=ListingStatusTypeEnum.ACTIVE.value,
                     is_deleted=False,
                     expires_at__lte=now,
                 )[:BATCH_SIZE]
@@ -47,7 +47,7 @@ class PeriodTasksHelper:
                 non_auto_ids = [l.id for l in non_auto_listings]
                 with transaction.atomic():
                     Listing.objects.filter(id__in=non_auto_ids).update(
-                        status=ListingStatusType.EXPIRED.value
+                        status=ListingStatusTypeEnum.EXPIRED.value
                     )
                     notifications = [
                         Notification(
@@ -120,7 +120,7 @@ class PeriodTasksHelper:
                     ids = [l.id for l in cannot_reactivate]
                     with transaction.atomic():
                         Listing.objects.filter(id__in=ids).update(
-                            status=ListingStatusType.EXPIRED.value
+                            status=ListingStatusTypeEnum.EXPIRED.value
                         )
                         notifications = [
                             Notification(
@@ -163,7 +163,7 @@ class PeriodTasksHelper:
             listings = list(
                 Listing.objects.select_related("user")
                 .filter(
-                    status=ListingStatusType.ACTIVE.value,
+                    status=ListingStatusTypeEnum.ACTIVE.value,
                     is_ads_banner=True,
                     is_deleted=False,
                     is_ads_banner_expires_at__lte=now,
@@ -225,7 +225,7 @@ class PeriodTasksHelper:
             listings = list(
                 Listing.objects.select_related("user")
                 .filter(
-                    status=ListingStatusType.ACTIVE.value,
+                    status=ListingStatusTypeEnum.ACTIVE.value,
                     is_hot_sales=True,
                     is_deleted=False,
                     is_hot_sales_expires_at__lte=now,

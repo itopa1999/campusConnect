@@ -7,7 +7,7 @@ from django.test import RequestFactory
 from apps.campus.BBL.Queries.get_dashboard import DashboardQuery
 from apps.campus.models import Listing, Review, Category, CampusHotspot
 from apps.users.models import User
-from utils.enums import ListingStatusType, ListingType
+from utils.enums import ListingStatusTypeEnum, ListingTypeEnum
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -54,8 +54,8 @@ def active_listings(test_user, test_category, test_hotspots):
             description=f"Description {i+1}",
             price=100 + i * 50,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=expires_at,
             is_ads_banner=(i % 2 == 0),
             is_hot_sales=(i % 3 == 0),
@@ -77,8 +77,8 @@ def expired_listings(test_user, test_category):
             description="Expired",
             price=50,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.EXPIRED.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.EXPIRED.value,
             expires_at=now - timedelta(days=1 + i),
         )
         expired.append(listing)

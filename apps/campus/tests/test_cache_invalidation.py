@@ -8,7 +8,7 @@ import apps.campus as campus_app_module
 from apps.campus.apps import CampusConfig
 from apps.campus.models import Category, Listing
 from apps.users.models import User
-from utils.enums import ListingStatusType, ListingType
+from utils.enums import ListingStatusTypeEnum, ListingTypeEnum
 
 
 @pytest.mark.django_db
@@ -32,8 +32,8 @@ def test_listing_save_triggers_cache_invalidation():
             title="Cache invalidation test",
             description="Should trigger cache invalidation",
             price=50.00,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=10),
         )
 

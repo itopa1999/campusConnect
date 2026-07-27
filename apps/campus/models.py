@@ -3,7 +3,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator, RegexVa
 import datetime
 from django.utils import timezone
 from apps.users.models import User
-from utils.enums import BadgeListingType, ListingType, ListingStatusType, LostAndFoundStatusEnum
+from utils.enums import BadgeListingTypeEnum, ListingTypeEnum, ListingStatusTypeEnum, LostAndFoundStatusEnum
 from utils.base_model import BaseModel
 import os
 import uuid
@@ -77,19 +77,19 @@ class Listing(BaseModel):
         null=True)
     badge = models.CharField(
         max_length=50, 
-        choices=BadgeListingType.choices(), 
+        choices=BadgeListingTypeEnum.choices(), 
         blank=True, 
         null=True
     )
     listing_type = models.CharField(
         max_length=10, 
-        choices=ListingType.choices(), 
-        default=ListingType.SELL.value
+        choices=ListingTypeEnum.choices(), 
+        default=ListingTypeEnum.SELL.value
     )
     status = models.CharField(
         max_length=10, 
-        choices=ListingStatusType.choices(), 
-        default=ListingStatusType.PENDING.value
+        choices=ListingStatusTypeEnum.choices(), 
+        default=ListingStatusTypeEnum.PENDING.value
     )
     expires_at = models.DateTimeField(null=True, blank=True)
 
@@ -146,8 +146,8 @@ class Listing(BaseModel):
 
 
 class Favourite(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
-    listing = models.ForeignKey('Listing', on_delete=models.CASCADE, related_name='favorited_by')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favourites')
+    listing = models.ForeignKey('Listing', on_delete=models.CASCADE, related_name='favourited_by')
 
     class Meta:
         unique_together = ('user', 'listing')

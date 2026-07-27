@@ -8,7 +8,7 @@ from rest_framework import serializers
 from apps.campus.BBL.Commands.lisiting import ListingCommand
 from apps.campus.models import Listing, CampusHotspot
 from apps.users.models import User
-from utils.enums import ListingStatusType, ListingType, PointTransactionTypeEnum
+from utils.enums import ListingStatusTypeEnum, ListingTypeEnum, PointTransactionTypeEnum
 from utils.constant_helper import ConstantHelper
 from utils.helpers import UpdatePointsService
 
@@ -65,7 +65,7 @@ def valid_listing_data(test_category, test_hotspots):
         "description": "Great condition",
         "price": "500.00",
         "category": test_category.id,
-        "listing_type": ListingType.SELL.value,
+        "listing_type": ListingTypeEnum.SELL.value,
         "hotspot_ids": [h.id for h in test_hotspots],
         "is_ads_banner": False,
         "is_hot_sales": False,
@@ -81,8 +81,8 @@ def test_listing(test_user, test_category, test_hotspots):
         description="Test description",
         price=Decimal("300.00"),
         category=test_category,
-        listing_type=ListingType.SELL.value,
-        status=ListingStatusType.ACTIVE.value,
+        listing_type=ListingTypeEnum.SELL.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         is_ads_banner=False,
         is_hot_sales=False,
         auto_reactivate=False,
@@ -103,7 +103,7 @@ class TestCreateListing:
         listing = Listing.objects.get(id=result.data["listing_id"])
         assert listing.title == "Test Laptop"
         assert listing.price == Decimal("500.00")
-        assert listing.status == ListingStatusType.PENDING.value
+        assert listing.status == ListingStatusTypeEnum.PENDING.value
         assert listing.hotspots.count() == len(valid_listing_data["hotspot_ids"])
 
     def test_create_listing_insufficient_points(self, test_user_low_points, valid_listing_data):
@@ -145,7 +145,7 @@ class TestCreateListing:
     def test_create_listing_freebie_with_price(self, test_user, valid_listing_data):
         """Freebie with non-zero price should fail."""
         data = valid_listing_data.copy()
-        data["listing_type"] = ListingType.FREEBIE.value
+        data["listing_type"] = ListingTypeEnum.FREEBIE.value
         data["price"] = "10"
         result = ListingCommand.create_listing(test_user, data)
         assert result.is_success is False
@@ -260,7 +260,7 @@ class TestUpdateListing:
         assert "Price cannot be negative" in result.message
 
     def test_update_listing_freebie_with_price(self, test_user, test_listing):
-        data = {"listing_type": ListingType.FREEBIE.value, "price": "5"}
+        data = {"listing_type": ListingTypeEnum.FREEBIE.value, "price": "5"}
         result = ListingCommand.update_listing(test_user, test_listing.id, data)
         assert result.is_success is False
         assert result.status_code == 400
@@ -308,26 +308,26 @@ class TestDeleteListing:
 class TestReactivateListing:
 
     def test_reactivate_sold_listing_success(self, test_user, test_listing):
-        test_listing.status = ListingStatusType.SOLD.value
+        test_listing.status = ListingStatusTypeEnum.SOLD.value
         test_listing.save()
         # Ensure user has points (already has)
         result = ListingCommand.reactivate_listing(test_user, test_listing.id)
         assert result.is_success is True
         assert result.status_code == 200
         test_listing.refresh_from_db()
-        assert test_listing.status == ListingStatusType.ACTIVE.value
+        assert test_listing.status == ListingStatusTypeEnum.ACTIVE.value
 
     def test_reactivate_expired_listing_success(self, test_user, test_listing):
-        test_listing.status = ListingStatusType.EXPIRED.value
+        test_listing.status = ListingStatusTypeEnum.EXPIRED.value
         test_listing.save()
         result = ListingCommand.reactivate_listing(test_user, test_listing.id)
         assert result.is_success is True
         test_listing.refresh_from_db()
-        assert test_listing.status == ListingStatusType.ACTIVE.value
+        assert test_listing.status == ListingStatusTypeEnum.ACTIVE.value
 
     def test_reactivate_active_listing_fails(self, test_user, test_listing):
         """Cannot reactivate already active listing."""
-        test_listing.status = ListingStatusType.ACTIVE.value
+        test_listing.status = ListingStatusTypeEnum.ACTIVE.value
         test_listing.save()
         result = ListingCommand.reactivate_listing(test_user, test_listing.id)
         assert result.is_success is False
@@ -336,7 +336,7 @@ class TestReactivateListing:
 
     def test_reactivate_insufficient_points(self, test_user, test_listing):
         with patch("apps.campus.BBL.Commands.lisiting.UpdatePointsService.check_points", return_value=0):
-            test_listing.status = ListingStatusType.SOLD.value
+            test_listing.status = ListingStatusTypeEnum.SOLD.value
             test_listing.save()
             result = ListingCommand.reactivate_listing(test_user, test_listing.id)
             assert result.is_success is False
@@ -353,12 +353,12 @@ class TestReactivateListing:
 class TestMarkSold:
 
     def test_mark_sold_success(self, test_user, test_listing):
-        assert test_listing.status == ListingStatusType.ACTIVE.value
+        assert test_listing.status == ListingStatusTypeEnum.ACTIVE.value
         result = ListingCommand.mark_sold(test_user, test_listing.id)
         assert result.is_success is True
         assert result.status_code == 200
         test_listing.refresh_from_db()
-        assert test_listing.status == ListingStatusType.SOLD.value
+        assert test_listing.status == ListingStatusTypeEnum.SOLD.value
         # Check user.sold_items increment? But we have bug: user.sold_items =+ 1 (should be += 1)
         # We'll test that later; we can fix but for now we'll assert not failing.
 
@@ -477,7 +477,7 @@ class TestUpdateAds:
 
             
     def test_update_ads_inactive_listing(self, test_user, test_listing):
-        test_listing.status = ListingStatusType.SOLD.value
+        test_listing.status = ListingStatusTypeEnum.SOLD.value
         test_listing.save()
         data = {"is_ads_banner": True}
         result = ListingCommand.update_ads(test_user, test_listing.id, data)
@@ -519,7 +519,7 @@ class TestAutoReactivation:
         assert test_listing.auto_reactivate is False
 
     def test_auto_reactivate_inactive_listing(self, test_user, test_listing):
-        test_listing.status = ListingStatusType.SOLD.value
+        test_listing.status = ListingStatusTypeEnum.SOLD.value
         test_listing.save()
         data = {"auto_reactivate": True}
         result = ListingCommand.lisiting_auto_reactivation(test_user, test_listing.id, data)

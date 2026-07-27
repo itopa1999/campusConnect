@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Count, Q
 from django.core.paginator import Paginator
@@ -6,8 +6,8 @@ from apps.campus.models import Listing, Review
 from apps.moderator.models import FlaggedContent
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
-from utils.enums import CacheKeysEnum, ContentTypeEnum, ListingStatusType
-from utils.helpers import calculate_profile_completion, humanize_date
+from utils.enums import CacheKeysEnum, ContentTypeEnum, ListingStatusTypeEnum, ListingTypeEnum
+from utils.helpers import calculate_profile_completion, format_naira, humanize_date
 
 
 class DashboardQuery:
@@ -20,12 +20,12 @@ class DashboardQuery:
             now = timezone.now()
 
             counts = Listing.objects.filter(user=user, is_deleted=False).aggregate(
-                total_active=Count('id', filter=Q(status=ListingStatusType.ACTIVE.value, expires_at__gt=now)),
-                total_expired=Count('id', filter=Q(status=ListingStatusType.EXPIRED.value)),
-                total_marked_sold=Count('id', filter=Q(status=ListingStatusType.SOLD.value)),
-                total_pending=Count('id', filter=Q(status=ListingStatusType.PENDING.value)),
-                total_rejected=Count('id', filter=Q(status=ListingStatusType.REJECT.value)),
-                total_hidden=Count('id', filter=Q(status=ListingStatusType.HIDDEN.value))
+                total_active=Count('id', filter=Q(status=ListingStatusTypeEnum.ACTIVE.value, expires_at__gt=now)),
+                total_expired=Count('id', filter=Q(status=ListingStatusTypeEnum.EXPIRED.value)),
+                total_marked_sold=Count('id', filter=Q(status=ListingStatusTypeEnum.SOLD.value)),
+                total_pending=Count('id', filter=Q(status=ListingStatusTypeEnum.PENDING.value)),
+                total_rejected=Count('id', filter=Q(status=ListingStatusTypeEnum.REJECT.value)),
+                total_hidden=Count('id', filter=Q(status=ListingStatusTypeEnum.HIDDEN.value))
             )
 
             # ── Trust score ──
@@ -148,7 +148,7 @@ class DashboardQuery:
             now = timezone.now()
             listings = Listing.objects.filter(
                 user=user,
-                status=ListingStatusType.ACTIVE.value,
+                status=ListingStatusTypeEnum.ACTIVE.value,
                 is_deleted=False,
                 expires_at__gt=now,
                 expires_at__lte=now + timedelta(days=90)
@@ -160,6 +160,7 @@ class DashboardQuery:
             for listing in listings:
                 days_left = (listing.expires_at - now).days
                 upcoming.append({
+                    'id': listing.id,
                     'title': listing.title,
                     'description': listing.description or "",
                     'expires_at_humanized': f"Expires in {days_left} day{'s' if days_left != 1 else ''}",
@@ -192,7 +193,7 @@ class DashboardQuery:
         page = int(filters.get('page', 1))
         per_page = min(max(int(filters.get('per_page', 10)), 1), 100)  
 
-        filter_keys = ['reference', 'listing_type', 'search', 'badge', 'date_from', 'date_to']
+        filter_keys = ['search']
         filter_parts = []
         for key in filter_keys:
             value = filters.get(key)
@@ -213,42 +214,25 @@ class DashboardQuery:
                    'category__name') \
              .order_by('-created_at')
 
-            category_name = filters.get("category_name")
-            if category_name:
-                qs = qs.filter(
-                    category__name__iexact=category_name
-                )
-            
-            listing_type = filters.get("listing_type")
-            if listing_type:
-                qs = qs.filter(
-                    listing_type=listing_type
-                )
-
-            badge = filters.get("badge")
-            if badge:
-                qs = qs.filter(
-                    badge__iexact=badge
-                )
-
             search = filters.get("search")
             if search:
                 qs = qs.filter(
-                    Q(title__icontains=search)
-                    | Q(description__icontains=search)
+                    Q(title__icontains=search) |
+                    Q(description__icontains=search) |
+                    Q(category__name__iexact=search) |
+                    Q(listing_type__icontains=search) |
+                    Q(badge__iexact=search) 
                 )
 
-            date_from = filters.get("date_from")
-            if date_from:
-                qs = qs.filter(
-                    created_at__date__gte=date_from
-                )
-
-            date_to = filters.get("date_to")
-            if date_to:
-                qs = qs.filter(
-                    created_at__date__lte=date_to
-                )
+                try:
+                    datetime.strptime(search, '%Y-%m-%d')
+                    qs |= Q(created_at__date__gte=search) | Q(created_at__date__lte=search)
+                except ValueError:
+                    try:
+                        datetime.strptime(search, '%d-%m-%Y')
+                        qs |= Q(created_at__date__gte=search) | Q(created_at__date__lte=search)
+                    except ValueError:
+                        pass
 
             paginator = Paginator(qs, per_page)
             page_obj = paginator.get_page(page)
@@ -263,7 +247,7 @@ class DashboardQuery:
                     'id': listing.id,
                     'title': listing.title,
                     'description': listing.description or "",
-                    'price': float(listing.price) if listing.price else 0,
+                    'price': 'Free' if listing.listing_type == ListingTypeEnum.FREEBIE.value else format_naira(listing.price),
                     'category': listing.category.name,
                     'badge': listing.badge,
                     'is_hot_sale': listing.is_hot_sales,

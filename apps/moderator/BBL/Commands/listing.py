@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from apps.campus.models import Listing
 from apps.moderator.models import FlaggedContent, ModeratorAction
 from utils.base_result import BaseResultWithData
-from utils.enums import ListingStatusType, ContentTypeEnum, ModeratorActionTypeEnum
+from utils.enums import ListingStatusTypeEnum, ContentTypeEnum, ModeratorActionTypeEnum
 from utils.log_helpers import OperationLogger
 
 User = get_user_model()
@@ -35,7 +35,7 @@ class ListingCommand:
             listing = Listing.objects.select_for_update().get(
                 id=listing_id,
                 is_deleted=False,
-                status=ListingStatusType.PENDING.value
+                status=ListingStatusTypeEnum.PENDING.value
             )
         except Listing.DoesNotExist:
             op.fail("Listing not found or not pending")
@@ -46,7 +46,7 @@ class ListingCommand:
             )
 
         old_status = listing.status
-        listing.status = ListingStatusType.ACTIVE.value
+        listing.status = ListingStatusTypeEnum.ACTIVE.value
         listing.save(update_fields=['status'])
 
         ModeratorAction.objects.create(
@@ -94,7 +94,7 @@ class ListingCommand:
             listing = Listing.objects.select_for_update().get(
                 id=listing_id,
                 is_deleted=False,
-                status=ListingStatusType.PENDING.value
+                status=ListingStatusTypeEnum.PENDING.value
             )
         except Listing.DoesNotExist:
             op.fail("Listing not found or not pending")
@@ -105,7 +105,7 @@ class ListingCommand:
             )
 
         old_status = listing.status
-        listing.status = ListingStatusType.REJECT.value
+        listing.status = ListingStatusTypeEnum.REJECT.value
         listing.save(update_fields=['status'])
 
         ModeratorAction.objects.create(
@@ -222,12 +222,12 @@ class ListingCommand:
 
         old_status = listing.status
 
-        if listing.status == ListingStatusType.HIDDEN.value:
-            listing.status = ListingStatusType.PENDING.value
+        if listing.status == ListingStatusTypeEnum.HIDDEN.value:
+            listing.status = ListingStatusTypeEnum.PENDING.value
             action_type = ModeratorActionTypeEnum.UNHIDE.value
             message_text = "Listing unhidden and set to PENDING"
         else:
-            listing.status = ListingStatusType.HIDDEN.value
+            listing.status = ListingStatusTypeEnum.HIDDEN.value
             action_type = ModeratorActionTypeEnum.HIDE.value
             message_text = "Listing hidden"
 

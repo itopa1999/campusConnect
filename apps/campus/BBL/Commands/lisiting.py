@@ -8,7 +8,7 @@ from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import AdvertTypeEnum, ListingStatusType, ListingType, NotificationEnum, PointTransactionTypeEnum
+from utils.enums import AdvertTypeEnum, ListingStatusTypeEnum, ListingTypeEnum, NotificationEnum, PointTransactionTypeEnum
 from utils.helpers import UpdatePointsService, create_notification, parse_bool
 from utils.log_helpers import OperationLogger
 from PIL import Image
@@ -119,10 +119,10 @@ class ListingCommand:
 
         # --- 5. Freebie specific rule ---
         listing_type = data.get('listing_type')
-        if listing_type == ListingType.FREEBIE.value and price not in (None, 0):
-            op.fail(f"{ListingType.FREEBIE.value} price must be 0 for listing: {data.get('title')}")
+        if listing_type == ListingTypeEnum.FREEBIE.value and price not in (None, 0):
+            op.fail(f"{ListingTypeEnum.FREEBIE.value} price must be 0 for listing: {data.get('title')}")
             return BaseResultWithData(
-                message=f"{ListingType.FREEBIE.value} must have price set to 0.",
+                message=f"{ListingTypeEnum.FREEBIE.value} must have price set to 0.",
                 status_code=400
             )
 
@@ -284,14 +284,14 @@ class ListingCommand:
                         )
 
             # ─── 4. Listing type validation ────────────────────────────
-            if 'listing_type' in data and data['listing_type'] not in ListingType.values():
+            if 'listing_type' in data and data['listing_type'] not in ListingTypeEnum.values():
                 op.fail(f"Invalid listing type for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Invalid listing type.",
                     status_code=400
                 )
 
-            if data.get('listing_type') == ListingType.FREEBIE.value:
+            if data.get('listing_type') == ListingTypeEnum.FREEBIE.value:
                 if 'price' in data and data['price'] not in (None, 0):
                     op.fail(f"Freebie price must be 0 for listing: {listing.title}")
                     return BaseResultWithData(
@@ -421,7 +421,7 @@ class ListingCommand:
                     status_code=404
                 )
 
-            if listing.status.lower() != ListingStatusType.SOLD.value.lower() and listing.status.lower() != ListingStatusType.EXPIRED.value.lower():
+            if listing.status.lower() != ListingStatusTypeEnum.SOLD.value.lower() and listing.status.lower() != ListingStatusTypeEnum.EXPIRED.value.lower():
                 op.fail(f"Invalid status for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Only sold or expired listings can be reactivated.",
@@ -438,7 +438,7 @@ class ListingCommand:
                 )
 
             with transaction.atomic():
-                listing.status = ListingStatusType.ACTIVE.value
+                listing.status = ListingStatusTypeEnum.ACTIVE.value
                 listing.expires_at = None
                 listing.save(update_fields=['status', 'expires_at'])
 
@@ -501,7 +501,7 @@ class ListingCommand:
                 )
             
             with transaction.atomic():
-                listing.status = ListingStatusType.SOLD.value
+                listing.status = ListingStatusTypeEnum.SOLD.value
                 listing.save(update_fields=['status'])
 
                 user.sold_items += 1
@@ -642,7 +642,7 @@ class ListingCommand:
                     status_code=400
                 )
             
-            if listing.status != ListingStatusType.ACTIVE.value:
+            if listing.status != ListingStatusTypeEnum.ACTIVE.value:
                 op.fail(f"Invalid listing status for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Ads can only be set for active listings.",
@@ -767,7 +767,7 @@ class ListingCommand:
             
             auto_reactivate = parse_bool(data.get('auto_reactivate', False))
 
-            if listing.status not in [ListingStatusType.ACTIVE.value, ListingStatusType.EXPIRED.value]:
+            if listing.status not in [ListingStatusTypeEnum.ACTIVE.value, ListingStatusTypeEnum.EXPIRED.value]:
                 op.fail(f"Invalid listing status for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Auto-reactivation can only be set for active or expired listings.",

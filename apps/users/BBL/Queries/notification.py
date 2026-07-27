@@ -29,7 +29,7 @@ class NotificationQueries:
             per_page = 1
         if per_page > 100:
             per_page = 100
-        filter_keys = ['is_read', 'date_from', 'date_to']
+        filter_keys = ['is_read']
         filter_parts = []
         for key in filter_keys:
             value = filters.get(key)
@@ -51,7 +51,10 @@ class NotificationQueries:
             queryset = Notification.objects.filter(
                 user=user,
                 is_deleted=False
-            ).select_related('user').order_by('-created_at')
+            ).select_related('user').order_by('is_read')
+
+            print(queryset.count())
+
             unread_messages_counts = queryset.filter(is_read=False).count()
 
             is_read = filters.get('is_read')
@@ -60,18 +63,7 @@ class NotificationQueries:
                     queryset = queryset.filter(is_read=True)
                 else:
                     queryset = queryset.filter(is_read=False)
-            date_from = filters.get("date_from")
-            if date_from:
-                queryset = queryset.filter(
-                    created_at__date__gte=date_from
-                )
-
-            date_to = filters.get("date_to")
-            if date_to:
-                queryset = queryset.filter(
-                    created_at__date__lte=date_to
-                )
-
+                    
             # Pagination logic
             paginator = Paginator(queryset, per_page)
             try:

@@ -2,7 +2,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import Group
 from django.db import models
 
-from utils.enums import GroupNames
+from utils.enums import GroupNamesEnum
 
 
 class SoftDeleteQuerySet(models.QuerySet):
@@ -41,7 +41,7 @@ class UserManager(SoftDeleteManager, BaseUserManager):
         user.set_password(password)
         
         if group_name is None:
-            group_name = GroupNames.ADMIN.value if extra_fields.get('is_superuser') else GroupNames.STUDENT.value
+            group_name = GroupNamesEnum.ADMIN.value if extra_fields.get('is_superuser') else GroupNamesEnum.STUDENT.value
 
         group, created = Group.objects.get_or_create(name=group_name)
         user.save(using=self._db)

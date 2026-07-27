@@ -6,7 +6,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 from apps.campus.models import Listing, Category
 from apps.moderator.models import FlaggedContent, ModeratorAction
-from utils.enums import ListingStatusType, ContentTypeEnum, ModeratorActionTypeEnum
+from utils.enums import ListingStatusTypeEnum, ContentTypeEnum, ModeratorActionTypeEnum
 
 User = get_user_model()
 
@@ -53,7 +53,7 @@ def pending_listing(db, user, category):
         price=10.00,
         user=user,
         category=category,
-        status=ListingStatusType.PENDING.value,
+        status=ListingStatusTypeEnum.PENDING.value,
         is_deleted=False,
     )
 
@@ -66,7 +66,7 @@ def active_listing(db, user, category):
         price=20.00,
         user=user,
         category=category,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         is_deleted=False,
     )
 
@@ -79,7 +79,7 @@ def deleted_listing(db, user, category):
         price=0,
         user=user,
         category=category,
-        status=ListingStatusType.PENDING.value,
+        status=ListingStatusTypeEnum.PENDING.value,
         is_deleted=True,
     )
 
@@ -92,7 +92,7 @@ def hidden_listing(db, user, category):
         price=5.00,
         user=user,
         category=category,
-        status=ListingStatusType.HIDDEN.value,
+        status=ListingStatusTypeEnum.HIDDEN.value,
         is_deleted=False,
     )
 
@@ -120,10 +120,10 @@ class TestModeratorListingCommand:
         result = ListingCommand.approve_listing(moderator_request, pending_listing.id, data)
         assert result.status_code == 200
         assert result.message == "Listing approved successfully"
-        assert result.data['status'] == ListingStatusType.ACTIVE.value
+        assert result.data['status'] == ListingStatusTypeEnum.ACTIVE.value
 
         pending_listing.refresh_from_db()
-        assert pending_listing.status == ListingStatusType.ACTIVE.value
+        assert pending_listing.status == ListingStatusTypeEnum.ACTIVE.value
 
         action = ModeratorAction.objects.filter(
             content_type=ContentTypeEnum.LISTING.value,
@@ -132,8 +132,8 @@ class TestModeratorListingCommand:
         ).first()
         assert action is not None
         assert action.reason == 'Looks good'
-        assert action.metadata['old_status'] == ListingStatusType.PENDING.value
-        assert action.metadata['new_status'] == ListingStatusType.ACTIVE.value
+        assert action.metadata['old_status'] == ListingStatusTypeEnum.PENDING.value
+        assert action.metadata['new_status'] == ListingStatusTypeEnum.ACTIVE.value
 
     def test_approve_listing_missing_reason(self, moderator_request, pending_listing):
         data = {}
@@ -141,7 +141,7 @@ class TestModeratorListingCommand:
         assert result.status_code == 400
         assert result.message == "A reason is required for approving a listing"
         pending_listing.refresh_from_db()
-        assert pending_listing.status == ListingStatusType.PENDING.value
+        assert pending_listing.status == ListingStatusTypeEnum.PENDING.value
 
     def test_approve_listing_not_found(self, moderator_request):
         data = {'reason': 'test'}
@@ -254,9 +254,9 @@ class TestModeratorListingCommand:
         result = ListingCommand.toggle_hide_listing(moderator_request, active_listing.id, data)
         assert result.status_code == 200
         assert result.message == "Listing hidden"
-        assert result.data['status'] == ListingStatusType.HIDDEN.value
+        assert result.data['status'] == ListingStatusTypeEnum.HIDDEN.value
         active_listing.refresh_from_db()
-        assert active_listing.status == ListingStatusType.HIDDEN.value
+        assert active_listing.status == ListingStatusTypeEnum.HIDDEN.value
 
         action = ModeratorAction.objects.filter(
             content_type=ContentTypeEnum.LISTING.value,
@@ -265,17 +265,17 @@ class TestModeratorListingCommand:
         ).first()
         assert action is not None
         assert action.reason == 'Inappropriate content'
-        assert action.metadata['old_status'] == ListingStatusType.ACTIVE.value
-        assert action.metadata['new_status'] == ListingStatusType.HIDDEN.value
+        assert action.metadata['old_status'] == ListingStatusTypeEnum.ACTIVE.value
+        assert action.metadata['new_status'] == ListingStatusTypeEnum.HIDDEN.value
 
     def test_toggle_hide_listing_unhide(self, moderator_request, hidden_listing):
         data = {'reason': 'Content was valid'}
         result = ListingCommand.toggle_hide_listing(moderator_request, hidden_listing.id, data)
         assert result.status_code == 200
         assert result.message == "Listing unhidden and set to PENDING"
-        assert result.data['status'] == ListingStatusType.PENDING.value
+        assert result.data['status'] == ListingStatusTypeEnum.PENDING.value
         hidden_listing.refresh_from_db()
-        assert hidden_listing.status == ListingStatusType.PENDING.value
+        assert hidden_listing.status == ListingStatusTypeEnum.PENDING.value
 
         action = ModeratorAction.objects.filter(
             content_type=ContentTypeEnum.LISTING.value,
@@ -290,7 +290,7 @@ class TestModeratorListingCommand:
         assert result.status_code == 400
         assert result.message == "A reason is required for toggling hide status"
         active_listing.refresh_from_db()
-        assert active_listing.status == ListingStatusType.ACTIVE.value
+        assert active_listing.status == ListingStatusTypeEnum.ACTIVE.value
 
     def test_toggle_hide_listing_not_found(self, moderator_request):
         data = {'reason': 'test'}
@@ -416,7 +416,7 @@ class TestModeratorListingCommand:
             with pytest.raises(IntegrityError):
                 ListingCommand.approve_listing(moderator_request, pending_listing.id, data)
             pending_listing.refresh_from_db()
-            assert pending_listing.status == ListingStatusType.PENDING.value
+            assert pending_listing.status == ListingStatusTypeEnum.PENDING.value
 
     def test_reject_listing_atomicity(self, moderator_request, pending_listing, mocker):
         with mocker.patch(
@@ -449,7 +449,7 @@ class TestModeratorListingCommand:
             with pytest.raises(IntegrityError):
                 ListingCommand.toggle_hide_listing(moderator_request, active_listing.id, data)
             active_listing.refresh_from_db()
-            assert active_listing.status == ListingStatusType.ACTIVE.value
+            assert active_listing.status == ListingStatusTypeEnum.ACTIVE.value
 
     def test_toggle_flag_listing_atomicity_flag_creation(self, moderator_request, pending_listing, mocker):
         with mocker.patch(

@@ -16,7 +16,7 @@ from apps.users.BBL.Queries.FlutterConfirm import FlutterwaveConfirmQuery
 from apps.users.BBL.Queries.PaystackConfirm import PaystackConfirmQuery
 from apps.users.BBL.Queries.point_packages import PointPackagesQueries
 from utils.base_result import BaseResultWithData
-from utils.enums import GroupNames, PlatformEnum
+from utils.enums import GroupNamesEnum, PlatformEnum
 from utils.helpers import UpdatePointsService
 from utils.permissions import ConstantPermission
 from .BBL.Commands.account_command import AccountCommand
@@ -302,7 +302,7 @@ class FlutterwavePointsConfirmView(APIView):
 
 class ChangePasswordView(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=5, period=3600, user_type=UserTypeEnum.AUTH)]
 
     def post(self, request):
@@ -314,7 +314,7 @@ class ChangePasswordView(generics.GenericAPIView):
 
 class LogoutUserView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
 
     def post(self, request):
@@ -367,7 +367,7 @@ class LogoutUserView(generics.GenericAPIView):
         
 
 class RefreshPointBalanceView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request):
@@ -381,7 +381,7 @@ class RefreshPointBalanceView(APIView):
 
 
 class GetTransactionView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -399,7 +399,7 @@ class GetTransactionView(APIView):
     
 
 class GetPointPurchasedView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -420,7 +420,7 @@ class GetPointPurchasedView(APIView):
     
 
 class PointPackagesView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request):
         result = PointPackagesQueries.get_point_packages()
@@ -429,7 +429,7 @@ class PointPackagesView(APIView):
 
 
 class BuyPointView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     serializer_class = BuyPointSerializer
     throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.AUTH)]
 
@@ -441,7 +441,7 @@ class BuyPointView(generics.GenericAPIView):
 
 
 class RetryPurchaseView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     serializer_class = RetryPurchaseSerailizer
     throttle_classes = [CustomRateThrottle(rate=5, period=3600, user_type=UserTypeEnum.AUTH)]
 
@@ -453,7 +453,7 @@ class RetryPurchaseView(generics.GenericAPIView):
 
 
 class ProfileView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get_serializer_class(self):
@@ -473,7 +473,7 @@ class ProfileView(generics.GenericAPIView):
 
 
 class UploadProfilePictureView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     serializer_class = ProfilePictureSerializer
     parser_classes = [MultiPartParser, FormParser]
     throttle_classes = [CustomRateThrottle(rate=10, period=300, user_type=UserTypeEnum.AUTH)]
@@ -486,7 +486,7 @@ class UploadProfilePictureView(generics.GenericAPIView):
 
 
 class UploadStudentIdView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     serializer_class = UploadStudentIdSerializer
     parser_classes = [MultiPartParser, FormParser]
     throttle_classes = [CustomRateThrottle(rate=10, period=300, user_type=UserTypeEnum.AUTH)]
@@ -499,13 +499,11 @@ class UploadStudentIdView(generics.GenericAPIView):
 
 
 class GetAllNotificationsView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('is_read', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
-            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         ]
@@ -516,7 +514,7 @@ class GetAllNotificationsView(APIView):
 
 
 class GetNotificationsHeaderView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=40, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request, *args, **kwargs):
@@ -525,7 +523,7 @@ class GetNotificationsHeaderView(APIView):
 
 
 class NotificationMarkAsReadView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def put(self, request, notification_id):
@@ -534,7 +532,7 @@ class NotificationMarkAsReadView(APIView):
 
 
 class MarkAllNotificationAsReadView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=10, period=300, user_type=UserTypeEnum.AUTH)]
 
     def put(self, request):
@@ -543,7 +541,7 @@ class MarkAllNotificationAsReadView(APIView):
 
 
 class NotificationDeleteView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
 
     def delete(self, request, notification_id):
@@ -552,7 +550,7 @@ class NotificationDeleteView(APIView):
 
 
 class DeleteAllNotificationView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=5, period=3600, user_type=UserTypeEnum.AUTH)]
 
     def delete(self, request):

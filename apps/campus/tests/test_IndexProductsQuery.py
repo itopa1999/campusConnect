@@ -8,7 +8,7 @@ from django.test import RequestFactory
 from apps.campus.BBL.Queries.index_products import IndexProductsQuery
 from apps.campus.models import Listing, Category, CampusHotspot
 from apps.users.models import User
-from utils.enums import ListingStatusType, ListingType, GroupNames
+from utils.enums import ListingStatusTypeEnum, ListingTypeEnum, GroupNamesEnum
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ def admin_user(db):
         last_name="User"
     )
     from django.contrib.auth.models import Group
-    admin_group, _ = Group.objects.get_or_create(name=GroupNames.ADMIN.value)
+    admin_group, _ = Group.objects.get_or_create(name=GroupNamesEnum.ADMIN.value)
     user.groups.add(admin_group)
     return user
 
@@ -56,8 +56,8 @@ def admin_listings(admin_user, test_category, test_hotspot):
             description=f"Description {i+1}",
             price=100 + i * 10,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=now + timedelta(days=30 - i),
             badge="bundle" if i % 2 == 0 else "",
         )
@@ -76,8 +76,8 @@ def non_admin_listings(non_admin_user, test_category, test_hotspot):
             title=f"Non-Admin Listing {i+1}",
             price=50,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=now + timedelta(days=10),
         )
         listing.hotspots.add(test_hotspot)
@@ -95,8 +95,8 @@ def expired_listings(admin_user, test_category, test_hotspot):
             title=f"Expired {i+1}",
             price=30,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.EXPIRED.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.EXPIRED.value,
             expires_at=now - timedelta(days=1),
         )
         listing.hotspots.add(test_hotspot)
@@ -185,8 +185,8 @@ class TestIndexProductsQuery:
             title="With HS",
             price=10,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
         listing_with_hs.hotspots.add(test_hotspot)
@@ -197,8 +197,8 @@ class TestIndexProductsQuery:
             title="No HS",
             price=20,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
 
@@ -226,8 +226,8 @@ class TestIndexProductsQuery:
             title="No Image",
             price=5,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
 
@@ -254,8 +254,8 @@ class TestIndexProductsQuery:
                 title=f"Listing {i}",
                 price=10,
                 category=test_category,
-                listing_type=ListingType.SELL.value,
-                status=ListingStatusType.ACTIVE.value,
+                listing_type=ListingTypeEnum.SELL.value,
+                status=ListingStatusTypeEnum.ACTIVE.value,
                 expires_at=now + timedelta(days=10 - i),
             )
 
@@ -285,8 +285,8 @@ class TestIndexProductsQuery:
             title="User Listing",
             price=10,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
 

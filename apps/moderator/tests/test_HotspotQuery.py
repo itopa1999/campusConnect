@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from unittest.mock import Mock
 from apps.campus.models import CampusHotspot, Listing, Category
 from apps.moderator.BBL.Queries.hotspot import HotspotQuery
-from utils.enums import ListingStatusType
+from utils.enums import ListingStatusTypeEnum
 
 User = get_user_model()
 
@@ -71,7 +71,7 @@ def hotspot_with_listings(db, user, category):
             price=10 + i,
             user=user,
             category=category,
-            status=ListingStatusType.ACTIVE.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + datetime.timedelta(days=10),
             is_deleted=False,
         )
@@ -84,7 +84,7 @@ def hotspot_with_listings(db, user, category):
         price=0,
         user=user,
         category=category,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         expires_at=timezone.now() + datetime.timedelta(days=10),
         is_deleted=True,
     )
@@ -221,7 +221,7 @@ class TestHotspotQueryDetail:
             price=0,
             user=request_with_user.user,
             category=Category.objects.first(),  # reuse existing category
-            status=ListingStatusType.ACTIVE.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + datetime.timedelta(days=10),
             is_deleted=True,
         )

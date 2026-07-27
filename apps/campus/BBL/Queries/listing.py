@@ -4,7 +4,7 @@ from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
 from django.db.models import Avg, Count, Prefetch, Q
-from utils.enums import CacheKeysEnum, GroupNames, ListingStatusType
+from utils.enums import CacheKeysEnum, GroupNamesEnum, ListingStatusTypeEnum
 from utils.helpers import humanize_date
 from django.core.paginator import Paginator
 
@@ -168,10 +168,10 @@ class ListingQuery:
             """Callback executed on cache miss."""
             # --- Base queryset ---
             base_qs = Listing.objects.filter(
-                status=ListingStatusType.ACTIVE.value,
+                status=ListingStatusTypeEnum.ACTIVE.value,
                 is_deleted=False,
                 user__is_active=True
-            ).exclude(user__groups__name=GroupNames.ADMIN.value)
+            ).exclude(user__groups__name=GroupNamesEnum.ADMIN.value)
             base_qs = base_qs.select_related('user', 'category').prefetch_related('hotspots')
 
             # --- Section-specific logic ---
@@ -316,7 +316,7 @@ class ListingQuery:
             listing = Listing.objects.filter(
                 id=listing_id,
                 is_deleted=False,
-                status=ListingStatusType.ACTIVE.value
+                status=ListingStatusTypeEnum.ACTIVE.value
             ).select_related('user', 'category').prefetch_related(
                 'hotspots',
                 Prefetch('reviews', queryset=Review.objects.filter(is_deleted=False).select_related('from_user')),

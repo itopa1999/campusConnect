@@ -11,7 +11,7 @@ from apps.moderator.models import FlaggedContent, ModeratorAction, UserModeratio
 from apps.users.models import ContactReport
 from utils.enums import (
     ContentTypeEnum,
-    ListingStatusType,
+    ListingStatusTypeEnum,
     ReportStatusEnum,
     ModeratorActionTypeEnum,
     CacheKeysEnum,
@@ -61,7 +61,7 @@ def listing_for_review(db, moderator, category):
         price=10,
         user=moderator,
         category=category,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         expires_at=timezone.now() + datetime.timedelta(days=10),
         is_deleted=False,
     )
@@ -77,7 +77,7 @@ def listings(db, moderator, category):
         price=10,
         user=moderator,
         category=category,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         expires_at=now + datetime.timedelta(days=10),
         is_deleted=False,
     )
@@ -87,7 +87,7 @@ def listings(db, moderator, category):
         price=20,
         user=moderator,
         category=category,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         expires_at=now + datetime.timedelta(days=20),
         is_deleted=False,
     )
@@ -98,7 +98,7 @@ def listings(db, moderator, category):
         price=15,
         user=moderator,
         category=category,
-        status=ListingStatusType.PENDING.value,
+        status=ListingStatusTypeEnum.PENDING.value,
         expires_at=now + datetime.timedelta(days=30),
         is_deleted=False,
     )
@@ -109,7 +109,7 @@ def listings(db, moderator, category):
         price=5,
         user=moderator,
         category=category,
-        status=ListingStatusType.EXPIRED.value,
+        status=ListingStatusTypeEnum.EXPIRED.value,
         expires_at=now - datetime.timedelta(days=1),
         is_deleted=False,
     )
@@ -120,7 +120,7 @@ def listings(db, moderator, category):
         price=25,
         user=moderator,
         category=category,
-        status=ListingStatusType.SOLD.value,
+        status=ListingStatusTypeEnum.SOLD.value,
         expires_at=now + datetime.timedelta(days=5),
         is_deleted=False,
     )
@@ -131,7 +131,7 @@ def listings(db, moderator, category):
         price=30,
         user=moderator,
         category=category,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         expires_at=now + datetime.timedelta(days=15),
         is_deleted=True,
     )

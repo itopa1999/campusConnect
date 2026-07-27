@@ -20,7 +20,7 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from common.throttling.throttler import CustomRateThrottle
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from utils.enums import GroupNames
+from utils.enums import GroupNamesEnum
 from utils.permissions import ConstantPermission
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters import rest_framework as filters
@@ -28,7 +28,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 class ModeratorDashboardStatsView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request):
         result = DashboardQuery.get_dashboard_stats(request)
@@ -36,7 +36,7 @@ class ModeratorDashboardStatsView(APIView):
     
 
 class ModeratorListingListView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -58,7 +58,7 @@ class ModeratorListingListView(APIView):
     
 
 class ModeratorListingDetailView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request, listing_id):
@@ -67,7 +67,7 @@ class ModeratorListingDetailView(APIView):
     
 
 class ModeratorListingApproveView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -78,7 +78,7 @@ class ModeratorListingApproveView(generics.GenericAPIView):
         return Response(result.to_dict(), status=result.status_code)
 
 class ModeratorListingRejectView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -90,7 +90,7 @@ class ModeratorListingRejectView(generics.GenericAPIView):
 
 
 class ModeratorListingToggleDeleteView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -102,7 +102,7 @@ class ModeratorListingToggleDeleteView(generics.GenericAPIView):
 
 
 class ModeratorListingToggleHideView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -114,7 +114,7 @@ class ModeratorListingToggleHideView(generics.GenericAPIView):
 
 
 class ModeratorListingToggleFlagView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ResolutionNoteSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -126,7 +126,7 @@ class ModeratorListingToggleFlagView(generics.GenericAPIView):
 
 
 class ModeratorLostItemListView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -146,7 +146,7 @@ class ModeratorLostItemListView(APIView):
     
 
 class ModeratorLostItemDetailView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request, lost_item_id):
@@ -155,7 +155,7 @@ class ModeratorLostItemDetailView(APIView):
     
 
 class ModeratorLostItemApproveView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -166,7 +166,7 @@ class ModeratorLostItemApproveView(generics.GenericAPIView):
         return Response(result.to_dict(), status=result.status_code)
 
 class ModeratorLostItemRejectView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -178,7 +178,7 @@ class ModeratorLostItemRejectView(generics.GenericAPIView):
 
 
 class ModeratorLostItemToggleDeleteView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -190,7 +190,7 @@ class ModeratorLostItemToggleDeleteView(generics.GenericAPIView):
 
 
 class ModeratorLostItemToggleHideView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -202,7 +202,7 @@ class ModeratorLostItemToggleHideView(generics.GenericAPIView):
 
 
 class ModeratorLostItemToggleFlagView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ResolutionNoteSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -215,7 +215,7 @@ class ModeratorLostItemToggleFlagView(generics.GenericAPIView):
 
 
 class ModeratorReviewListView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -238,7 +238,7 @@ class ModeratorReviewListView(APIView):
 
 
 class ModeratorReviewDetailView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request, review_id):
@@ -247,7 +247,7 @@ class ModeratorReviewDetailView(APIView):
 
 
 class ModeratorReviewToggleDeleteView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -259,7 +259,7 @@ class ModeratorReviewToggleDeleteView(generics.GenericAPIView):
 
 
 class ModeratorReviewToggleFlagView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -271,7 +271,7 @@ class ModeratorReviewToggleFlagView(generics.GenericAPIView):
     
 
 class ModeratorUserListView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -294,7 +294,7 @@ class ModeratorUserListView(APIView):
 
 
 class ModeratorUserDetailView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request, user_id):
@@ -303,7 +303,7 @@ class ModeratorUserDetailView(APIView):
 
 
 class ModeratorUserWarningView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -315,7 +315,7 @@ class ModeratorUserWarningView(generics.GenericAPIView):
 
 
 class ModeratorUserToggleSuspendView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = UserSuspensionSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -327,7 +327,7 @@ class ModeratorUserToggleSuspendView(generics.GenericAPIView):
 
 
 class ModeratorUserToggleBanView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -339,7 +339,7 @@ class ModeratorUserToggleBanView(generics.GenericAPIView):
 
 
 class ModeratorUserToggleDeleteView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -351,7 +351,7 @@ class ModeratorUserToggleDeleteView(generics.GenericAPIView):
     
 
 class ModeratorReportListView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -372,7 +372,7 @@ class ModeratorReportListView(APIView):
 
 
 class ModeratorReportDetailView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request, report_id):
@@ -381,7 +381,7 @@ class ModeratorReportDetailView(APIView):
 
 
 class ModeratorReportResolveView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReportResolveSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -393,7 +393,7 @@ class ModeratorReportResolveView(generics.GenericAPIView):
 
 
 class ModeratorReportEscalateView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReportEscalateSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -405,7 +405,7 @@ class ModeratorReportEscalateView(generics.GenericAPIView):
 
 
 class ModeratorReportAssignView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReportAssignSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -417,7 +417,7 @@ class ModeratorReportAssignView(generics.GenericAPIView):
 
 
 class ModeratorReportReopenView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReportReopenSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -429,7 +429,7 @@ class ModeratorReportReopenView(generics.GenericAPIView):
     
 
 class ModeratorCategoriesListView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -444,7 +444,7 @@ class ModeratorCategoriesListView(APIView):
 
 
 class ModeratorCategoryDetailView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request, category_id):
@@ -453,7 +453,7 @@ class ModeratorCategoryDetailView(APIView):
 
 
 class ModeratorCreateCategoryView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ModCategorySerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -466,7 +466,7 @@ class ModeratorCreateCategoryView(generics.GenericAPIView):
 
 
 class ModeratorUpdateCategoryView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ModCategorySerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
 
@@ -479,7 +479,7 @@ class ModeratorUpdateCategoryView(generics.GenericAPIView):
 
 
 class ModeratorCategoryToggleDeleteView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def patch(self, request, category_id):
@@ -490,7 +490,7 @@ class ModeratorCategoryToggleDeleteView(generics.GenericAPIView):
 
 
 class ModeratorHotspotListView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -505,7 +505,7 @@ class ModeratorHotspotListView(APIView):
 
 
 class ModeratorHotspotDetailView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request, hotspot_id):
         result = HotspotQuery.get_hotspot_id_detail(request, hotspot_id)
@@ -513,7 +513,7 @@ class ModeratorHotspotDetailView(APIView):
 
 
 class ModeratorCreateHotspotView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ModHotspotSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def post(self, request):
@@ -524,7 +524,7 @@ class ModeratorCreateHotspotView(generics.GenericAPIView):
 
 
 class ModeratorUpdateHotspotView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ModHotspotSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def put(self, request, hotspot_id):
@@ -535,7 +535,7 @@ class ModeratorUpdateHotspotView(generics.GenericAPIView):
 
 
 class ModeratorHotspotToggleDeleteView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.MODERATOR.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.MODERATOR.value)]
     serializer_class = ReasonSerializer
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def patch(self, request, hotspot_id):

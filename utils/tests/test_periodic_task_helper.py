@@ -5,7 +5,7 @@ import pytest
 from django.utils import timezone
 
 from utils.constant_helper import ConstantHelper
-from utils.enums import ListingStatusType, NotificationEnum, PointTransactionTypeEnum
+from utils.enums import ListingStatusTypeEnum, NotificationEnum, PointTransactionTypeEnum
 from utils.helpers import UpdatePointsService
 from utils.periodic_task_helper import PeriodTasksHelper, BATCH_SIZE
 from apps.users.models import User
@@ -34,7 +34,7 @@ def mock_listing(mocker):
         title="Test Listing",
         auto_reactivate=False,
         points=5,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         is_deleted=False,
         expires_at=None,
         is_ads_banner=False,

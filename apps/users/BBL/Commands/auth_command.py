@@ -8,7 +8,7 @@ from utils.log_helpers import logger, OperationLogger
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from django.conf import settings
 
-from utils.enums import NotificationEnum, PlatformEnum, TokenType
+from utils.enums import NotificationEnum, PlatformEnum, TokenTypeEnum
 from utils.helpers import create_notification, is_email_verified
 
 class AuthCommand:    
@@ -142,7 +142,7 @@ class AuthCommand:
                     status_code=400
                 )
             
-            verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.PASSWORD_RESET.value)
+            verification_token = AccountCommand._create_verification_token(user, token_type=TokenTypeEnum.PASSWORD_RESET.value)
             
             link = f"{request.build_absolute_uri('/user/api/auth/verify-forget-password-email')}?token={verification_token.token}"
             try:
@@ -178,7 +178,7 @@ class AuthCommand:
                     data=None,
                     status_code=400
                 )
-            is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.PASSWORD_RESET.value)
+            is_valid, result = AccountCommand._verify_token(token, token_type=TokenTypeEnum.PASSWORD_RESET.value)
             if not is_valid:
                 op.fail(f"[AuthCommand.VerifyForgetPasswordEmail] Token: {token} verification failed: {result}")
                 return BaseResultWithData(

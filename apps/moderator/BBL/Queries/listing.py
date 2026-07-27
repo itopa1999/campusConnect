@@ -5,7 +5,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from apps.campus.models import Listing
 from apps.moderator.models import FlaggedContent, ModeratorAction
 from utils.base_result import BaseResultWithData
-from utils.enums import ListingStatusType, ContentTypeEnum
+from utils.enums import ListingStatusTypeEnum, ContentTypeEnum
 from utils.log_helpers import OperationLogger
 
 

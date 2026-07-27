@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from apps.campus.models import CampusHotspot, Category, Listing, ListingHotspot
 from apps.users.models import Badge, FeatureFlag, PointPackage, User
-from utils.enums import BadgeListingType, GroupNames, ListingStatusType, ListingType
+from utils.enums import BadgeListingTypeEnum, GroupNamesEnum, ListingStatusTypeEnum, ListingTypeEnum
 
 
 class Command(BaseCommand):
@@ -21,7 +21,7 @@ class Command(BaseCommand):
         # ------------------- 1. Create default groups -------------------
         created_groups = []
         existing_groups = []
-        for group_value in GroupNames.values():
+        for group_value in GroupNamesEnum.values():
             group, is_created = Group.objects.get_or_create(name=group_value)
             if is_created:
                 created_groups.append(group_value)
@@ -35,7 +35,7 @@ class Command(BaseCommand):
 
         # ------------------- 2. Verified admin superuser -------------------
         admin_email = "admin@admin.com"
-        admin_group_name = GroupNames.ADMIN.value
+        admin_group_name = GroupNamesEnum.ADMIN.value
 
         try:
             admin_user = User.objects.get(email=admin_email)
@@ -172,9 +172,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Skipping listing seed: no categories or hotspots found."))
             return
 
-        badge_choices = [choice[0] for choice in BadgeListingType.choices()]
-        listing_status = ListingStatusType.ACTIVE.value
-        listing_type = ListingType.SELL.value
+        badge_choices = [choice[0] for choice in BadgeListingTypeEnum.choices()]
+        listing_status = ListingStatusTypeEnum.ACTIVE.value
+        listing_type = ListingTypeEnum.SELL.value
         expires_in_10_years = timezone.now() + timedelta(days=3650)
 
         for item in listings_data:

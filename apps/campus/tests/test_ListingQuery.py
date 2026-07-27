@@ -9,7 +9,7 @@ from django.contrib.auth.models import Group
 from apps.campus.BBL.Queries.listing import ListingQuery
 from apps.campus.models import Listing, Category, CampusHotspot, Review
 from apps.users.models import User
-from utils.enums import ListingStatusType, ListingType, GroupNames
+from utils.enums import ListingStatusTypeEnum, ListingTypeEnum, GroupNamesEnum
 from utils.constant_helper import ConstantHelper
 
 
@@ -41,7 +41,7 @@ def admin_user(db):
         first_name="Admin",
         last_name="User",
     )
-    admin_group, _ = Group.objects.get_or_create(name=GroupNames.ADMIN.value)
+    admin_group, _ = Group.objects.get_or_create(name=GroupNamesEnum.ADMIN.value)
     user.groups.add(admin_group)
     return user
 
@@ -79,8 +79,8 @@ def test_listing(test_user, test_category, test_hotspots):
         description="Great laptop",
         price=500.00,
         category=test_category,
-        listing_type=ListingType.SELL.value,
-        status=ListingStatusType.ACTIVE.value,
+        listing_type=ListingTypeEnum.SELL.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         expires_at=now + timedelta(days=10),
         badge="bundle",
         is_ads_banner=True,
@@ -102,8 +102,8 @@ def test_listing_with_image(test_user, test_category, test_hotspots):
         description="Has image",
         price=100,
         category=test_category,
-        listing_type=ListingType.SELL.value,
-        status=ListingStatusType.ACTIVE.value,
+        listing_type=ListingTypeEnum.SELL.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         expires_at=now + timedelta(days=10),
         image=image_file,
         badge="featured",
@@ -163,8 +163,8 @@ def test_listing_admin(admin_user, test_category):
         title="Admin Listing",
         price=100,
         category=test_category,
-        listing_type=ListingType.SELL.value,
-        status=ListingStatusType.ACTIVE.value,
+        listing_type=ListingTypeEnum.SELL.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         expires_at=now + timedelta(days=5),
     )
     return listing
@@ -181,8 +181,8 @@ def multiple_listings(test_user, test_category, test_hotspots):
             title=f"Listing {i}",
             price=10 + i,
             category=test_category,
-            listing_type=ListingType.SELL.value if i % 2 == 0 else ListingType.WANTED.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value if i % 2 == 0 else ListingTypeEnum.WANTED.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=now + timedelta(days=30 - i),
             is_ads_banner=(i % 3 == 0),
             is_hot_sales=(i % 5 == 0),
@@ -353,8 +353,8 @@ class TestGetCategorizedListings:
             title="Dept Listing",
             price=50,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
         request = request_factory.get("/?section=departmental")
@@ -400,8 +400,8 @@ class TestGetCategorizedListings:
             title="Dept Listing for You",
             price=30,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
         )
         request = request_factory.get("/?section=for_you")
@@ -487,8 +487,8 @@ class TestGetCategorizedListings:
             title="No Image",
             price=10,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
             is_ads_banner=True,
         )
@@ -517,8 +517,8 @@ class TestGetCategorizedListings:
             title="Inactive User Listing",
             price=10,
             category=test_category,
-            listing_type=ListingType.SELL.value,
-            status=ListingStatusType.ACTIVE.value,
+            listing_type=ListingTypeEnum.SELL.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             expires_at=timezone.now() + timedelta(days=5),
             is_ads_banner=True,
         )

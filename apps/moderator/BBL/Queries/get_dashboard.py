@@ -3,7 +3,7 @@ from apps.moderator.models import FlaggedContent, ModeratorAction, UserModeratio
 from apps.users.models import User, ContactReport
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
-from utils.enums import CacheKeysEnum, ContentTypeEnum, ListingStatusType, ReportStatusEnum
+from utils.enums import CacheKeysEnum, ContentTypeEnum, ListingStatusTypeEnum, ReportStatusEnum
 from django.utils import timezone
 import datetime
 from django.db.models import Count, Q, Avg
@@ -25,17 +25,17 @@ class DashboardQuery:
             # ─── Listing stats ──────────────────────────────────────
             deleted_listing_counts = Listing.objects.filter(is_deleted=True).aggregate(
                 total=Count('id'),
-                total_active=Count('id', filter=Q(status=ListingStatusType.ACTIVE.value, expires_at__gt=now)),
-                total_expired=Count('id', filter=Q(status=ListingStatusType.EXPIRED.value)),
-                total_marked_sold=Count('id', filter=Q(status=ListingStatusType.SOLD.value)),
-                total_pending=Count('id', filter=Q(status=ListingStatusType.PENDING.value)),
+                total_active=Count('id', filter=Q(status=ListingStatusTypeEnum.ACTIVE.value, expires_at__gt=now)),
+                total_expired=Count('id', filter=Q(status=ListingStatusTypeEnum.EXPIRED.value)),
+                total_marked_sold=Count('id', filter=Q(status=ListingStatusTypeEnum.SOLD.value)),
+                total_pending=Count('id', filter=Q(status=ListingStatusTypeEnum.PENDING.value)),
             )
             listing_counts = Listing.objects.filter(is_deleted=False).aggregate(
                 total=Count('id'),
-                total_active=Count('id', filter=Q(status=ListingStatusType.ACTIVE.value, expires_at__gt=now)),
-                total_expired=Count('id', filter=Q(status=ListingStatusType.EXPIRED.value)),
-                total_marked_sold=Count('id', filter=Q(status=ListingStatusType.SOLD.value)),
-                total_pending=Count('id', filter=Q(status=ListingStatusType.PENDING.value)),
+                total_active=Count('id', filter=Q(status=ListingStatusTypeEnum.ACTIVE.value, expires_at__gt=now)),
+                total_expired=Count('id', filter=Q(status=ListingStatusTypeEnum.EXPIRED.value)),
+                total_marked_sold=Count('id', filter=Q(status=ListingStatusTypeEnum.SOLD.value)),
+                total_pending=Count('id', filter=Q(status=ListingStatusTypeEnum.PENDING.value)),
             )
             listing_stats = {
                 'deleted_listing_stats':{

@@ -293,3 +293,11 @@ def humanize_date(date):
 
 
 
+def format_naira(amount):
+    """
+    Convert a number to Naira format with ₦ symbol and comma separators.
+    Example: 300000 -> '₦300,000'
+    """
+    if amount is None:
+        return '₦0'
+    return f"₦{int(amount):,}"

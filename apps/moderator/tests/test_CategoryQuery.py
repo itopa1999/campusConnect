@@ -4,7 +4,7 @@ from django.test import RequestFactory
 from django.core.paginator import Paginator
 from apps.campus.models import Category, Listing
 from apps.moderator.BBL.Queries.category import CategoryQuery  # adjust import path
-from utils.enums import ListingStatusType
+from utils.enums import ListingStatusTypeEnum
 
 User = get_user_model()
 
@@ -56,7 +56,7 @@ def category_with_listings(db, user):
             price=10 + i,
             user=user,
             category=cat,
-            status=ListingStatusType.ACTIVE.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             is_deleted=False
         )
         listings.append(listing)
@@ -74,7 +74,7 @@ def category_with_deleted_listings(db, user):
             price=10,
             user=user,
             category=cat,
-            status=ListingStatusType.ACTIVE.value,
+            status=ListingStatusTypeEnum.ACTIVE.value,
             is_deleted=False
         )
     Listing.objects.create(
@@ -83,7 +83,7 @@ def category_with_deleted_listings(db, user):
         price=10,
         user=user,
         category=cat,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         is_deleted=True
     )
     return cat
@@ -228,7 +228,7 @@ class TestCategoryQueryDetail:
     #         price=10,
     #         user=request_with_user.user,
     #         category=cat,
-    #         status=ListingStatusType.ACTIVE.value
+    #         status=ListingStatusTypeEnum.ACTIVE.value
     #     )
 
     #     # Create a mock image that is truthy and has a url

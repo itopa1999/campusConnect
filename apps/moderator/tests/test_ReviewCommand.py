@@ -6,7 +6,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 from apps.campus.models import Review, Listing, Category
 from apps.moderator.models import FlaggedContent, ModeratorAction
-from utils.enums import ContentTypeEnum, ModeratorActionTypeEnum, ListingStatusType
+from utils.enums import ContentTypeEnum, ModeratorActionTypeEnum, ListingStatusTypeEnum
 
 User = get_user_model()
 
@@ -51,7 +51,7 @@ def listing(db, moderator, category):
         price=10.00,
         user=moderator,
         category=category,
-        status=ListingStatusType.ACTIVE.value,
+        status=ListingStatusTypeEnum.ACTIVE.value,
         is_deleted=False
     )
 

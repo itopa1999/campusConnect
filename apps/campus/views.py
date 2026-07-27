@@ -16,7 +16,7 @@ from apps.campus.BBL.Queries.listing import ListingQuery
 from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
 from django.shortcuts import render
 from django.conf import settings
-from utils.enums import GroupNames
+from utils.enums import GroupNamesEnum
 from utils.permissions import ConstantPermission
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters import rest_framework as filters
@@ -44,7 +44,7 @@ class GetIndexDefaultLisitingView(APIView):
 
 class LostAndFoundView(generics.GenericAPIView):
     serializer_class = LostAndFoundSerializer
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=5, period=3600, user_type=UserTypeEnum.AUTH)]
     
     def post(self, request):
@@ -53,7 +53,7 @@ class LostAndFoundView(generics.GenericAPIView):
 
 
 class LostAndFoundListView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]    
     @swagger_auto_schema(
         manual_parameters=[
@@ -73,7 +73,7 @@ class LostAndFoundListView(APIView):
 
 class LostAndFoundClaimView(generics.GenericAPIView):
     serializer_class = ClaimSerializer
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.ANON)]
     
     def post(self, request):
@@ -82,7 +82,7 @@ class LostAndFoundClaimView(generics.GenericAPIView):
 
 
 class ApproveClaimView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.ANON)]    
     @swagger_auto_schema(
         manual_parameters=[
@@ -102,7 +102,7 @@ class ApproveClaimView(APIView):
 
 
 class GetDashboardView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request):
         result = DashboardQuery.get_dashboard(request)
@@ -110,7 +110,7 @@ class GetDashboardView(APIView):
 
 
 class GetDashboardReviewsView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -126,16 +126,11 @@ class GetDashboardReviewsView(APIView):
 
 
 class GetDashboardLisitingView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter('category_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('listing_type', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('badge', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         ]
@@ -146,7 +141,7 @@ class GetDashboardLisitingView(APIView):
     
 
 class GetDashboardUpCommingExpirationLisitingView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request):
         result = DashboardQuery.get_expiring_listing(request)
@@ -154,7 +149,7 @@ class GetDashboardUpCommingExpirationLisitingView(APIView):
 
 
 class GetLookUpView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
@@ -172,7 +167,7 @@ class GetLookUpView(APIView):
 
 class ListingView(generics.GenericAPIView):
     serializer_class = ListingSerializer
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     parser_classes = [MultiPartParser, FormParser]
     throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.AUTH)]
     
@@ -182,7 +177,7 @@ class ListingView(generics.GenericAPIView):
 
 
 class MarkAsSoldView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
     
     def patch(self, request, listing_id):
@@ -191,7 +186,7 @@ class MarkAsSoldView(APIView):
 
 
 class UploadImageView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     serializer_class = UploadLisitingImageSerializer
     parser_classes = [MultiPartParser, FormParser]
     throttle_classes = [CustomRateThrottle(rate=10, period=300, user_type=UserTypeEnum.AUTH)]
@@ -202,7 +197,7 @@ class UploadImageView(generics.GenericAPIView):
 
 
 class ListingDetailView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [
         CustomRateThrottle(rate=60, period=600, user_type=UserTypeEnum.AUTH, scope="listing_detail_get"),
     ]
@@ -238,7 +233,7 @@ class ListingDetailView(generics.GenericAPIView):
 
 class UpdateAdsView(generics.GenericAPIView):
     serializer_class = UpdateAdsViewSerializer
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=5, period=300, user_type=UserTypeEnum.AUTH)]
     
     def patch(self, request, listing_id):
@@ -248,7 +243,7 @@ class UpdateAdsView(generics.GenericAPIView):
 
 class ListingAutoActivation(generics.GenericAPIView):
     serializer_class = ListingAutoActivationSerializer
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=5, period=300, user_type=UserTypeEnum.AUTH)]
     
     def patch(self, request, listing_id):
@@ -257,7 +252,7 @@ class ListingAutoActivation(generics.GenericAPIView):
 
 
 class CategorizedListingsView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=40, period=60, user_type=UserTypeEnum.AUTH)]    
     @swagger_auto_schema(
         manual_parameters=[
@@ -279,7 +274,7 @@ class CategorizedListingsView(APIView):
 
 
 class ListingDetailsView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
     
     def get(self, request, listing_id):
@@ -288,7 +283,7 @@ class ListingDetailsView(APIView):
 
 
 class AddFavouriteListingView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
     
     def post(self, request, listing_id):
@@ -297,7 +292,7 @@ class AddFavouriteListingView(APIView):
 
 
 class ListFavouriteListingView(APIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNames.STUDENT.value)]
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[

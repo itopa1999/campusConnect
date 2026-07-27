@@ -7,7 +7,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 
 from apps.users.BBL.Commands.auth_command import AuthCommand
 from apps.users.models import User, VerificationToken
-from utils.enums import TokenType
+from utils.enums import TokenTypeEnum
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ class TestAuthCommandForgotPassword:
         assert result.status_code == 200
         assert "If an account with that email exists" in result.message
         mock_email_tasks[0].assert_called_once()  # password reset email
-        mock_token.assert_called_once_with(test_user, token_type=TokenType.PASSWORD_RESET.value)
+        mock_token.assert_called_once_with(test_user, token_type=TokenTypeEnum.PASSWORD_RESET.value)
 
     def test_forgot_password_user_not_found(self, db, request_factory):
         """User not found – still return 200 (security) but with error message? Actually code returns 400."""
@@ -216,7 +216,7 @@ class TestAuthCommandVerifyForgetPasswordEmail:
         token = VerificationToken.objects.create(
             user=test_user,
             token=12345,
-            token_type=TokenType.PASSWORD_RESET.value,
+            token_type=TokenTypeEnum.PASSWORD_RESET.value,
         )
         request = request_factory.get(f"/?token={token.token}")
         result = AuthCommand.VerifyForgetPasswordEmail(request)
@@ -239,7 +239,7 @@ class TestAuthCommandVerifyForgetPasswordEmail:
         token = VerificationToken.objects.create(
             user=test_user,
             token=12345,
-            token_type=TokenType.PASSWORD_RESET.value,
+            token_type=TokenTypeEnum.PASSWORD_RESET.value,
             expires_at=timezone.now() - timezone.timedelta(days=1),
         )
         request = request_factory.get(f"/?token={token.token}")
@@ -253,7 +253,7 @@ class TestAuthCommandVerifyForgetPasswordEmail:
         token = VerificationToken.objects.create(
             user=test_user,
             token=12345,
-            token_type=TokenType.PASSWORD_RESET.value,
+            token_type=TokenTypeEnum.PASSWORD_RESET.value,
         )
         with patch("apps.users.BBL.Commands.auth_command.AccountCommand._verify_token", side_effect=Exception("DB error")):
             request = request_factory.get(f"/?token={token.token}")

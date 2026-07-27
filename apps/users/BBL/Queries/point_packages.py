@@ -3,6 +3,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
+from utils.helpers import format_naira
 
 
 class PointPackagesQueries:
@@ -25,12 +26,13 @@ class PointPackagesQueries:
                 {
                     "id": pkg.id,
                     "points": pkg.points,
-                    "price": float(pkg.price),
+                    "price": format_naira(pkg.price),
+                    "package_price": float(pkg.price),
                     "description": pkg.description,
                     "is_popular": pkg.is_popular,
                     "is_best_value": pkg.is_best_value,
                     "sort_order": pkg.sort_order,
-                    "price_per_point": PointPackagesQueries._format_price_per_point(pkg.price_per_point),
+                    "price_per_point": format_naira(pkg.price_per_point),
                     "savings_percentage": pkg.savings_percentage,
                 }
                 for pkg in queryset
@@ -142,23 +144,12 @@ class PointPackagesQueries:
 
             purchase_list = []
             for purchase in page_obj:
-                pkg = purchase.package
                 purchase_list.append({
                     'id': purchase.id,
-                    'package': {
-                        'id': pkg.id,
-                        'points': pkg.points,
-                        'price': float(pkg.price),
-                        'description': pkg.description,
-                        'is_popular': pkg.is_popular,
-                        'is_best_value': pkg.is_best_value,
-                        'price_per_point': PointPackagesQueries._format_price_per_point(pkg.price_per_point),
-                        'savings_percentage': pkg.savings_percentage,
-                    },
                     'gateway': purchase.gateway,
                     'payment_reference': purchase.payment_reference,
                     'points_awarded': purchase.points_awarded,
-                    'amount_paid': float(purchase.amount_paid),
+                    'amount_paid': format_naira(purchase.amount_paid),
                     'status': purchase.status,
                     'created_at': purchase.created_at.isoformat(),
                 })

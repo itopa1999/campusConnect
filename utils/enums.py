@@ -2,7 +2,7 @@ from enum import Enum
 
 from utils.constant_helper import ConstantHelper
 
-class GroupNames(Enum):
+class GroupNamesEnum(Enum):
     ADMIN = "Admin"
     STUDENT = "Student"
     MODERATOR = "Moderator"
@@ -17,7 +17,7 @@ class GroupNames(Enum):
         return [group.value for group in cls]
 
 
-class TokenType(Enum):
+class TokenTypeEnum(Enum):
     EMAIL_VERIFICATION = "email_verification"
     PASSWORD_RESET = "password_reset"
     ACCOUNT_ACTIVATION = "account_activation"
@@ -60,7 +60,7 @@ class AdvertTypeEnum(Enum):
     
 
 
-class ListingType(Enum):
+class ListingTypeEnum(Enum):
     SELL = 'sell'
     WANTED = 'wanted'
     FREEBIE = 'freebie'
@@ -75,7 +75,7 @@ class ListingType(Enum):
     def values(cls):
         return [item.value for item in cls]
 
-class ListingStatusType(Enum):
+class ListingStatusTypeEnum(Enum):
     ACTIVE = 'active'
     REJECT = 'reject'
     SOLD = 'sold'
@@ -91,7 +91,7 @@ class ListingStatusType(Enum):
     def values(cls):
         return [item.value for item in cls]
 
-class BadgeListingType(Enum):
+class BadgeListingTypeEnum(Enum):
     NEW = 'new'
     FAIR = 'fair'
     BUNDLE = 'bundle'

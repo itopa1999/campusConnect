@@ -2,7 +2,7 @@ from apps.users.models import User, VerificationToken
 from utils.Tasks.backgroundTask import background_task_send_account_verify_email, background_task_send_verification_email
 from utils.base_result import BaseResult, BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import BadgeChoiceEnum, FeatureFlagEnum, GroupNames, PointTransactionTypeEnum, TokenType
+from utils.enums import BadgeChoiceEnum, FeatureFlagEnum, GroupNamesEnum, PointTransactionTypeEnum, TokenTypeEnum
 from utils.featureflag import is_feature_active
 from utils.helpers import BadgeService, UpdatePointsService, normalize_nigerian_phone
 from django.db import transaction
@@ -64,7 +64,7 @@ class AccountCommand:
                     password=password,
                     is_active=True,
                     email_verified=False,
-                    group_name=GroupNames.STUDENT.value
+                    group_name=GroupNamesEnum.STUDENT.value
                 )
 
                 if is_feature_active(FeatureFlagEnum.ACCOUNT_CREATION_BONUS.value):
@@ -79,7 +79,7 @@ class AccountCommand:
 
                 BadgeService.set(user, [BadgeChoiceEnum.UN_VERIFIED.value])
 
-                verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)
+                verification_token = AccountCommand._create_verification_token(user, token_type=TokenTypeEnum.EMAIL_VERIFICATION.value)
                 
                 verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
 
@@ -113,7 +113,7 @@ class AccountCommand:
         op = OperationLogger(f"AccountCommand.VerifyEmail {token}", token=token)
         op.start()
         try:
-            is_valid, result = AccountCommand._verify_token(token, token_type=TokenType.EMAIL_VERIFICATION.value)
+            is_valid, result = AccountCommand._verify_token(token, token_type=TokenTypeEnum.EMAIL_VERIFICATION.value)
             if not is_valid:
                 op.fail(f"[AccountCommand.VerifyEmail] Token: {token} verification failed: {result}")
                 return BaseResult(
@@ -157,7 +157,7 @@ class AccountCommand:
                 message="If this email is registered, a verification link has been sent.",
                 status_code=200
             )
-        verification_token = AccountCommand._create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)
+        verification_token = AccountCommand._create_verification_token(user, token_type=TokenTypeEnum.EMAIL_VERIFICATION.value)
                 
         verification_link = f"{request.build_absolute_uri('/user/api/auth/verify-email')}?token={verification_token.token}"
         try:
@@ -180,7 +180,7 @@ class AccountCommand:
 
     
     @staticmethod
-    def _create_verification_token(user, token_type=TokenType.EMAIL_VERIFICATION.value)-> BaseResultWithData:
+    def _create_verification_token(user, token_type=TokenTypeEnum.EMAIL_VERIFICATION.value)-> BaseResultWithData:
         """Create a verification token for email verification"""
         op = OperationLogger(f"AccountCommand._create_verification_token for user: {user.first_name or user.email} ", user_id=user.id, token_type=token_type)
         op.start()

@@ -7,7 +7,7 @@ from django.core.validators import MinValueValidator, RegexValidator
 from datetime import timedelta
 import random
 from apps.users.manager import UserManager
-from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, ReportStatusEnum, TokenType
+from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, ReportStatusEnum, TokenTypeEnum
 from utils.enums import IssueTypeEnum
 # Create your models here.
 import os
@@ -123,7 +123,7 @@ def token_expiry():
 class VerificationToken(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
     token = models.PositiveIntegerField(unique=True)
-    token_type = models.CharField(max_length=50, choices=TokenType.choices())
+    token_type = models.CharField(max_length=50, choices=TokenTypeEnum.choices())
     is_used = models.BooleanField(default=False, db_index=True)
     expires_at = models.DateTimeField(default=token_expiry)
     

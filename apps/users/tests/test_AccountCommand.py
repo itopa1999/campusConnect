@@ -5,7 +5,7 @@ from django.test import RequestFactory
 from django.utils import timezone
 
 from apps.users.models import User, VerificationToken
-from utils.enums import TokenType, BadgeChoiceEnum
+from utils.enums import TokenTypeEnum, BadgeChoiceEnum
 
 # Adjust import path as needed – assuming the command lives in apps/users/BBL/Commands/account_command.py
 from apps.users.BBL.Commands.account_command import AccountCommand
@@ -66,7 +66,7 @@ def verification_token(test_user):
     return VerificationToken.objects.create(
         user=test_user,
         token=token,
-        token_type=TokenType.EMAIL_VERIFICATION.value,
+        token_type=TokenTypeEnum.EMAIL_VERIFICATION.value,
     )
 
 @pytest.fixture
@@ -76,7 +76,7 @@ def expired_token(test_user):
     return VerificationToken.objects.create(
         user=test_user,
         token=token,
-        token_type=TokenType.EMAIL_VERIFICATION.value,
+        token_type=TokenTypeEnum.EMAIL_VERIFICATION.value,
         expires_at=timezone.now() - timezone.timedelta(days=1),
     )
 
@@ -282,7 +282,7 @@ class TestAccountCommandResendEmail:
         assert result.status_code == 200
         assert "Verification email successfully sent" in result.message
         token_count = VerificationToken.objects.filter(
-            user=test_user, token_type=TokenType.EMAIL_VERIFICATION.value, is_used=False
+            user=test_user, token_type=TokenTypeEnum.EMAIL_VERIFICATION.value, is_used=False
         ).count()
         assert token_count == 1
         mock_email_tasks[0].assert_called_once()
@@ -317,7 +317,7 @@ class TestAccountCommandResendEmail:
             assert result.is_success is True
             assert result.status_code == 200
             assert VerificationToken.objects.filter(
-                user=test_user, token_type=TokenType.EMAIL_VERIFICATION.value, is_used=False
+                user=test_user, token_type=TokenTypeEnum.EMAIL_VERIFICATION.value, is_used=False
             ).exists()
 
 
@@ -331,7 +331,7 @@ class TestAccountCommandHelpers:
         old_token = VerificationToken.objects.create(
             user=test_user,
             token=old_token_val,
-            token_type=TokenType.EMAIL_VERIFICATION.value,
+            token_type=TokenTypeEnum.EMAIL_VERIFICATION.value,
             is_used=False,
         )
         new_token = AccountCommand._create_verification_token(test_user)
@@ -342,7 +342,7 @@ class TestAccountCommandHelpers:
 
     def test_verify_token_valid(self, db, verification_token):
         """_verify_token should return True for a valid token."""
-        is_valid, result = AccountCommand._verify_token(verification_token.token, TokenType.EMAIL_VERIFICATION.value)
+        is_valid, result = AccountCommand._verify_token(verification_token.token, TokenTypeEnum.EMAIL_VERIFICATION.value)
         assert is_valid is True
         assert result == verification_token
         verification_token.refresh_from_db()
@@ -350,12 +350,12 @@ class TestAccountCommandHelpers:
 
     def test_verify_token_invalid(self, db):
         """_verify_token should return False for invalid token (non-existent integer)."""
-        is_valid, result = AccountCommand._verify_token(99999, TokenType.EMAIL_VERIFICATION.value)
+        is_valid, result = AccountCommand._verify_token(99999, TokenTypeEnum.EMAIL_VERIFICATION.value)
         assert is_valid is False
         assert "Invalid token" in result
 
     def test_verify_token_expired(self, db, expired_token):
         """_verify_token should return False for expired token."""
-        is_valid, result = AccountCommand._verify_token(expired_token.token, TokenType.EMAIL_VERIFICATION.value)
+        is_valid, result = AccountCommand._verify_token(expired_token.token, TokenTypeEnum.EMAIL_VERIFICATION.value)
         assert is_valid is False
         assert "expired" in result
