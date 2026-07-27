@@ -17,6 +17,19 @@ class GroupNamesEnum(Enum):
         return [group.value for group in cls]
 
 
+class UserIdVerificationEnum(Enum):
+    APPROVED = 'approved'
+    REJECTED = 'rejected'
+    PENDING = 'pending'
+
+    @classmethod
+    def choices(cls):
+        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+
+    @classmethod
+    def values(cls):
+        return [item.value for item in cls]
+
 class TokenTypeEnum(Enum):
     EMAIL_VERIFICATION = "email_verification"
     PASSWORD_RESET = "password_reset"
@@ -248,6 +261,8 @@ class CacheKeysEnum(Enum):
     PURCHASES = "purchases_{user_id}_{page}_{per_page}_{filters}"
     TRANSACTIONS = "transactions_{user_id}_{page}_{per_page}_{filters}"
     PROFILE = "profile_{user_id}"
+    PROFILE_ID = "profile_id_{user_id}"
+    PROFILE_HALL = "profile_hall_{user_id}"
     PUBLIC_LISTING_DETAILS = "public_listing_details_{user_id}_{listing_id}"
     NOTIFICATIONS = "notifications_{user_id}_{page}_{per_page}_{filters}"
     NOTIFICATION_HEADER = "notifications_header_{user_id}"
@@ -345,3 +360,19 @@ class PlatformEnum(Enum):
     @classmethod
     def values(cls):
         return [item.value for item in cls]
+
+
+class TwoFactorMethodEnum(Enum):
+    TOTP = 'totp'
+    SMS = 'sms'
+    EMAIL = 'email'
+    HARDWARE = 'hardware'
+    BACKUP = 'backup'
+
+    @classmethod
+    def choices(cls):
+        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+
+    @classmethod
+    def values(cls):
+        return [member.value for member in cls]

@@ -2,7 +2,7 @@ from apps.users.BBL.Commands.notification import NotificationCommand
 from apps.users.BBL.Commands.profile import ProfileCommand
 from apps.users.BBL.Queries.notification import NotificationQueries
 from apps.users.BBL.Queries.profile import ProfileQuery
-from apps.users.serializers import (BuyPointSerializer, ChangePasswordSerializer, ConfirmResetPasswordSerializer, LogoutSerializer, ProfilePictureSerializer, ProfileSerializer, ProfileUpdateSerializer, RefreshTokenSerializer, ReportSerializer, ResendVerificationEmailSerializer, RetryPurchaseSerailizer, UploadStudentIdSerializer, UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer)
+from apps.users.serializers import (BuyPointSerializer, ChangePasswordSerializer, ConfirmResetPasswordSerializer, HallVerificationSerializer, LogoutSerializer, ProfilePictureSerializer, ProfileSerializer, ProfileUpdateSerializer, RefreshTokenSerializer, ReportSerializer, ResendVerificationEmailSerializer, RetryPurchaseSerailizer, UploadStudentIdSerializer, UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer)
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
 from rest_framework import generics
@@ -471,6 +471,34 @@ class ProfileView(generics.GenericAPIView):
         result = ProfileCommand.update_profile(request, request.user, serializer.validated_data)
         return Response(result.to_dict(), status=result.status_code)
 
+
+class GetStudentIDView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+    def get(self, request, *args, **kwargs):
+        result = ProfileQuery.get_student_id_record(request, request.user)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class GetStudentHallRecordView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+    def get(self, request, *args, **kwargs):
+        result = ProfileQuery.get_student_hall_verification_record(request, request.user)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class AddStudentHallView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
+    serializer_class = HallVerificationSerializer
+    throttle_classes = [CustomRateThrottle(rate=10, period=300, user_type=UserTypeEnum.AUTH)]
+
+    def patch(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = ProfileCommand.add_student_hall(request, request.user, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+    
 
 class UploadProfilePictureView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]

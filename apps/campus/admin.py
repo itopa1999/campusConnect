@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
-from django.urls import reverse
 from django.db.models import Avg
+from django.utils.safestring import mark_safe
+from django.urls import reverse
 
 from apps.campus.models import (CampusHotspot, Category, Claim, Favourite, Favourite, Listing, 
                                 ListingHotspot, LostAndFound, Review)
@@ -402,6 +403,7 @@ class LostAndFoundAdmin(SoftDeleteAdmin):
     mark_expired.short_description = "Set status to Expired"
 
 
+
 @admin.register(Claim)
 class ClaimAdmin(SoftDeleteAdmin):
     list_display = ('id', 'lost_item_link', 'full_name', 'email', 'phone', 'answers_match', 'is_deleted')
@@ -434,27 +436,33 @@ class ClaimAdmin(SoftDeleteAdmin):
     actions = ['mark_active']
 
     def lost_item_link(self, obj):
-        app_label = obj.lost_item._meta.app_label
-        url = reverse(f'admin:{app_label}_lostandfound_change', args=[obj.lost_item.id])
-        return format_html('<a href="{}">{}</a>', url, obj.lost_item.item_name)
+        if obj.lost_item:
+            app_label = obj.lost_item._meta.app_label
+            url = reverse(f'admin:{app_label}_lostandfound_change', args=[obj.lost_item.id])
+            return mark_safe(f'<a href="{url}">{obj.lost_item.item_name}</a>')
+        return "—"
     lost_item_link.short_description = 'Lost Item'
     lost_item_link.admin_order_field = 'lost_item__item_name'
 
     def answers_match(self, obj):
+        # Safety check: if lost_item is missing, treat as no match
+        if not obj.lost_item:
+            return mark_safe('<span style="color: red;">✗ No item</span>')
+        
         match1 = (obj.answer1 == obj.lost_item.answer1)
         match2 = (obj.answer2 == obj.lost_item.answer2)
+        
         if match1 and match2:
-            return format_html('<span style="color: green; font-weight: bold;">✓ Both match</span>')
+            return mark_safe('<span style="color: green; font-weight: bold;">✓ Both match</span>')
         elif match1 or match2:
-            return format_html('<span style="color: orange;">⚠️ Partial match</span>')
+            return mark_safe('<span style="color: orange;">⚠️ Partial match</span>')
         else:
-            return format_html('<span style="color: red;">✗ No match</span>')
+            return mark_safe('<span style="color: red;">✗ No match</span>')
     answers_match.short_description = 'Answers Match'
 
     def mark_active(self, request, queryset):
         queryset.update(is_deleted=False)
     mark_active.short_description = "Mark as active"
-
 
 @admin.register(Favourite)
 class FavouriteAdmin(SoftDeleteAdmin):

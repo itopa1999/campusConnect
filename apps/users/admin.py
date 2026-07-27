@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Avg
 from django.utils import timezone
-from apps.users.models import (Badge, ContactReport, FeatureFlag, Notification, PointPackage, PointPurchase, PointTransaction, User, VerificationToken)
+from apps.users.models import (BackupCode, Badge, ContactReport, FeatureFlag, Notification, PointPackage, PointPurchase, PointTransaction, TwoFactorMethod, User, VerificationToken)
 from common.admin import SoftDeleteAdmin
 
 from django.utils.safestring import mark_safe
@@ -55,11 +55,14 @@ class UserAdmin(SoftDeleteAdmin):
     
     fieldsets = (
         ('Account Information', {
-            'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'hall_verified', 'points',
+            'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'points',
                        'notification', 'visibility')
         }),
         ('Student Verification', {
-            'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified')
+            'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified','student_id_verified_status')
+        }),
+        ('Student Hall Verification', {
+            'fields': ('hall_number', 'hall_residence','hall_verified', 'hall_verified_status')
         }),
         ('Academic Info', {
             'fields': ('department', 'faculty', 'level'),
@@ -674,3 +677,150 @@ class NotificationAdmin(SoftDeleteAdmin):
     def mark_as_unread(self, request, queryset):
         updated = queryset.update(is_read=False)
         self.message_user(request, f'{updated} notification(s) marked as unread.')
+
+
+@admin.register(TwoFactorMethod)
+class TwoFactorMethodAdmin(SoftDeleteAdmin):
+    list_display = (
+        'user_email',
+        'method',
+        'is_enabled_badge',
+        'secret_masked',
+        'created_at',
+        'is_deleted'
+    )
+    list_filter = ('method', 'is_enabled', 'created_at')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name')
+    
+    readonly_fields = (
+        'user',
+        'method',
+        'secret',
+        'created_at',
+        'created_by',
+        'modified_at',
+        'modified_by',
+        'is_deleted',
+        'deleted_at',
+        'deleted_by'
+    )
+    
+    fieldsets = (
+        ('2FA Method Details', {
+            'fields': ('user', 'method', 'is_enabled', 'secret')
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by'
+            ),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['enable_methods', 'disable_methods']
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'User Email'
+    user_email.admin_order_field = 'user__email'
+
+    def is_enabled_badge(self, obj):
+        if obj.is_enabled:
+            return format_html(
+                '<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">Enabled</span>'
+            )
+        return format_html(
+            '<span style="background-color: #dc3545; padding: 3px 8px; border-radius: 4px; color: white;">Disabled</span>'
+        )
+    is_enabled_badge.short_description = 'Status'
+
+    def secret_masked(self, obj):
+        if obj.secret:
+            # Show only first and last 4 characters for security
+            return f"{obj.secret[:4]}...{obj.secret[-4:]}" if len(obj.secret) > 8 else "****"
+        return "No secret"
+    secret_masked.short_description = 'Secret (masked)'
+
+    @admin.action(description='Enable selected 2FA methods')
+    def enable_methods(self, request, queryset):
+        updated = queryset.update(is_enabled=True)
+        self.message_user(request, f"{updated} method(s) enabled.")
+
+    @admin.action(description='Disable selected 2FA methods')
+    def disable_methods(self, request, queryset):
+        updated = queryset.update(is_enabled=False)
+        self.message_user(request, f"{updated} method(s) disabled.")
+
+
+@admin.register(BackupCode)
+class BackupCodeAdmin(SoftDeleteAdmin):
+    list_display = (
+        'user_email',
+        'code_hash_preview',
+        'is_used_badge',
+        'created_at',
+        'is_deleted'
+    )
+    list_filter = ('is_used', 'created_at')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'code_hash')
+    
+    readonly_fields = (
+        'user',
+        'code_hash',
+        'is_used',
+        'created_at',
+        'created_by',
+        'modified_at',
+        'modified_by',
+        'is_deleted',
+        'deleted_at',
+        'deleted_by'
+    )
+    
+    fieldsets = (
+        ('Backup Code', {
+            'fields': ('user', 'code_hash', 'is_used')
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by'
+            ),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['mark_used', 'mark_unused']
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'User Email'
+    user_email.admin_order_field = 'user__email'
+
+    def code_hash_preview(self, obj):
+        # Show only a short preview of the hashed code
+        return obj.code_hash[:12] + '...' if obj.code_hash else ''
+    code_hash_preview.short_description = 'Hash (preview)'
+
+    def is_used_badge(self, obj):
+        if obj.is_used:
+            return format_html(
+                '<span style="background-color: #dc3545; padding: 3px 8px; border-radius: 4px; color: white;">Used</span>'
+            )
+        return format_html(
+            '<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">Available</span>'
+        )
+    is_used_badge.short_description = 'Status'
+
+    @admin.action(description='Mark selected backup codes as used')
+    def mark_used(self, request, queryset):
+        updated = queryset.update(is_used=True)
+        self.message_user(request, f"{updated} code(s) marked as used.")
+
+    @admin.action(description='Mark selected backup codes as unused')
+    def mark_unused(self, request, queryset):
+        updated = queryset.update(is_used=False)
+        self.message_user(request, f"{updated} code(s) marked as unused.")

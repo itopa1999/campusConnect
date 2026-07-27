@@ -1,7 +1,7 @@
 from django.urls import path, include
 
-from apps.users.views import (BuyPointView, ChangePasswordView, ConfirmResetPasswordView, CreateAccountView, DeleteAllNotificationView, 
-                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, GetPointPurchasedView, GetTransactionView, LoginView, LogoutUserView, 
+from apps.users.views import (AddStudentHallView, BuyPointView, ChangePasswordView, ConfirmResetPasswordView, CreateAccountView, DeleteAllNotificationView, 
+                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, GetPointPurchasedView, GetStudentHallRecordView, GetStudentIDView, GetTransactionView, LoginView, LogoutUserView, 
                               MarkAllNotificationAsReadView, MonnifyPointsConfirmView, NotificationDeleteView, NotificationMarkAsReadView, 
                               PaystackPointsConfirmView, PointPackagesView, ProfileView, RefreshPointBalanceView, RefreshTokenView, 
                               ResendVerificationEmailView, RetryPurchaseView, SubmitReportView, UploadProfilePictureView, UploadStudentIdView, 
@@ -22,6 +22,9 @@ urlpatterns = [
         path("refresh-token", RefreshTokenView.as_view(), name="refresh_token"),
 
         path('profile', ProfileView.as_view(), name='profile'),
+        path('profile-student-id', GetStudentIDView.as_view(), name='profile_student_id'),
+        path('profile-student-hall', GetStudentHallRecordView.as_view(), name='profile_student_hall'),
+        path('add-student-hall', AddStudentHallView.as_view(), name='add_student_hall'),
         path('profile-picture', UploadProfilePictureView.as_view(), name='profile_picture'),
         path('upload-student-id', UploadStudentIdView.as_view(), name='upload-student-id'),
 

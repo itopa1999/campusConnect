@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.urls import reverse
 from django.contrib.admin import ModelAdmin
-
+from django.utils.safestring import mark_safe
 from apps.moderator.models import ModeratorAction, FlaggedContent, UserModeration, ModeratorNote
 from apps.users.models import User
 from common.admin import SoftDeleteAdmin
@@ -178,6 +178,7 @@ class FlaggedContentAdmin(SoftDeleteAdmin):
 
     actions = ['mark_as_resolved', 'mark_as_unresolved']
 
+    # Use mark_safe with f-strings instead of format_html
     def content_type_badge(self, obj):
         colors = {
             'listing': '#007bff',
@@ -187,9 +188,8 @@ class FlaggedContentAdmin(SoftDeleteAdmin):
         }
         color = colors.get(obj.content_type, '#6c757d')
         display = obj.get_content_type_display()
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem;">{}</span>',
-            color, display
+        return mark_safe(
+            f'<span style="background-color: {color}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem;">{display}</span>'
         )
     content_type_badge.short_description = 'Content Type'
     content_type_badge.admin_order_field = 'content_type'
@@ -197,7 +197,7 @@ class FlaggedContentAdmin(SoftDeleteAdmin):
     def flagged_by_link(self, obj):
         url = reverse('admin:users_user_change', args=[obj.flagged_by.id])
         display_name = obj.flagged_by.get_full_name() or obj.flagged_by.email
-        return format_html('<a href="{}">{}</a>', url, display_name)
+        return mark_safe(f'<a href="{url}">{display_name}</a>')
     flagged_by_link.short_description = 'Flagged By'
     flagged_by_link.admin_order_field = 'flagged_by__first_name'
 
@@ -207,8 +207,8 @@ class FlaggedContentAdmin(SoftDeleteAdmin):
 
     def is_resolved_badge(self, obj):
         if obj.is_resolved:
-            return format_html('<span style="color: green;">✅ Resolved</span>')
-        return format_html('<span style="color: #ffc107;">⏳ Pending</span>')
+            return mark_safe('<span style="color: green;">✅ Resolved</span>')
+        return mark_safe('<span style="color: #ffc107;">⏳ Pending</span>')
     is_resolved_badge.short_description = 'Status'
     is_resolved_badge.admin_order_field = 'is_resolved'
 
@@ -233,8 +233,12 @@ class FlaggedContentAdmin(SoftDeleteAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('flagged_by', 'resolved_by')
 
-
+    
 # ==================== USER MODERATION ADMIN ====================
+
+from django.utils.safestring import mark_safe
+from django.urls import reverse
+from django.utils import timezone
 
 @admin.register(UserModeration)
 class UserModerationAdmin(SoftDeleteAdmin):
@@ -297,23 +301,25 @@ class UserModerationAdmin(SoftDeleteAdmin):
     actions = ['increment_warning', 'reset_warnings', 'suspend_user', 'unsuspend_user', 'ban_user', 'unban_user']
 
     def user_link(self, obj):
-        url = reverse('admin:users_user_change', args=[obj.user.id])
-        display_name = obj.user.get_full_name() or obj.user.email
-        return format_html('<a href="{}">{}</a>', url, display_name)
+        if obj.user:
+            url = reverse('admin:users_user_change', args=[obj.user.id])
+            display_name = obj.user.get_full_name() or obj.user.email
+            return mark_safe(f'<a href="{url}">{display_name}</a>')
+        return "—"
     user_link.short_description = 'User'
     user_link.admin_order_field = 'user__first_name'
 
     def is_suspended_badge(self, obj):
         if obj.is_suspended:
-            return format_html('<span style="color: #fd7e14;">⏳ Suspended</span>')
-        return format_html('<span style="color: green;">✅ Active</span>')
+            return mark_safe('<span style="color: #fd7e14;">⏳ Suspended</span>')
+        return mark_safe('<span style="color: green;">✅ Active</span>')
     is_suspended_badge.short_description = 'Suspended?'
     is_suspended_badge.admin_order_field = 'is_suspended'
 
     def is_banned_badge(self, obj):
         if obj.is_banned:
-            return format_html('<span style="color: #dc3545;">🚫 Banned</span>')
-        return format_html('<span style="color: green;">✅ Active</span>')
+            return mark_safe('<span style="color: #dc3545;">🚫 Banned</span>')
+        return mark_safe('<span style="color: green;">✅ Active</span>')
     is_banned_badge.short_description = 'Banned?'
     is_banned_badge.admin_order_field = 'is_banned'
 
@@ -353,8 +359,8 @@ class UserModerationAdmin(SoftDeleteAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
 
-
 # ==================== MODERATOR NOTE ADMIN ====================
+
 
 @admin.register(ModeratorNote)
 class ModeratorNoteAdmin(SoftDeleteAdmin):
@@ -408,9 +414,11 @@ class ModeratorNoteAdmin(SoftDeleteAdmin):
     )
 
     def author_link(self, obj):
-        url = reverse('admin:users_user_change', args=[obj.author.id])
-        display_name = obj.author.get_full_name() or obj.author.email
-        return format_html('<a href="{}">{}</a>', url, display_name)
+        if obj.author:
+            url = reverse('admin:users_user_change', args=[obj.author.id])
+            display_name = obj.author.get_full_name() or obj.author.email
+            return mark_safe(f'<a href="{url}">{display_name}</a>')
+        return "—"
     author_link.short_description = 'Author'
     author_link.admin_order_field = 'author__first_name'
 
@@ -423,9 +431,8 @@ class ModeratorNoteAdmin(SoftDeleteAdmin):
         }
         color = colors.get(obj.content_type, '#6c757d')
         display = obj.get_content_type_display()
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem;">{}</span>',
-            color, display
+        return mark_safe(
+            f'<span style="background-color: {color}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem;">{display}</span>'
         )
     content_type_badge.short_description = 'Content Type'
     content_type_badge.admin_order_field = 'content_type'
@@ -436,8 +443,8 @@ class ModeratorNoteAdmin(SoftDeleteAdmin):
 
     def is_private_badge(self, obj):
         if obj.is_private:
-            return format_html('<span style="color: #6c757d;">🔒 Private</span>')
-        return format_html('<span style="color: #28a745;">🌐 Public</span>')
+            return mark_safe('<span style="color: #6c757d;">🔒 Private</span>')
+        return mark_safe('<span style="color: #28a745;">🌐 Public</span>')
     is_private_badge.short_description = 'Privacy'
     is_private_badge.admin_order_field = 'is_private'
 

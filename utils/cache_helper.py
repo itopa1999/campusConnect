@@ -86,7 +86,8 @@ class GlobalCache:
     def get_or_set(
         key: str,
         callback,
-        timeout: int = CACHE_TTL,
+        timeout = 30,
+        # timeout: int = CACHE_TTL,
         lock_timeout: int = 30,
         max_wait: float = 5.0,
     ):

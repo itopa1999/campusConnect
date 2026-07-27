@@ -12,12 +12,12 @@ class UserCreationSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150, required=True)
     email = serializers.EmailField(required=True)
     phone = serializers.CharField(max_length=15, required=False, allow_blank=True)
-    password = serializers.CharField(max_length=128, write_only=True, required=True)
+    password = serializers.CharField(min_length=8, write_only=True, required=True)
 
 
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    password = serializers.CharField(max_length=128, write_only=True, required=True)
+    password = serializers.CharField(min_length=8, write_only=True, required=True)
     platform = serializers.CharField(required=True)
 
 
@@ -29,9 +29,9 @@ class ResendVerificationEmailSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
 class ChangePasswordSerializer(serializers.Serializer):
-    current_password = serializers.CharField(max_length=128, write_only=True, required=True)
-    new_password = serializers.CharField(max_length=128, write_only=True, required=True)
-
+    current_password = serializers.CharField(min_length=8, write_only=True, required=True)
+    new_password = serializers.CharField(min_length=8, write_only=True, required=True)
+    confirm_password = serializers.CharField(min_length=8, write_only=True, required=True)
 
 class ReportSerializer(serializers.Serializer):
     reporter_name = serializers.CharField(max_length=255)
@@ -52,8 +52,8 @@ class RefreshTokenSerializer(serializers.Serializer):
 class ConfirmResetPasswordSerializer(serializers.Serializer):
     user_id = serializers.CharField(max_length=200, write_only=True, required=True)
     email = serializers.EmailField(max_length=128, write_only=True, required=True)
-    password = serializers.CharField(max_length=128, write_only=True, required=True)
-    confirm_password = serializers.CharField(max_length=128, write_only=True, required=True)
+    password = serializers.CharField(min_length=8, write_only=True, required=True)
+    confirm_password = serializers.CharField(min_length=8, write_only=True, required=True)
 
 class BuyPointSerializer(serializers.Serializer):
     amount = serializers.IntegerField(required=True)
@@ -111,10 +111,10 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'full_name', 'email', 'phone', 'profile_picture',
-            'points', 'matric_number', 'student_id_verified',
+            'points', 'matric_number', 'student_id_verified', 'student_id_verified_status',
             'department', 'faculty', 'level',
-            'member_since',
-            'email_verified', 'hall_verified',
+            'member_since', 'hall_residence', 'hall_number',
+            'email_verified', 'hall_verified', 'hall_verified_status',
             'badges',
             'trust_score', 'avg_rating', 'review_count',
             'reviews', 'transactions', 'profile_completion',
@@ -185,4 +185,7 @@ class ProfilePictureSerializer(serializers.Serializer):
 class UploadStudentIdSerializer(serializers.Serializer):
     student_id = serializers.ImageField(
         required=True    )
-    
+
+class HallVerificationSerializer(serializers.Serializer):
+    hall_number = serializers.CharField(max_length=300, required=True)
+    hall_residence = serializers.CharField(max_length=300, required=True)

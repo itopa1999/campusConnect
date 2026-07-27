@@ -3,7 +3,7 @@
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import NotificationEnum
+from utils.enums import NotificationEnum, UserIdVerificationEnum
 from utils.helpers import create_notification
 from utils.log_helpers import OperationLogger
 from django.db import transaction
@@ -264,5 +264,61 @@ class ProfileCommand:
                 status_code=500
             )
 
+    @staticmethod
+    def add_student_hall(request, user: User, validated_data) -> BaseResultWithData:
+        op = OperationLogger(
+            f"ProfileCommand.add_student_hall for user: {user.email}",
+            user_id=getattr(user, 'id', None)
+        )
+        op.start()
+        try:
+            if user.hall_verified or user.hall_verified_status == UserIdVerificationEnum.APPROVED.value:
+                op.fail(f"User {user.email} hall is already verified; updates not allowed.")
+                return BaseResultWithData(
+                    message="Your hall is already verified. Updates are not allowed.",
+                    data=None,
+                    status_code=400
+                )
 
+            hall_residence = validated_data.get('hall_residence')
+            hall_number = validated_data.get('hall_number')
 
+            user.hall_residence = hall_residence
+            user.hall_number = hall_number
+            user.hall_verified = False
+            user.hall_verified_status = UserIdVerificationEnum.PENDING.value
+            user.save(update_fields=['hall_residence', 'hall_number',
+                                    'hall_verified', 'hall_verified_status'])
+
+            create_notification(
+                user=user,
+                notification_type=NotificationEnum.ACCOUNT.value,
+                title="Hall Verification Submitted",
+                message=(
+                    f"Your hall details for '{hall_residence}' (Room {hall_number}) "
+                    "have been submitted for verification. We will review and notify you."
+                ),
+                action_url="/dash/hall-verification.html"
+            )
+
+            # TODO Optionally send email notification via background task
+
+            op.success(f"Hall details updated for user: {user.email}")
+            return BaseResultWithData(
+                message="Hall details submitted for verification.",
+                data={
+                    "hall_residence": hall_residence,
+                    "hall_number": hall_number,
+                    "student_hall_verified": False,
+                    "student_hall_verified_status": "pending",
+                },
+                status_code=200
+            )
+
+        except Exception as e:
+            op.fail(f"Error updating hall details: {str(e)}", exc=e)
+            return BaseResultWithData(
+                message=f"Error updating hall details: {str(e)}",
+                data=None,
+                status_code=500
+            )

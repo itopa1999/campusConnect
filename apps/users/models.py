@@ -7,7 +7,7 @@ from django.core.validators import MinValueValidator, RegexValidator
 from datetime import timedelta
 import random
 from apps.users.manager import UserManager
-from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, ReportStatusEnum, TokenTypeEnum
+from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, ReportStatusEnum, TokenTypeEnum, TwoFactorMethodEnum, UserIdVerificationEnum
 from utils.enums import IssueTypeEnum
 # Create your models here.
 import os
@@ -62,6 +62,7 @@ class User(BaseModel, AbstractUser):
 
     student_id_photo = models.ImageField(upload_to=student_id_upload_path, null =True, blank=True)
     student_id_verified = models.BooleanField(default=False)
+    student_id_verified_status = models.CharField(max_length=50, choices=UserIdVerificationEnum.choices(), default=UserIdVerificationEnum.PENDING.value)
     
     department = models.CharField(max_length=100, blank=True, null=True)
     faculty = models.CharField(max_length=100, blank=True, null=True)
@@ -72,7 +73,12 @@ class User(BaseModel, AbstractUser):
         default=False,
         help_text="Email verification status"
     )
+
+    hall_residence = models.CharField(max_length=255, null=True, blank=True)
+    hall_number = models.CharField(max_length=255, null=True, blank=True)
     hall_verified = models.BooleanField(default=False, help_text="Student hall/residence verified")
+    hall_verified_status = models.CharField(max_length=50, choices=UserIdVerificationEnum.choices(), default=UserIdVerificationEnum.PENDING.value)
+
     user_badges = models.ManyToManyField(
         Badge,
         blank=True,
@@ -81,6 +87,8 @@ class User(BaseModel, AbstractUser):
 
     notification = models.BooleanField(default=True)
     visibility = models.BooleanField(default=True)
+
+    two_factor_enabled = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         self.first_name = self.first_name.title()
@@ -150,7 +158,34 @@ class VerificationToken(BaseModel):
     @staticmethod
     def generate_token():
         return random.randint(100000, 999999)
-    
+
+
+
+class TwoFactorMethod(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='two_factor_methods')
+    method = models.CharField(max_length=20, choices=TwoFactorMethodEnum.choices())
+    is_enabled = models.BooleanField(default=False)
+    secret = models.CharField(max_length=32, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'method')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.method}"
+
+
+
+class BackupCode(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='backup_codes')
+    code_hash = models.CharField(max_length=128)
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Backup code for {self.user.email}"
+        
 
 class ContactReport(BaseModel):
 

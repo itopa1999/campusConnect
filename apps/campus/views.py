@@ -46,7 +46,7 @@ class LostAndFoundView(generics.GenericAPIView):
     serializer_class = LostAndFoundSerializer
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=5, period=3600, user_type=UserTypeEnum.AUTH)]
-    
+    parser_classes = [MultiPartParser, FormParser]
     def post(self, request):
         result = LostandFoundCommand.create_item(request.user, request.data)
         return Response(result.to_dict(), status=result.status_code)
@@ -260,7 +260,7 @@ class CategorizedListingsView(APIView):
             openapi.Parameter('price', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('category_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('listing_type', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('search_query', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('badge', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),

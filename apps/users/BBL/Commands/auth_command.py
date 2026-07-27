@@ -1,5 +1,6 @@
 from apps.users.BBL.Commands.account_command import AccountCommand
 from apps.users.models import User
+from apps.users.utils import revoke_all_user_tokens
 from utils.Tasks.backgroundTask import background_task_send_change_password_email, background_task_send_notification_email, background_task_send_password_reset_email
 from utils.base_result import BaseResultWithData
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -274,6 +275,23 @@ class AuthCommand:
         try:
             current_password = validated_data.get('current_password')
             new_password = validated_data.get('new_password')
+            confirm_password = validated_data.get('confirm_password')
+
+            if new_password != confirm_password:
+                op.fail(f"[AuthCommand.ChangePassword] Password confirmation mismatch for user: {user.first_name or user.email}")
+                return BaseResultWithData(
+                    message="New password and confirmation do not match",
+                    data=None,
+                    status_code=400
+                )
+
+            if user.check_password(new_password):
+                op.fail(f"[AuthCommand.ChangePassword] New password is same as current for user: {user.first_name or user.email}")
+                return BaseResultWithData(
+                    message="New password cannot be the same as your current password",
+                    data=None,
+                    status_code=400
+                )
             
             if not user.check_password(current_password):
                 op.fail(f"[AuthCommand.ChangePassword] Incorrect current password for user: {user.first_name or user.email}")
@@ -293,6 +311,8 @@ class AuthCommand:
             
             user.set_password(new_password)
             user.save()
+
+            revoke_all_user_tokens(user)
 
             create_notification(
                 user=user,

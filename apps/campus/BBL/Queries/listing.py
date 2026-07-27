@@ -143,7 +143,7 @@ class ListingQuery:
 
         # --- Build cache key (filters only for search) ---
         if section == 'search':
-            filter_keys = ['price', 'category_name', 'listing_type', 'search', 'badge', 'date_from', 'date_to']
+            filter_keys = ['price', 'category_name', 'listing_type', 'search_query', 'badge', 'date_from', 'date_to']
             filter_parts = []
             for key in filter_keys:
                 value = filters.get(key)
@@ -225,7 +225,7 @@ class ListingQuery:
                 if listing_type:
                     qs = qs.filter(listing_type__icontains=listing_type)
 
-                search = filters.get('search')
+                search = filters.get('search_query')
                 if search:
                     qs = qs.filter(
                         Q(title__icontains=search) |

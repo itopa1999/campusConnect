@@ -40,7 +40,8 @@ class ListingSerializer(serializers.ModelSerializer):
 class LostAndFoundSerializer(serializers.ModelSerializer):
     class Meta:
         model = LostAndFound
-        fields = '__all__'
+        fields = ['item_name', 'description', 'full_name', 'email', 'phone',
+                  'department', 'id', 'status', 'location', 'date_found', 'verification1', 'verification2', 'image']
         read_only_fields = [
             "id",
             "status",
