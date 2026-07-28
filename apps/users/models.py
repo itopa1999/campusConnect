@@ -166,8 +166,6 @@ class TwoFactorMethod(BaseModel):
     method = models.CharField(max_length=20, choices=TwoFactorMethodEnum.choices())
     is_enabled = models.BooleanField(default=False)
     secret = models.CharField(max_length=32, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('user', 'method')

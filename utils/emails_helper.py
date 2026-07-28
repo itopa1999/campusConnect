@@ -379,7 +379,7 @@ CampusConnect Team
                 user_listings.setdefault(listing.user, []).append(listing)
 
             base_url = settings.BASE_FRONTEND_URL
-            dashboard_url = f"{base_url}/dash/main.html#listings"
+            dashboard_url = f"{base_url}/student/main.html#listings"
 
             sent_count = 0
             for user, user_listings_list in user_listings.items():
@@ -439,7 +439,7 @@ CampusConnect Team
                 user_listings.setdefault(listing.user, []).append(listing)
 
             base_url = settings.BASE_FRONTEND_URL
-            dashboard_url = f"{base_url}/dash/main.html#listings"
+            dashboard_url = f"{base_url}/student/main.html#listings"
 
             sent_count = 0
             for user, user_listings_list in user_listings.items():
@@ -505,7 +505,7 @@ CampusConnect Team
                 user_listings.setdefault(listing.user, []).append(listing)
 
             base_url = settings.BASE_FRONTEND_URL
-            dashboard_url = f"{base_url}/dash/main.html#listings"
+            dashboard_url = f"{base_url}/student/main.html#listings"
 
             sent_count = 0
             for user, user_listings_list in user_listings.items():
@@ -568,7 +568,7 @@ CampusConnect Team
                 user_listings.setdefault(listing.user, []).append(listing)
 
             base_url = settings.BASE_FRONTEND_URL
-            dashboard_url = f"{base_url}/dash/main.html#listings"
+            dashboard_url = f"{base_url}/student/main.html#listings"
 
             sent_count = 0
             for user, user_listings_list in user_listings.items():

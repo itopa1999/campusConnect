@@ -1,6 +1,6 @@
 from apps.users.BBL.Commands.account_command import AccountCommand
-from apps.users.models import User
-from apps.users.utils import revoke_all_user_tokens
+from apps.users.models import TwoFactorMethod, User
+from apps.users.utils import get_user_2fa_status, revoke_all_user_tokens
 from utils.Tasks.backgroundTask import background_task_send_change_password_email, background_task_send_notification_email, background_task_send_password_reset_email
 from utils.base_result import BaseResultWithData
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -68,6 +68,20 @@ class AuthCommand:
                     message="Your account has been deactivated. Please contact support for assistance.",
                     data=None,
                     status_code=400
+                )
+            
+            status = get_user_2fa_status(user)
+            if status['requires_2fa']:
+                active_method = status['active_method']
+                return BaseResultWithData(
+                    message= f"Enter your {active_method} code",
+                    data= {
+                    "requires_2fa": True,
+                    "user_id": user.id,
+                    "active_method": active_method,
+                    'platform': platform,
+                    },
+                    status_code=200
                 )
             
             refresh = RefreshToken.for_user(user)
@@ -319,7 +333,7 @@ class AuthCommand:
                 notification_type=NotificationEnum.ACCOUNT.value,
                 title="Password Change Confirmation",
                 message="Your password has been changed successfully",
-                action_url="/dash/profile.html"
+                action_url="/student/profile.html"
             )
 
             try:

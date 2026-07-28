@@ -56,7 +56,7 @@ class UserAdmin(SoftDeleteAdmin):
     fieldsets = (
         ('Account Information', {
             'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'points',
-                       'notification', 'visibility')
+                       'notification', 'visibility', 'two_factor_enabled')
         }),
         ('Student Verification', {
             'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified','student_id_verified_status')
@@ -728,10 +728,10 @@ class TwoFactorMethodAdmin(SoftDeleteAdmin):
 
     def is_enabled_badge(self, obj):
         if obj.is_enabled:
-            return format_html(
+            return mark_safe(
                 '<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">Enabled</span>'
             )
-        return format_html(
+        return mark_safe(
             '<span style="background-color: #dc3545; padding: 3px 8px; border-radius: 4px; color: white;">Disabled</span>'
         )
     is_enabled_badge.short_description = 'Status'
@@ -752,7 +752,6 @@ class TwoFactorMethodAdmin(SoftDeleteAdmin):
     def disable_methods(self, request, queryset):
         updated = queryset.update(is_enabled=False)
         self.message_user(request, f"{updated} method(s) disabled.")
-
 
 @admin.register(BackupCode)
 class BackupCodeAdmin(SoftDeleteAdmin):

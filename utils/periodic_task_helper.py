@@ -55,7 +55,7 @@ class PeriodTasksHelper:
                             notification_type=NotificationEnum.LISTING.value,
                             title="Listing Expired",
                             message=f'Your listing "{l.title}" has expired. Reactivate it with 1 point.',
-                            action_url=f"/dash/my-listing-details.html?id={l.id}&title={l.title}",
+                            action_url=f"/student/my-listing-details.html?id={l.id}&title={l.title}",
                         )
                         for l in non_auto_listings
                     ]
@@ -104,7 +104,7 @@ class PeriodTasksHelper:
                                 notification_type=NotificationEnum.LISTING.value,
                                 title="Listing Auto‑Reactivated",
                                 message=f'Your listing "{l.title}" has been automatically reactivated. 1 point was deducted.',
-                                action_url=f"/dash/my-listing-details.html?id={l.id}&title={l.title}",
+                                action_url=f"/student/my-listing-details.html?id={l.id}&title={l.title}",
                             )
                             for l in can_reactivate
                         ]
@@ -128,7 +128,7 @@ class PeriodTasksHelper:
                                 notification_type=NotificationEnum.LISTING.value,
                                 title="Auto‑Reactivation Failed",
                                 message=f'Your listing "{l.title}" could not be auto‑reactivated due to insufficient points. Please add points and reactivate manually.',
-                                action_url=f"/dash/my-listing-details.html?id={l.id}&title={l.title}",
+                                action_url=f"/student/my-listing-details.html?id={l.id}&title={l.title}",
                             )
                             for l in cannot_reactivate
                         ]
@@ -188,7 +188,7 @@ class PeriodTasksHelper:
                         notification_type=NotificationEnum.LISTING.value,
                         title="Banner Promotion Expired",
                         message=f'The banner promotion for your listing "{l.title}" has expired. You can renew it from the listing management page.',
-                        action_url=f"/dash/my-listing-details.html?id={l.id}&title={l.title}",
+                        action_url=f"/student/my-listing-details.html?id={l.id}&title={l.title}",
                     )
                     for l in listings
                 ]
@@ -248,7 +248,7 @@ class PeriodTasksHelper:
                         notification_type=NotificationEnum.LISTING.value,
                         title="Hot Sales Promotion Expired",
                         message=f'The Hot Sales promotion for your listing "{l.title}" has expired. You can renew it from the listing management page.',
-                        action_url=f"/dash/my-listing-details.html?id={l.id}&title={l.title}",
+                        action_url=f"/student/my-listing-details.html?id={l.id}&title={l.title}",
                     )
                     for l in listings
                 ]

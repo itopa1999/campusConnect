@@ -158,7 +158,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'full_name', 'phone', 'department', 'faculty', 'level',
-            'matric_number', 'notification', 'visibility'
+            'matric_number'
         ]
 
     def validate_full_name(self, value):
@@ -189,3 +189,21 @@ class UploadStudentIdSerializer(serializers.Serializer):
 class HallVerificationSerializer(serializers.Serializer):
     hall_number = serializers.CharField(max_length=300, required=True)
     hall_residence = serializers.CharField(max_length=300, required=True)
+
+
+class ToggleTwoFactorMethodSerializer(serializers.Serializer):
+    two_factor_Type = serializers.CharField(max_length=300, required=True)
+
+
+class VerifyTotpSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=6, min_length=6)
+
+class TotpLoginSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    code = serializers.CharField(max_length=6, min_length=6)
+    platform = serializers.CharField(required=False, default='web')
+
+class VerifyBackupCodeSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    code = serializers.CharField(max_length=8, min_length=8)
+    platform = serializers.CharField(required=False, default='web')

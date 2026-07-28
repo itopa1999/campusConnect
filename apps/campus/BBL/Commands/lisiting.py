@@ -166,7 +166,7 @@ class ListingCommand:
                     notification_type=NotificationEnum.LISTING.value,
                     title="Listing Created",
                     message=f"Your listing '{listing.title}' has been successfully created.",
-                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                    action_url=f"/student/my-listing-details.html?id={listing.id}&title={listing.title}"
                 )
 
                 op.success(f"Listing created: {listing.id} for user: {user.first_name or user.email}")
@@ -325,7 +325,7 @@ class ListingCommand:
                     notification_type=NotificationEnum.LISTING.value,
                     title="Listing Updated",
                     message=f"Your listing '{updated_listing.title}' has been successfully Updated.",
-                    action_url=f"/dash/my-listing-details.html?id={updated_listing.id}&title={updated_listing.title}"
+                    action_url=f"/student/my-listing-details.html?id={updated_listing.id}&title={updated_listing.title}"
                 )
 
                 op.success(f"Listing: {listing_id} updated for user: {user.first_name or user.email}")
@@ -378,7 +378,7 @@ class ListingCommand:
                     notification_type=NotificationEnum.LISTING.value,
                     title="Listing Deleted",
                     message=f"Your listing '{listing.title}' has been successfully Deleted.",
-                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                    action_url=f"/student/my-listing-details.html?id={listing.id}&title={listing.title}"
                 )
 
             op.success(f"Listing: {listing_id} deleted for user: {user.first_name or user.email}")
@@ -456,7 +456,7 @@ class ListingCommand:
                     notification_type=NotificationEnum.LISTING.value,
                     title="Reactivated listing",
                     message=f"Your listing '{listing.title}' has been reactivated successfully.",
-                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                    action_url=f"/student/my-listing-details.html?id={listing.id}&title={listing.title}"
                 )
 
             op.success(f"Listing: {listing_id} reactivated for user: {user.first_name or user.email}")
@@ -512,7 +512,7 @@ class ListingCommand:
                     notification_type=NotificationEnum.LISTING.value,
                     title="Listing status changed",
                     message=f"Your listing '{listing.title}' has been mark as sold successfully.",
-                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                    action_url=f"/student/my-listing-details.html?id={listing.id}&title={listing.title}"
                 )
 
             op.success(f"Listing: {listing_id} mark as sold for user: {user.first_name or user.email}")
@@ -716,7 +716,7 @@ class ListingCommand:
                     notification_type=NotificationEnum.LISTING.value,
                     title="Listing Ads updated",
                     message=f"Your listing '{listing.title}' ({', '.join(description_parts)})",
-                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                    action_url=f"/student/my-listing-details.html?id={listing.id}&title={listing.title}"
                 )
 
                 op.success(f"Listing: {listing_id} ads updated for user: {user.first_name or user.email}")
@@ -792,7 +792,7 @@ class ListingCommand:
                     notification_type=NotificationEnum.LISTING.value,
                     title="Listing Auto-reactivation",
                     message=f"Auto-reactivation {'enabled' if auto_reactivate else 'disabled'} successfully for {listing.title}.",
-                    action_url=f"/dash/my-listing-details.html?id={listing.id}&title={listing.title}"
+                    action_url=f"/student/my-listing-details.html?id={listing.id}&title={listing.title}"
                 )
 
             op.success(f"Auto-reactivation toggled to {auto_reactivate} for listing: {listing_id}, user: {user.first_name or user.email}")

@@ -1,8 +1,15 @@
 from apps.users.BBL.Commands.notification import NotificationCommand
 from apps.users.BBL.Commands.profile import ProfileCommand
+from apps.users.BBL.Commands.two_factor import TwoFactorCommand
 from apps.users.BBL.Queries.notification import NotificationQueries
 from apps.users.BBL.Queries.profile import ProfileQuery
-from apps.users.serializers import (BuyPointSerializer, ChangePasswordSerializer, ConfirmResetPasswordSerializer, HallVerificationSerializer, LogoutSerializer, ProfilePictureSerializer, ProfileSerializer, ProfileUpdateSerializer, RefreshTokenSerializer, ReportSerializer, ResendVerificationEmailSerializer, RetryPurchaseSerailizer, UploadStudentIdSerializer, UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer)
+from apps.users.BBL.Queries.two_factor import TwoFactorQuery
+from apps.users.serializers import (BuyPointSerializer, ChangePasswordSerializer, 
+            ConfirmResetPasswordSerializer, HallVerificationSerializer, LogoutSerializer, 
+            ProfilePictureSerializer, ProfileSerializer, ProfileUpdateSerializer, 
+            RefreshTokenSerializer, ReportSerializer, ResendVerificationEmailSerializer, 
+            RetryPurchaseSerailizer, ToggleTwoFactorMethodSerializer, TotpLoginSerializer, UploadStudentIdSerializer, 
+            UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer, VerifyBackupCodeSerializer, VerifyTotpSerializer)
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
 from rest_framework import generics
@@ -130,28 +137,28 @@ class LoginView(generics.GenericAPIView):
         response = Response(result.to_dict(), status=result.status_code)
         access_token = result.data.get('access_token')
         refresh_token = result.data.get('refresh_token')
-        
-        if result.data.get('platform') == PlatformEnum.WEB.value:
-            access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
-            refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
-            response.set_cookie(
-                'access_token',
-                access_token,
-                httponly=True,
-                secure=settings.COOKIE_SECURE,
-                samesite=settings.COOKIE_SAMESITE,
-                max_age=access_lifetime_seconds,
-                path='/',
-            )
-            response.set_cookie(
-                'refresh_token',
-                refresh_token,
-                httponly=True,
-                secure=settings.COOKIE_SECURE,
-                samesite=settings.COOKIE_SAMESITE,
-                max_age=refresh_lifetime_seconds,
-                path='/',
-            )
+        if not result.data.get('requires_2fa'):
+            if result.data.get('platform') == PlatformEnum.WEB.value:
+                access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+                refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+                response.set_cookie(
+                    'access_token',
+                    access_token,
+                    httponly=True,
+                    secure=settings.COOKIE_SECURE,
+                    samesite=settings.COOKIE_SAMESITE,
+                    max_age=access_lifetime_seconds,
+                    path='/',
+                )
+                response.set_cookie(
+                    'refresh_token',
+                    refresh_token,
+                    httponly=True,
+                    secure=settings.COOKIE_SECURE,
+                    samesite=settings.COOKIE_SAMESITE,
+                    max_age=refresh_lifetime_seconds,
+                    path='/',
+                )
 
         return response
     
@@ -488,6 +495,14 @@ class GetStudentHallRecordView(APIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
+class GetStudentVisibilityView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
+    def get(self, request, *args, **kwargs):
+        result = ProfileQuery.get_student_visibility(request, request.user)
+        return Response(result.to_dict(), status=result.status_code)
+
+
 class AddStudentHallView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     serializer_class = HallVerificationSerializer
@@ -498,6 +513,15 @@ class AddStudentHallView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         result = ProfileCommand.add_student_hall(request, request.user, serializer.validated_data)
         return Response(result.to_dict(), status=result.status_code)
+
+
+class ToggleVisibilityView(APIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=10, period=300, user_type=UserTypeEnum.AUTH)]
+    def patch(self, request, *args, **kwargs):
+        result = ProfileCommand.toggle_visibilty(request, request.user)
+        return Response(result.to_dict(), status=result.status_code)
+
     
 
 class UploadProfilePictureView(generics.GenericAPIView):
@@ -583,4 +607,87 @@ class DeleteAllNotificationView(APIView):
 
     def delete(self, request):
         result = NotificationCommand.delete_all_notifications(request.user)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+class ToggleTwoFASetup(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=100, period=300, user_type=UserTypeEnum.AUTH)]
+    serializer_class = ToggleTwoFactorMethodSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = TwoFactorCommand.toggle_setup(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+# ─── 1. Toggle 2FA Setup (authenticated) ──────────────────────────
+class ToggleTwoFASetupView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
+    throttle_classes = [CustomRateThrottle(rate=100, period=300, user_type=UserTypeEnum.AUTH)]
+    serializer_class = ToggleTwoFactorMethodSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = TwoFactorCommand.toggle_setup(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+# ─── 2. Verify TOTP (authenticated) ───────────────────────────────
+class VerifyTotpView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [CustomRateThrottle(rate=100, period=60, user_type=UserTypeEnum.AUTH)]
+    serializer_class = VerifyTotpSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = TwoFactorCommand.verify_totp(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+# ─── 3. TOTP Login Step (public) ──────────────────────────────────
+class TotpLoginView(generics.GenericAPIView):
+    permission_classes = []  # public
+    throttle_classes = [CustomRateThrottle(rate=100, period=60, user_type=UserTypeEnum.ANON)]
+    serializer_class = TotpLoginSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = TwoFactorCommand.totp_verify_login(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+# ─── 4. Backup Code Login Step (public) ───────────────────────────
+class VerifyBackupCodeView(generics.GenericAPIView):
+    permission_classes = []  # public
+    throttle_classes = [CustomRateThrottle(rate=100, period=60, user_type=UserTypeEnum.ANON)]
+    serializer_class = VerifyBackupCodeSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = TwoFactorCommand.verify_backup_code(request, serializer.validated_data)
+        return Response(result.to_dict(), status=result.status_code)
+
+
+# ─── 5. Disable All 2FA (authenticated) ───────────────────────────
+class Disable2FAView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [CustomRateThrottle(rate=100, period=300, user_type=UserTypeEnum.AUTH)]
+
+    def post(self, request):
+        result = TwoFactorCommand.disable_2fa(request)
+        return Response(result.to_dict(), status=result.status_code)
+    
+
+class GetUser2FAMethodsView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [CustomRateThrottle(rate=100, period=300, user_type=UserTypeEnum.AUTH)]
+
+    def get(self, request):
+        result = TwoFactorQuery.get_user_2fa_methods(request)
         return Response(result.to_dict(), status=result.status_code)

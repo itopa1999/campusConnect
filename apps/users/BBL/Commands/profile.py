@@ -74,15 +74,6 @@ class ProfileCommand:
                     user.first_name = parts[0]
                     user.last_name = parts[1] if len(parts) > 1 else ''
 
-                # ─── Handle booleans ────────────────────────────
-                notification = validated_data.pop('notification', None)
-                if notification is not None:
-                    user.notification = notification
-
-                visibility = validated_data.pop('visibility', None)
-                if visibility is not None:
-                    user.visibility = visibility
-
                 # ─── Update remaining fields ────────────────────
                 for field in ['phone', 'department', 'faculty', 'level', 'matric_number']:
                     if field in validated_data:
@@ -95,7 +86,7 @@ class ProfileCommand:
                     notification_type=NotificationEnum.ACCOUNT.value,
                     title="Profile Update",
                     message="Your profile has been updated successfully",
-                    action_url="/dash/profile.html"
+                    action_url="/student/profile.html"
                 )
 
                 op.success(f"Profile updated for user {user.email}")
@@ -246,7 +237,7 @@ class ProfileCommand:
                     notification_type=NotificationEnum.ACCOUNT.value,
                     title="Student ID Uploaded",
                     message="Your student ID has been uploaded successfully",
-                    action_url="/dash/profile.html"
+                    action_url="/student/profile.html"
                 )
 
                 # send email later here please
@@ -298,7 +289,7 @@ class ProfileCommand:
                     f"Your hall details for '{hall_residence}' (Room {hall_number}) "
                     "have been submitted for verification. We will review and notify you."
                 ),
-                action_url="/dash/hall-verification.html"
+                action_url="/student/hall-verification.html"
             )
 
             # TODO Optionally send email notification via background task
@@ -322,3 +313,27 @@ class ProfileCommand:
                 data=None,
                 status_code=500
             )
+
+
+    @staticmethod
+    def toggle_visibilty(request, user: User) -> BaseResultWithData:
+        op = OperationLogger(
+            f"ProfileCommand.toggle_visibilty for user: {user.email}",
+            user_id=getattr(user, 'id', None)
+        )
+        op.start()
+
+        new_visibilty = not user.visibility
+        user.visibility = new_visibilty
+        user.save(update_fields=['visibility'])
+
+        message=f"Profile set to {'public' if new_visibilty else 'private'} successfully",
+
+        return BaseResultWithData(
+            message=message,
+            data={
+                'is_visibilty': user.visibility
+            },
+            status_code=200
+        )
+

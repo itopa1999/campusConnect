@@ -1,11 +1,11 @@
 from django.urls import path, include
 
-from apps.users.views import (AddStudentHallView, BuyPointView, ChangePasswordView, ConfirmResetPasswordView, CreateAccountView, DeleteAllNotificationView, 
-                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, GetPointPurchasedView, GetStudentHallRecordView, GetStudentIDView, GetTransactionView, LoginView, LogoutUserView, 
+from apps.users.views import (AddStudentHallView, BuyPointView, ChangePasswordView, ConfirmResetPasswordView, CreateAccountView, DeleteAllNotificationView, Disable2FAView, 
+                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, GetPointPurchasedView, GetStudentHallRecordView, GetStudentIDView, GetStudentVisibilityView, GetTransactionView, GetUser2FAMethodsView, LoginView, LogoutUserView, 
                               MarkAllNotificationAsReadView, MonnifyPointsConfirmView, NotificationDeleteView, NotificationMarkAsReadView, 
                               PaystackPointsConfirmView, PointPackagesView, ProfileView, RefreshPointBalanceView, RefreshTokenView, 
-                              ResendVerificationEmailView, RetryPurchaseView, SubmitReportView, UploadProfilePictureView, UploadStudentIdView, 
-                              VerifyAccountEmailView, VerifyForgetPasswordEmailView
+                              ResendVerificationEmailView, RetryPurchaseView, SubmitReportView, ToggleTwoFASetupView, ToggleVisibilityView, TotpLoginView, UploadProfilePictureView, UploadStudentIdView, 
+                              VerifyAccountEmailView, VerifyBackupCodeView, VerifyForgetPasswordEmailView, VerifyTotpView
                             )
 
 urlpatterns = [
@@ -21,13 +21,24 @@ urlpatterns = [
         path("logout-user", LogoutUserView.as_view(), name="logout_user"),
         path("refresh-token", RefreshTokenView.as_view(), name="refresh_token"),
 
+
+        path('2fa/toggle', ToggleTwoFASetupView.as_view(), name='2fa-toggle'),
+        path('2fa/verify-totp', VerifyTotpView.as_view(), name='2fa-verify-totp'),
+        path('2fa/login-totp', TotpLoginView.as_view(), name='2fa-login-totp'),
+        path('2fa/login-backup', VerifyBackupCodeView.as_view(), name='2fa-login-backup'),
+        path('2fa/disable', Disable2FAView.as_view(), name='2fa-disable'),
+        path('2fa/methods', GetUser2FAMethodsView.as_view(), name='2fa-methods'),
+
         path('profile', ProfileView.as_view(), name='profile'),
         path('profile-student-id', GetStudentIDView.as_view(), name='profile_student_id'),
         path('profile-student-hall', GetStudentHallRecordView.as_view(), name='profile_student_hall'),
         path('add-student-hall', AddStudentHallView.as_view(), name='add_student_hall'),
         path('profile-picture', UploadProfilePictureView.as_view(), name='profile_picture'),
         path('upload-student-id', UploadStudentIdView.as_view(), name='upload-student-id'),
-
+        path('toggle-visibility', ToggleVisibilityView.as_view(), name='toggle-visibility'),
+        path('get-visibility', GetStudentVisibilityView.as_view(), name='get-visibility'),
+        
+        
 
         path("point-packages", PointPackagesView.as_view(), name="point_packages"),
         path("get-transactions", GetTransactionView.as_view(), name="get_transactions"),

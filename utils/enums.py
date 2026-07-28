@@ -263,6 +263,7 @@ class CacheKeysEnum(Enum):
     PROFILE = "profile_{user_id}"
     PROFILE_ID = "profile_id_{user_id}"
     PROFILE_HALL = "profile_hall_{user_id}"
+    PROFILE_VISIBILITY = "profile_visibility_{user_id}"
     PUBLIC_LISTING_DETAILS = "public_listing_details_{user_id}_{listing_id}"
     NOTIFICATIONS = "notifications_{user_id}_{page}_{per_page}_{filters}"
     NOTIFICATION_HEADER = "notifications_header_{user_id}"

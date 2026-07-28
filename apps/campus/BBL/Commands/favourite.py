@@ -57,7 +57,7 @@ class FavouriteCommand:
                 notification_type=NotificationEnum.LISTING.value,
                 title="Favourite Updated",
                 message=f"Your favourite status for '{listing.title}' has been {action}.",
-                action_url="/dash/favourites.html"
+                action_url="/student/favourites.html"
         )
 
         op.success(f"Favourite {action} for listing {listing_id} by user {user.email}")

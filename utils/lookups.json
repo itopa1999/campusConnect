@@ -357,38 +357,31 @@
   "2faMethods": [
     {
       "id": 1,
+      "value": "totp",
       "name": "Authenticator App",
       "description": "Use Google Authenticator, Microsoft Authenticator, or Authy.",
-      "icon": "fas fa-mobile-screen-button",
-      "is_enabled": true
+      "icon": "fas fa-mobile-screen-button"
     },
     {
       "id": 2,
+      "value": "sms",
       "name": "SMS (Text Message)",
       "description": "Receive a one-time code via SMS on your registered phone number.",
-      "icon": "fas fa-comment-sms",
-      "is_enabled": false
+      "icon": "fas fa-comment-sms"
     },
     {
       "id": 3,
+      "value": "email",
       "name": "Email OTP",
       "description": "Get a verification code sent to your registered email address.",
-      "icon": "fas fa-envelope",
-      "is_enabled": false
+      "icon": "fas fa-envelope"
     },
     {
       "id": 4,
+      "value": "hardware",
       "name": "Hardware Token (YubiKey)",
       "description": "Use a physical USB/NFC security key for authentication.",
-      "icon": "fas fa-usb",
-      "is_enabled": false
-    },
-    {
-      "id": 5,
-      "name": "Backup Codes",
-      "description": "Generate a set of one-time use backup codes for emergencies.",
-      "icon": "fas fa-key",
-      "is_enabled": false
+      "icon": "fas fa-usb"
     }
   ]
 }

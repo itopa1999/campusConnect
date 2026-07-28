@@ -200,12 +200,9 @@ class ListingQuery:
                 if user_dept:
                     qs = base_qs.filter(user__department__icontains=user_dept)
                 else:
-                    qs = base_qs.none()  # no department → empty result
+                    qs = base_qs.none()
             elif section == 'for_you':
-                user_dept = getattr(user, 'department', None)
-                qs = base_qs.exclude(is_ads_banner=True).exclude(is_hot_sales=True)
-                if user_dept:
-                    qs = qs.exclude(user__department__icontains=user_dept)
+                qs = base_qs
             elif section == 'search':
                 qs = base_qs
                 # Apply search filters (only if present)

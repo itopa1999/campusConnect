@@ -370,3 +370,5 @@ LOGGING = {
         },
     },
 }
+
+PROJECT_NAME = "campusConnect"

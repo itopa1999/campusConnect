@@ -1,3 +1,4 @@
+from apps.users.models import TwoFactorMethod
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 def revoke_all_user_tokens(user):
@@ -15,3 +16,18 @@ def revoke_all_user_tokens(user):
         return True
     except Exception as e:
         return False
+
+
+
+
+def get_user_2fa_status(user):
+    """
+    Returns a dict with the user's current 2FA state.
+    
+    """
+    active_method = TwoFactorMethod.objects.filter(user=user, is_enabled=True).first()
+
+    return {
+        'requires_2fa': active_method is not None,
+        'active_method': active_method.method if active_method else None,
+    }

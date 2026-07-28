@@ -91,3 +91,28 @@ class ProfileQuery:
             data=cached_data,
             status_code=200
         )
+
+
+    @staticmethod
+    def get_student_visibility(request, user: User) -> BaseResultWithData:
+        cache_key = CacheKeysEnum.format(CacheKeysEnum.PROFILE_VISIBILITY, user_id=user.id)
+
+        def build_profile_data():
+            data = {
+                'is_visibility': user.visibility,
+            }
+            return data
+
+        cached_data = GlobalCache.get_or_set(
+            key=cache_key,
+            callback=build_profile_data,
+            timeout=86400,
+            lock_timeout=30,
+            max_wait=5.0,
+        )
+
+        return BaseResultWithData(
+            message="Student Visibility record retrieved",
+            data=cached_data,
+            status_code=200
+        )
