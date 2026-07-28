@@ -612,3 +612,49 @@ CampusConnect Team
         except Exception as e:
             op.fail(f"Error in send_hot_sales_expired_emails: {str(e)}")
             return False
+
+
+    @staticmethod
+    def send_2fa_otp_email(email, first_name, otp):
+        """
+        Send a 2FA OTP email to the user.
+        """
+        op = OperationLogger(f"EmailHelper.send_2fa_otp_email for {email}")
+        op.start()
+        try:
+            base_url = settings.BASE_FRONTEND_URL
+            context = {
+                'first_name': first_name or 'Student',
+                'otp': otp,
+                'base_url': base_url,
+            }
+            html_content = render_to_string('emails/2fa_otp_email.html', context)
+            plain_text = f"""
+    Hello {first_name or 'Student'},
+
+    Your one-time verification code for CampusConnect is:
+
+    {otp}
+
+    This code expires in 3 minutes and can only be used once.
+
+    If you didn't request this, please ignore this email.
+
+    Best regards,
+    CampusConnect Team
+    """
+            success = EmailHelper.send_email(
+                subject="Your CampusConnect 2FA Code",
+                message=plain_text,
+                recipient_list=[email],
+                html_message=html_content,
+                fail_silently=False
+            )
+            if success:
+                op.success(f"2FA OTP email sent to {email}")
+            else:
+                op.fail(f"Failed to send 2FA OTP email to {email}")
+            return success
+        except Exception as e:
+            op.fail(f"Error sending 2FA OTP email: {str(e)}")
+            return False

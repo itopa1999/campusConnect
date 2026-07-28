@@ -127,3 +127,17 @@ def background_task_send_banner_expired_emails(self, ids):
 )
 def background_task_send_hot_sales_expired_emails(self, ids):
     EmailHelper.send_hot_sales_expired_emails(ids)
+
+
+
+# 2FA 
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=300,
+    max_retries=5
+)
+def background_task_send_2fa_otp_email(self, email, first_name, otp):
+    EmailHelper.send_2fa_otp_email(email, first_name, otp)
+

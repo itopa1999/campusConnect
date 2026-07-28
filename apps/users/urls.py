@@ -4,8 +4,8 @@ from apps.users.views import (AddStudentHallView, BuyPointView, ChangePasswordVi
                               FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, GetPointPurchasedView, GetStudentHallRecordView, GetStudentIDView, GetStudentVisibilityView, GetTransactionView, GetUser2FAMethodsView, LoginView, LogoutUserView, 
                               MarkAllNotificationAsReadView, MonnifyPointsConfirmView, NotificationDeleteView, NotificationMarkAsReadView, 
                               PaystackPointsConfirmView, PointPackagesView, ProfileView, RefreshPointBalanceView, RefreshTokenView, 
-                              ResendVerificationEmailView, RetryPurchaseView, SubmitReportView, ToggleTwoFASetupView, ToggleVisibilityView, TotpLoginView, UploadProfilePictureView, UploadStudentIdView, 
-                              VerifyAccountEmailView, VerifyBackupCodeView, VerifyForgetPasswordEmailView, VerifyTotpView
+                              ResendVerificationEmailView, RetryPurchaseView, SubmitReportView, ToggleTwoFASetupView, ToggleVisibilityView, TwoFALoginView, UploadProfilePictureView, UploadStudentIdView, 
+                              VerifyAccountEmailView, VerifyForgetPasswordEmailView, VerifyTwoFAView
                             )
 
 urlpatterns = [
@@ -23,9 +23,8 @@ urlpatterns = [
 
 
         path('2fa/toggle', ToggleTwoFASetupView.as_view(), name='2fa-toggle'),
-        path('2fa/verify-totp', VerifyTotpView.as_view(), name='2fa-verify-totp'),
-        path('2fa/login-totp', TotpLoginView.as_view(), name='2fa-login-totp'),
-        path('2fa/login-backup', VerifyBackupCodeView.as_view(), name='2fa-login-backup'),
+        path('2fa/verify-totp', VerifyTwoFAView.as_view(), name='2fa-verify-totp'),
+        path('2fa/login-totp', TwoFALoginView.as_view(), name='2fa-login-totp'),
         path('2fa/disable', Disable2FAView.as_view(), name='2fa-disable'),
         path('2fa/methods', GetUser2FAMethodsView.as_view(), name='2fa-methods'),
 

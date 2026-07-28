@@ -682,6 +682,7 @@ class NotificationAdmin(SoftDeleteAdmin):
 @admin.register(TwoFactorMethod)
 class TwoFactorMethodAdmin(SoftDeleteAdmin):
     list_display = (
+        'id',
         'user_email',
         'method',
         'is_enabled_badge',
@@ -756,6 +757,7 @@ class TwoFactorMethodAdmin(SoftDeleteAdmin):
 @admin.register(BackupCode)
 class BackupCodeAdmin(SoftDeleteAdmin):
     list_display = (
+        'id',
         'user_email',
         'code_hash_preview',
         'is_used_badge',
@@ -806,10 +808,10 @@ class BackupCodeAdmin(SoftDeleteAdmin):
 
     def is_used_badge(self, obj):
         if obj.is_used:
-            return format_html(
+            return mark_safe(
                 '<span style="background-color: #dc3545; padding: 3px 8px; border-radius: 4px; color: white;">Used</span>'
             )
-        return format_html(
+        return mark_safe(
             '<span style="background-color: #28a745; padding: 3px 8px; border-radius: 4px; color: white;">Available</span>'
         )
     is_used_badge.short_description = 'Status'

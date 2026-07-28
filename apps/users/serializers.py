@@ -198,10 +198,11 @@ class ToggleTwoFactorMethodSerializer(serializers.Serializer):
 class VerifyTotpSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6, min_length=6)
 
-class TotpLoginSerializer(serializers.Serializer):
+class TwoFALoginSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
-    code = serializers.CharField(max_length=6, min_length=6)
+    code = serializers.CharField(max_length=20, min_length=6)
     platform = serializers.CharField(required=False, default='web')
+    method = serializers.CharField(required=False, default='web')
 
 class VerifyBackupCodeSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()

@@ -8,8 +8,8 @@ from apps.users.serializers import (BuyPointSerializer, ChangePasswordSerializer
             ConfirmResetPasswordSerializer, HallVerificationSerializer, LogoutSerializer, 
             ProfilePictureSerializer, ProfileSerializer, ProfileUpdateSerializer, 
             RefreshTokenSerializer, ReportSerializer, ResendVerificationEmailSerializer, 
-            RetryPurchaseSerailizer, ToggleTwoFactorMethodSerializer, TotpLoginSerializer, UploadStudentIdSerializer, 
-            UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer, VerifyBackupCodeSerializer, VerifyTotpSerializer)
+            RetryPurchaseSerailizer, ToggleTwoFactorMethodSerializer, TwoFALoginSerializer, UploadStudentIdSerializer, 
+            UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer, VerifyTotpSerializer)
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
 from rest_framework import generics
@@ -610,18 +610,6 @@ class DeleteAllNotificationView(APIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
-class ToggleTwoFASetup(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
-    throttle_classes = [CustomRateThrottle(rate=100, period=300, user_type=UserTypeEnum.AUTH)]
-    serializer_class = ToggleTwoFactorMethodSerializer
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        result = TwoFactorCommand.toggle_setup(request, serializer.validated_data)
-        return Response(result.to_dict(), status=result.status_code)
-
-
 # ─── 1. Toggle 2FA Setup (authenticated) ──────────────────────────
 class ToggleTwoFASetupView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
@@ -636,7 +624,7 @@ class ToggleTwoFASetupView(generics.GenericAPIView):
 
 
 # ─── 2. Verify TOTP (authenticated) ───────────────────────────────
-class VerifyTotpView(generics.GenericAPIView):
+class VerifyTwoFAView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
     throttle_classes = [CustomRateThrottle(rate=100, period=60, user_type=UserTypeEnum.AUTH)]
     serializer_class = VerifyTotpSerializer
@@ -649,32 +637,48 @@ class VerifyTotpView(generics.GenericAPIView):
 
 
 # ─── 3. TOTP Login Step (public) ──────────────────────────────────
-class TotpLoginView(generics.GenericAPIView):
-    permission_classes = []  # public
+class TwoFALoginView(generics.GenericAPIView):
+    permission_classes = []
     throttle_classes = [CustomRateThrottle(rate=100, period=60, user_type=UserTypeEnum.ANON)]
-    serializer_class = TotpLoginSerializer
+    serializer_class = TwoFALoginSerializer
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        result = TwoFactorCommand.totp_verify_login(request, serializer.validated_data)
-        return Response(result.to_dict(), status=result.status_code)
+        result = TwoFactorCommand._2fa_verify_login(request, serializer.validated_data)
+        if result.status_code != 200:
+            return Response(result.to_dict(), status=result.status_code)
+        response = Response(result.to_dict(), status=result.status_code)
+        access_token = result.data.get('access_token')
+        refresh_token = result.data.get('refresh_token')
+        if result.data.get('platform') == PlatformEnum.WEB.value:
+            access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+            refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+            response.set_cookie(
+                'access_token',
+                access_token,
+                httponly=True,
+                secure=settings.COOKIE_SECURE,
+                samesite=settings.COOKIE_SAMESITE,
+                max_age=access_lifetime_seconds,
+                path='/',
+            )
+            response.set_cookie(
+                'refresh_token',
+                refresh_token,
+                httponly=True,
+                secure=settings.COOKIE_SECURE,
+                samesite=settings.COOKIE_SAMESITE,
+                max_age=refresh_lifetime_seconds,
+                path='/',
+            )
+
+        return response
 
 
-# ─── 4. Backup Code Login Step (public) ───────────────────────────
-class VerifyBackupCodeView(generics.GenericAPIView):
-    permission_classes = []  # public
-    throttle_classes = [CustomRateThrottle(rate=100, period=60, user_type=UserTypeEnum.ANON)]
-    serializer_class = VerifyBackupCodeSerializer
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        result = TwoFactorCommand.verify_backup_code(request, serializer.validated_data)
-        return Response(result.to_dict(), status=result.status_code)
 
 
-# ─── 5. Disable All 2FA (authenticated) ───────────────────────────
+# ─── 4. Disable All 2FA (authenticated) ───────────────────────────
 class Disable2FAView(APIView):
     permission_classes = [IsAuthenticated]
     throttle_classes = [CustomRateThrottle(rate=100, period=300, user_type=UserTypeEnum.AUTH)]

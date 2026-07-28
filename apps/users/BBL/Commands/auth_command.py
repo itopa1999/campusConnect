@@ -1,6 +1,6 @@
 from apps.users.BBL.Commands.account_command import AccountCommand
 from apps.users.models import TwoFactorMethod, User
-from apps.users.utils import get_user_2fa_status, revoke_all_user_tokens
+from apps.users.utils import prepare_2fa_challenge, revoke_all_user_tokens
 from utils.Tasks.backgroundTask import background_task_send_change_password_email, background_task_send_notification_email, background_task_send_password_reset_email
 from utils.base_result import BaseResultWithData
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -70,17 +70,28 @@ class AuthCommand:
                     status_code=400
                 )
             
-            status = get_user_2fa_status(user)
+            try:
+                status = prepare_2fa_challenge(user)
+            except ValueError as e:
+                op.fail(f"2FA challenge preparation failed: {str(e)}")
+                return BaseResultWithData(
+                    message=str(e),
+                    data=None,
+                    status_code=500
+                )
             if status['requires_2fa']:
                 active_method = status['active_method']
-                return BaseResultWithData(
-                    message= f"Enter your {active_method} code",
-                    data= {
+                data = {
                     "requires_2fa": True,
                     "user_id": user.id,
                     "active_method": active_method,
-                    'platform': platform,
-                    },
+                    "platform": platform,
+                }
+                if status.get('otp_sent'):
+                    data['otp_sent'] = True
+                return BaseResultWithData(
+                    message=f"Enter your {active_method} code",
+                    data=data,
                     status_code=200
                 )
             

@@ -261,6 +261,7 @@ class ListingQuery:
                     'image': image_url,
                     'badge': listing.listing_type,
                     'hotspots': hotspots,
+                    'is_hot_sales': listing.is_hot_sales
                 })
 
             return {

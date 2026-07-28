@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from apps.users.models import BackupCode, TwoFactorMethod
+from apps.users.utils import OTPManager
 from utils.base_result import BaseResultWithData
 from utils.enums import TwoFactorMethodEnum
 from utils.log_helpers import OperationLogger
@@ -33,7 +34,7 @@ class TwoFactorCommand:
         if factor_type not in allowed_type:
             op.fail(f"[TwoFactorCommand.toggle_setup] invalid factor type for email: {user.email}")
             return BaseResultWithData(
-                message=f"Platform must be one of: {', '.join(allowed_type)}",
+                message=f"Method must be one of: {', '.join(allowed_type)}",
                 status_code=400
             )
 
@@ -211,103 +212,107 @@ class TwoFactorCommand:
             return BaseResultWithData(message="Invalid code", status_code=400)
 
     @staticmethod
-    def totp_verify_login(request, validated_data) -> BaseResultWithData:
+    def _2fa_verify_login(request, validated_data) -> BaseResultWithData:
         user_id = validated_data.get('user_id')
         code = validated_data.get('code')
         platform = validated_data.get('platform')
+        valid_method = validated_data.get('method')
         user = get_object_or_404(User, id=user_id)
 
-        op = OperationLogger(f"TwoFactorCommand.totp_verify_login for user: {user.first_name or user.email}", data=validated_data)
+        op = OperationLogger(f"TwoFactorCommand._2fa_verify_login for user: {user.first_name or user.email}", data=validated_data)
         op.start()
 
-        try:
-            method = TwoFactorMethod.objects.get(user=user, method=TwoFactorMethodEnum.TOTP.value, is_enabled=True)
-        except TwoFactorMethod.DoesNotExist:
-            op.fail(f"TOTP not enabled for user {user.email}")
-            return BaseResultWithData(message="TOTP not enabled", status_code=403)
-
-        totp = pyotp.TOTP(method.secret)
-        if totp.verify(code):
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            refresh_token = str(refresh)
-            op.success(f"Login successful for user: {user.first_name or user.email}")
-
-            if user.profile_picture and hasattr(user.profile_picture, 'url'):
-                profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
-            else:
-                profile_pic_url = None
-
+        allowed_type = [choice[0] for choice in TwoFactorMethodEnum.choices()]
+        if valid_method not in allowed_type:
+            op.fail(f"[TwoFactorCommand._2fa_verify_login] invalid method type for email: {user.email}")
             return BaseResultWithData(
-                message="Login successful",
-                data={
-                    'access_token': access_token,
-                    'refresh_token': refresh_token,
-                    'platform': platform,
-                    'user': {
-                        "user_id": user.id,
-                        "email": user.email,
-                        "profile_pic": profile_pic_url,
-                        "point_bal": user.points or 0,
-                        "trusting_score": user.average_rating,
-                        "is_student_id_verified": user.student_id_verified,
-                        "is_hall_verified": user.hall_verified,
-                    }
-                },
-                status_code=200
+                message=f"Method must be one of: {', '.join(allowed_type)}",
+                status_code=400
             )
+
+        valid = False
+
+        # ─── TOTP ──────────────────────────────────────────────────────
+        if valid_method.lower() == TwoFactorMethodEnum.TOTP.value.lower():
+            try:
+                method = TwoFactorMethod.objects.get(user=user, method=TwoFactorMethodEnum.TOTP.value, is_enabled=True)
+            except TwoFactorMethod.DoesNotExist:
+                op.fail(f"TOTP not enabled for user {user.email}")
+                return BaseResultWithData(message="TOTP not enabled", status_code=403)
+
+            totp = pyotp.TOTP(method.secret)
+            if not totp.verify(code):
+                op.fail("Invalid TOTP code")
+                return BaseResultWithData(message="Invalid code", data=None, status_code=400)
+
+            valid = True 
+
+        # ─── SMS and EMAIL ────────────────────────────────────────────
+        elif valid_method.lower() in [TwoFactorMethodEnum.SMS.value.lower(), TwoFactorMethodEnum.EMAIL.value.lower()]:
+            try:
+                method = TwoFactorMethod.objects.get(user=user, method=valid_method.lower(), is_enabled=True)
+            except TwoFactorMethod.DoesNotExist:
+                op.fail(f"{valid_method.upper()} not enabled for user {user.email}")
+                return BaseResultWithData(message=f"{valid_method.upper()} not enabled", status_code=403)
+
+            if not OTPManager.verify_otp(user.id, valid_method.lower(), code):
+                op.fail("Invalid or expired OTP")
+                return BaseResultWithData(message="Invalid or expired OTP.", status_code=400)
+
+            valid = True
+
+        # ─── BACKUP CODES ─────────────────────────────────────────────
+        elif valid_method.lower() == TwoFactorMethodEnum.BACKUP.value.lower():
+            backups = BackupCode.objects.filter(user=user, is_used=False)
+            for backup in backups:
+                if check_password(code, backup.code_hash):
+                    backup.is_used = True
+                    backup.save(update_fields=['is_used'])
+                    op.success(f"Backup code used for {user.email}")
+                    valid = True
+                    break
+
+            if not valid:
+                op.fail(f"Invalid backup code for {user.email}")
+                return BaseResultWithData(message="Invalid backup code", data=None, status_code=400)
+
+        # ─── HARDWARE ──────────────────────────────────────────────────
+        elif valid_method.lower() == TwoFactorMethodEnum.HARDWARE.value.lower():
+            return BaseResultWithData(message="Not yet implemented", data=None, status_code=400)
+
         else:
-            op.fail("Invalid TOTP code")
-            return BaseResultWithData(message="Invalid code", data=None, status_code=400)
+            op.fail(f"Unsupported method: {valid_method}")
+            return BaseResultWithData(message="Unsupported method", status_code=400)
 
-    @staticmethod
-    def verify_backup_code(request, validated_data) -> BaseResultWithData:
-        user_id = validated_data.get('user_id')
-        code = validated_data.get('code')
-        platform = validated_data.get('platform')
-        user = get_object_or_404(User, id=user_id)
+        if not valid:
+            return BaseResultWithData(message="Verification failed", status_code=400)
 
-        op = OperationLogger(f"TwoFactorCommand.verify_backup_code for user: {user.first_name or user.email}", data=validated_data)
-        op.start()
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        op.success(f"Login successful for user: {user.first_name or user.email}")
 
-        backups = BackupCode.objects.filter(user=user, is_used=False)
-        for backup in backups:
-            if check_password(code, backup.code_hash):
-                backup.is_used = True
-                backup.save(update_fields=['is_used'])
-                op.success(f"Backup code used for {user.email}")
+        profile_pic_url = request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
 
-                refresh = RefreshToken.for_user(user)
-                access_token = str(refresh.access_token)
-                refresh_token = str(refresh)
-
-                if user.profile_picture and hasattr(user.profile_picture, 'url'):
-                    profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
-                else:
-                    profile_pic_url = None
-
-                return BaseResultWithData(
-                    message="Login successful",
-                    data={
-                        'access_token': access_token,
-                        'refresh_token': refresh_token,
-                        'platform': platform,
-                        'user': {
-                            "user_id": user.id,
-                            "email": user.email,
-                            "profile_pic": profile_pic_url,
-                            "point_bal": user.points or 0,
-                            "trusting_score": user.average_rating,
-                            "is_student_id_verified": user.student_id_verified,
-                            "is_hall_verified": user.hall_verified,
-                        }
-                    },
-                    status_code=200
-                )
-
-        op.fail(f"Invalid backup code for {user.email}")
-        return BaseResultWithData(message="Invalid backup code", data=None, status_code=400)
-
+        return BaseResultWithData(
+            message="Login successful",
+            data={
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'platform': platform,
+                'user': {
+                    "user_id": user.id,
+                    "email": user.email,
+                    "profile_pic": profile_pic_url,
+                    "point_bal": user.points or 0,
+                    "trusting_score": user.average_rating,
+                    "is_student_id_verified": user.student_id_verified,
+                    "is_hall_verified": user.hall_verified,
+                }
+            },
+            status_code=200
+        )
+    
     @staticmethod
     def disable_2fa(request, validated_data) -> BaseResultWithData:
         user = request.user
@@ -321,3 +326,5 @@ class TwoFactorCommand:
             data=None,
             status_code=200
         )
+
+
