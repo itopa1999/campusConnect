@@ -638,7 +638,8 @@ class VerifyTwoFAView(generics.GenericAPIView):
 
 # ─── 3. TOTP Login Step (public) ──────────────────────────────────
 class TwoFALoginView(generics.GenericAPIView):
-    permission_classes = []
+    authentication_classes = []
+    permission_classes = [AllowAny]
     throttle_classes = [CustomRateThrottle(rate=100, period=60, user_type=UserTypeEnum.ANON)]
     serializer_class = TwoFALoginSerializer
 

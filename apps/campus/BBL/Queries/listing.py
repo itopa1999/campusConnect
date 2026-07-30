@@ -1,4 +1,4 @@
-from apps.campus.models import Listing, Review
+from apps.campus.models import Favourite, Listing, Review
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
@@ -247,6 +247,11 @@ class ListingQuery:
             paginator = Paginator(qs, per_page)
             page_obj = paginator.get_page(page)
 
+            favourite_listing_ids = set(
+                Favourite.objects.filter(user=request.user)
+                .values_list("listing_id", flat=True)
+            )
+
             items = []
             for listing in page_obj:
                 image_url = None
@@ -261,7 +266,8 @@ class ListingQuery:
                     'image': image_url,
                     'badge': listing.listing_type,
                     'hotspots': hotspots,
-                    'is_hot_sales': listing.is_hot_sales
+                    'is_hot_sales': listing.is_hot_sales,
+                    'has_liked': listing.id in favourite_listing_ids
                 })
 
             return {

@@ -263,11 +263,6 @@ SWAGGER_SETTINGS = {
     "PERSIST_AUTH": True,
 }
 
-DRF_STANDARDIZED_ERRORS = {
-    "ENABLE_IN_DEBUG_FOR_UNHANDLED_EXCEPTIONS": True,
-    "EXCEPTION_FORMATTER_CLASS": "backend.exception_formatter.ExceptionFormatter",
-}
-
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

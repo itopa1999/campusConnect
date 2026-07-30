@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
-from apps.users.models import BackupCode, TwoFactorMethod
+from apps.campus.models import Favourite
+from apps.users.models import BackupCode, Notification, TwoFactorMethod
 from apps.users.utils import OTPManager
 from utils.base_result import BaseResultWithData
 from utils.enums import TwoFactorMethodEnum
@@ -294,6 +295,13 @@ class TwoFactorCommand:
 
         profile_pic_url = request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
 
+        total_favourites = Favourite.objects.filter(user=user).count()
+        
+        has_unread_notifications = Notification.objects.filter(
+            user=user,
+            is_read=False
+        ).exists()
+
         return BaseResultWithData(
             message="Login successful",
             data={
@@ -308,6 +316,8 @@ class TwoFactorCommand:
                     "trusting_score": user.average_rating,
                     "is_student_id_verified": user.student_id_verified,
                     "is_hall_verified": user.hall_verified,
+                    "total_favourites": total_favourites,
+                    "has_unread_notifications": has_unread_notifications,
                 }
             },
             status_code=200

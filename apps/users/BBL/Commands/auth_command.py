@@ -1,5 +1,6 @@
+from apps.campus.models import Favourite
 from apps.users.BBL.Commands.account_command import AccountCommand
-from apps.users.models import TwoFactorMethod, User
+from apps.users.models import Notification, TwoFactorMethod, User
 from apps.users.utils import prepare_2fa_challenge, revoke_all_user_tokens
 from utils.Tasks.backgroundTask import background_task_send_change_password_email, background_task_send_notification_email, background_task_send_password_reset_email
 from utils.base_result import BaseResultWithData
@@ -105,6 +106,13 @@ class AuthCommand:
             else:
                 profile_pic_url = None
 
+
+            total_favourites = Favourite.objects.filter(user=user).count()
+
+            has_unread_notifications = Notification.objects.filter(
+                user=user,
+                is_read=False
+            ).exists()
             
             
             return BaseResultWithData(
@@ -121,6 +129,8 @@ class AuthCommand:
                     "trusting_score": user.average_rating,
                     "is_student_id_verified": user.student_id_verified,
                     "is_hall_verified": user.hall_verified,
+                    "total_favourites": total_favourites,
+                    "has_unread_notifications": has_unread_notifications,
                     }
                 },
                 status_code=200
@@ -441,17 +451,26 @@ class AuthCommand:
             else:
                 profile_pic_url = None
 
+            total_favourites = Favourite.objects.filter(user=user).count()
+                    
+            has_unread_notifications = Notification.objects.filter(
+                user=user,
+                is_read=False
+            ).exists()
+
             data = {
                 'access_token': str(new_access),
                 'refresh_token': str(new_refresh),
                 'user': {
-                    'user_id': user.id,
-                    'email': user.email,
-                    'profile_pic': profile_pic_url,
-                    'point_bal': user.points if user.points else 0,
-                    'trusting_score': user.average_rating,
-                    'is_student_id_verified': user.student_id_verified,
-                    'is_hall_verified' : user.hall_verified
+                    "user_id": user.id,
+                    "email": user.email,
+                    "profile_pic": profile_pic_url,
+                    "point_bal": user.points or 0,
+                    "trusting_score": user.average_rating,
+                    "is_student_id_verified": user.student_id_verified,
+                    "is_hall_verified": user.hall_verified,
+                    "total_favourites": total_favourites,
+                    "has_unread_notifications": has_unread_notifications,
                 }
             }
 

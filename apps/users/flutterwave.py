@@ -157,7 +157,7 @@ def validate(reference):
         notification_type=NotificationEnum.TRANSACTION.value,
         title="Payment Update",
         message=f"Purchased {points_awarded} points via flutterwave was successful",
-        action_url="/student/buy-points.html"
+        action_url="/student/buy-point.html"
     )
 
     

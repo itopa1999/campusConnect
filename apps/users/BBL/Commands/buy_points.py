@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 from apps.users.models import PointPackage, PointPurchase
+from apps.users.monnify import initiate_monnify
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
 from utils.enums import PointPurchaseStatusEnum
@@ -74,12 +75,7 @@ class BuyPointsCommand:
         elif gateway == ConstantHelper.FLUTTERWAVE:
             checkout_url = initiate_flutterwave(request, user, package)
         elif gateway == ConstantHelper.MONNIFY:
-            # TODO: Implement monnify integration
-            op.fail("Monnify not implemented yet")
-            return BaseResultWithData(
-                message="Monnify is currently not available.",
-                status_code=400
-            )
+            checkout_url = initiate_monnify(request, user, package)
         else:
             op.fail(f"Unknown gateway: {gateway} user: {user.first_name or user.email}")
             return BaseResultWithData(

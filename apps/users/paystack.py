@@ -143,7 +143,7 @@ def verify_paystack_payment(reference):
         notification_type=NotificationEnum.TRANSACTION.value,
         title="Payment Update",
         message=f"Purchased {points_awarded} points via Paystack was successful",
-        action_url="/student/buy-points.html"
+        action_url="/student/buy-point.html"
     )
 
     op.success(f"Purchase completed: {purchase.id} for user: {purchase.user.first_name or purchase.user.email}")

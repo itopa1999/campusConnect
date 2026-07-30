@@ -96,15 +96,16 @@ class ExceptionFormatter(BaseExceptionFormatter):
         """
         Determine HTTP status code from DRF Standardized Errors.
         """
-
         if error:
             code = getattr(error, "code", None)
 
+            # --- ADD THESE LINES ---
+            if code in ("authentication_failed", "invalid_token", "not_authenticated"):
+                return HTTPStatus.UNAUTHORIZED
+            # -----------------------
+
             if code == "throttled":
                 return HTTPStatus.TOO_MANY_REQUESTS
-
-            if code == "not_authenticated":
-                return HTTPStatus.UNAUTHORIZED
 
             if code == "permission_denied":
                 return HTTPStatus.FORBIDDEN

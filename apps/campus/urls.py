@@ -1,6 +1,6 @@
 from django.urls import path, include
 
-from apps.campus.views import (AddFavouriteListingView, 
+from apps.campus.views import (ToggleFavouriteListingView, 
         ApproveClaimView, CategorizedListingsView, 
         GetDashboardLisitingView, GetDashboardReviewsView, GetDashboardUpCommingExpirationLisitingView, 
         GetDashboardView, GetIndexDefaultLisitingView, GetLookUpView, 
@@ -38,7 +38,7 @@ urlpatterns = [
                 path('lost-and-found/claim', LostAndFoundClaimView.as_view(), name='lost-and-found-claim'),
                 path('approve-claim', ApproveClaimView.as_view(), name='approve_claim'),
 
-                path("add-favourite/<int:listing_id>", AddFavouriteListingView.as_view(), name="add_favourite"),
+                path("toggle-favourite/<int:listing_id>", ToggleFavouriteListingView.as_view(), name="toggle_favourite"),
                 path('list-favourites', ListFavouriteListingView.as_view(), name='list_favourites'),
             ]
         )

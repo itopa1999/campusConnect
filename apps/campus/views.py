@@ -282,7 +282,7 @@ class ListingDetailsView(APIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
-class AddFavouriteListingView(APIView):
+class ToggleFavouriteListingView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
     

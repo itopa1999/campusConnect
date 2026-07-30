@@ -1,6 +1,6 @@
 import os
 from django.conf import settings
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import JsonResponse
 from django.urls import resolve
 from django.utils.deprecation import MiddlewareMixin
 
