@@ -3,8 +3,9 @@ from django.contrib.auth import get_user_model
 from apps.campus.models import Favourite
 from apps.users.models import BackupCode, Notification, TwoFactorMethod
 from apps.users.utils import OTPManager
+from utils.Tasks.backgroundTask import background_task_send_login_notification_email
 from utils.base_result import BaseResultWithData
-from utils.enums import TwoFactorMethodEnum
+from utils.enums import PlatformEnum, TwoFactorMethodEnum
 from utils.log_helpers import OperationLogger
 import pyotp
 import qrcode
@@ -14,6 +15,8 @@ from django.conf import settings
 import secrets
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework_simplejwt.tokens import RefreshToken
+from celery.exceptions import OperationalError
+
 
 User = get_user_model()
 
@@ -302,6 +305,12 @@ class TwoFactorCommand:
             is_read=False
         ).exists()
 
+        if platform == PlatformEnum.WEB.value:
+            try:
+                background_task_send_login_notification_email.delay(user.email, user.first_name)
+            except OperationalError:
+                op.success("Login successful, but failed to queue login notification email")
+                
         return BaseResultWithData(
             message="Login successful",
             data={

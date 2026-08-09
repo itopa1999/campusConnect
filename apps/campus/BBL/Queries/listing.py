@@ -187,10 +187,10 @@ class ListingQuery:
                         'id': listing.id,
                         'title': listing.title,
                         'price': float(listing.price) if listing.price else 0,
-                        'category': listing.category.name if listing.category else '',
+                        # 'category': listing.category.name if listing.category else '',
                         'image': image_url,
                     })
-                return {'items': items}   # no pagination
+                return {'items': items}
 
             # --- Sections that require user context (user is always authenticated) ---
             if section == 'hot_sales':
@@ -247,10 +247,21 @@ class ListingQuery:
             paginator = Paginator(qs, per_page)
             page_obj = paginator.get_page(page)
 
-            favourite_listing_ids = set(
-                Favourite.objects.filter(user=request.user)
-                .values_list("listing_id", flat=True)
-            )
+            favourite_listing_ids = set()
+            if request and hasattr(request, 'user') and request.user.is_authenticated:
+                favourite_listing_ids = set(
+                    Favourite.objects.filter(user=request.user)
+                    .values_list("listing_id", flat=True)
+                )
+
+            listing_ids = [listing.id for listing in page_obj]
+            if listing_ids:
+                favourite_listing_ids = set(
+                    Favourite.objects.filter(
+                        user=request.user,
+                        listing_id__in=listing_ids
+                    ).values_list("listing_id", flat=True)
+                )
 
             items = []
             for listing in page_obj:

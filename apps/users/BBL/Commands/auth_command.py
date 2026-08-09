@@ -2,7 +2,7 @@ from apps.campus.models import Favourite
 from apps.users.BBL.Commands.account_command import AccountCommand
 from apps.users.models import Notification, TwoFactorMethod, User
 from apps.users.utils import prepare_2fa_challenge, revoke_all_user_tokens
-from utils.Tasks.backgroundTask import background_task_send_change_password_email, background_task_send_notification_email, background_task_send_password_reset_email
+from utils.Tasks.backgroundTask import background_task_send_change_password_email, background_task_send_login_notification_email, background_task_send_notification_email, background_task_send_password_reset_email
 from utils.base_result import BaseResultWithData
 from rest_framework_simplejwt.tokens import RefreshToken
 from celery.exceptions import OperationalError
@@ -113,6 +113,12 @@ class AuthCommand:
                 user=user,
                 is_read=False
             ).exists()
+
+            if platform == PlatformEnum.WEB.value:
+                try:
+                    background_task_send_login_notification_email.delay(user.email, user.first_name)
+                except OperationalError:
+                    op.success("Login successful, but failed to queue login notification email")
             
             
             return BaseResultWithData(

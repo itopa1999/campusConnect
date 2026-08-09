@@ -151,7 +151,7 @@ class DashboardQuery:
                 status=ListingStatusTypeEnum.ACTIVE.value,
                 is_deleted=False,
                 expires_at__gt=now,
-                expires_at__lte=now + timedelta(days=90)
+                expires_at__lte=now + timedelta(days=7)
             ).prefetch_related('hotspots') \
             .only('title', 'description', 'expires_at', 'auto_reactivate') \
             .order_by('expires_at')

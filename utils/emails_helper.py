@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from apps.campus.models import Listing
 from utils.log_helpers import OperationLogger
-
+from django.utils import timezone
 User = get_user_model()
 
 
@@ -257,8 +257,8 @@ Campus Connect Team
             return False
 
     @staticmethod
-    def send_lost_item_claim_email(item_name, founder_email, founder_full_name,
-                                   approval_link, claimer_full_name, answer1, answer2):
+    def send_lost_item_claim_email(item_name, founder_email, founder_full_name, verification1, verification2,
+                                approval_link, claimer_full_name, answer1, answer2):
         op = OperationLogger("EmailHelper.send_lost_item_claim_email", founder_email=founder_email)
         op.start()
         try:
@@ -267,6 +267,8 @@ Campus Connect Team
                 'item_name': item_name,
                 'founder_full_name': founder_full_name,
                 'claimer_full_name': claimer_full_name,
+                'verification1': verification1,
+                'verification2': verification2,
                 'answer1': answer1,
                 'answer2': answer2,
                 'approval_link': approval_link,
@@ -274,21 +276,23 @@ Campus Connect Team
             }
             html_content = render_to_string('emails/lost_item_claim_email.html', context)
             plain_text = f"""
-Hello {founder_full_name},
+    Hello {founder_full_name},
 
-A student named {claimer_full_name} has submitted a claim for the item "{item_name}" that you reported lost.
+    A student named {claimer_full_name} has submitted a claim for the item "{item_name}" that you reported lost.
 
-Their answers to your verification questions:
-Q1: {answer1}
-Q2: {answer2}
+    Their answers to your verification questions:
+    Verification Question 1: {verification1}
+    Answer: {answer1}
+    Verification Question 2: {verification2}
+    Answer: {answer2}
 
-If you believe this is the rightful owner, please approve the claim by visiting the link below:
-{approval_link}
+    If you believe this is the rightful owner, please approve the claim by visiting the link below:
+    {approval_link}
 
-If you do not recognise this claim, you can safely ignore this email.
+    If you do not recognise this claim, you can safely ignore this email.
 
-Best regards,
-CampusConnect Team
+    Best regards,
+    CampusConnect Team
             """
             subject = f"Someone wants to claim your lost item: {item_name}"
             success = EmailHelper.send_email(
@@ -307,6 +311,7 @@ CampusConnect Team
             op.fail(f"Error sending lost item claim email: {str(e)}")
             return False
 
+    
     @staticmethod
     def send_founder_details_to_claimer_email(
         item_name,
@@ -657,4 +662,42 @@ CampusConnect Team
             return success
         except Exception as e:
             op.fail(f"Error sending 2FA OTP email: {str(e)}")
+            return False
+
+
+    @staticmethod
+    def send_login_notification_email(email, first_name):
+        """
+        Send a login notification email to the user.
+        """
+        op = OperationLogger(f"EmailHelper.send_login_notification_email for {email}")
+        op.start()
+        try:
+            base_url = settings.BASE_FRONTEND_URL
+            context = {
+                'first_name': first_name or 'Student',
+                'base_url': base_url,
+                'login_time': timezone.now().strftime("%B %d, %Y at %I:%M %p"),
+            }
+            html_content = render_to_string('emails/login_notification_email.html', context)
+            plain_text = f""" 
+Hello {first_name or 'Student'},
+We noticed a login to your CampusConnect account. If this was you, no action is needed. If you did not log in, please secure your account immediately.
+Best regards,
+CampusConnect Team
+            """
+            success = EmailHelper.send_email(
+                subject="Login Notification for Your CampusConnect Account",
+                message=plain_text,
+                recipient_list=[email],
+                html_message=html_content,
+                fail_silently=False
+            )
+            if success:
+                op.success(f"Login notification email sent to {email}")
+            else:
+                op.fail(f"Failed to send login notification email to {email}")
+            return success
+        except Exception as e:
+            op.fail(f"Error sending login notification email: {str(e)}")
             return False

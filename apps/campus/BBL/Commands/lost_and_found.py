@@ -185,7 +185,9 @@ class LostandFoundCommand:
             background_task_send_lost_item_claim_email.delay(
                 item.item_name,
                 item.email, 
-                item.full_name, 
+                item.full_name,
+                item.verification1,
+                item.verification1,
                 approval_link,
                 claim.full_name,
                 claim.answer1,

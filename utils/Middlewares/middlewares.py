@@ -10,12 +10,11 @@ class KeyIDMiddleware(MiddlewareMixin):
     """
     EXEMPT_PREFIXES = (
         '/backdoor/',
-        '/doc/swagger/',
+        '/doc',
         '/media/', 
         '/static/',
         '/user/api/auth/paystack-points-confirm/',
-        '/user/api/auth/flutterwave-points-confirm/',
-       
+        '/user/api/auth/flutterwave-points-confirm/',   
     )
 
     def process_request(self, request):
