@@ -1,19 +1,29 @@
-import os
+from .base import *
 
 DEBUG = False
-ALLOWED_HOSTS = ["staging.example.com"]
+ALLOWED_HOSTS = ["yourdomain.com"]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("STAGING_DB_NAME"),
-        "USER": os.environ.get("STAGING_DB_USER"),
-        "PASSWORD": os.environ.get("STAGING_DB_PASSWORD"),
-        "HOST": os.environ.get("STAGING_DB_HOST", "localhost"),
-        "PORT": os.environ.get("STAGING_DB_PORT", "5432"),
+if os.environ.get("DATABASE_TYPE") == "sqlite3":
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
 
+else:
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME"),
+            "USER": os.environ.get("DB_USER"),
+            "PASSWORD": os.environ.get("DB_PASSWORD"),
+            "HOST": os.environ.get("DB_HOST"),
+            "PORT": os.environ.get("DB_PORT"),
+        }
+    }
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_USE_SSL = True
@@ -21,3 +31,56 @@ EMAIL_PORT = os.environ.get("EMAIL_PORT")
 EMAIL_HOST_USER = os.environ.get("EMAIL_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 DEFAULT_FROM_EMAIL = "no-reply@yourdomain.com"
+
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5501",
+    "http://127.0.0.1:5500",
+    "http://192.168.0.199:5501",
+    "http://192.168.1.179:5500",
+    "http://192.168.0.198:5501",
+    "http://172.26.80.1:5500",
+    "http://192.168.1.127:5500",
+    "http://127.0.0.1:5500",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-key-id',
+]
+
+BASE_FRONTEND_URL = os.environ.get("BASE_FRONTEND_URL")
+
+# Payment Gateway Keys
+PAYSTACK_SECRET_KEY=os.getenv('PAYSTACK_SECRET_KEY')
+PAYSTACK_INITIALIZE_URL=os.getenv('PAYSTACK_INITIALIZE_URL')
+PAYSTACK_VERIFY_URL=os.getenv('PAYSTACK_VERIFY_URL')
+
+# Flutterwave Gateway Keys
+FLUTTERWAVE_SECRET_KEY=os.getenv('FLUTTERWAVE_SECRET_KEY')
+FLUTTERWAVE_INITIALIZE_URL=os.getenv('FLUTTERWAVE_INITIALIZE_URL')
+FLUTTERWAVE_VERIFY_URL=os.getenv('FLUTTERWAVE_VERIFY_URL')
+
+
+MONNIFY_API_KEY=os.getenv('MONNIFY_API_KEY')
+MONNIFY_SECRET_KEY=os.getenv('MONNIFY_SECRET_KEY')
+MONNIFY_CONTRACT_CODE=os.getenv('MONNIFY_CONTRACT_CODE')
+MONNIFY_BASE_URL=os.getenv('MONNIFY_BASE_URL')
+
+COOKIE_SECURE = True
+COOKIE_SAMESITE = 'None' if COOKIE_SECURE else 'Lax'

@@ -10,7 +10,8 @@ class KeyIDMiddleware(MiddlewareMixin):
     """
     EXEMPT_PREFIXES = (
         '/backdoor/',
-        '/doc',
+        '/health/',
+        '/doc/',
         '/media/', 
         '/static/',
         '/user/api/auth/paystack-points-confirm/',

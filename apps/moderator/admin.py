@@ -243,6 +243,7 @@ from django.utils import timezone
 @admin.register(UserModeration)
 class UserModerationAdmin(SoftDeleteAdmin):
     list_display = (
+        'id',
         'user_link',
         'warning_count',
         'is_suspended_badge',

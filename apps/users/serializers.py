@@ -1,9 +1,10 @@
 from apps.campus.models import Review
+from apps.moderator.models import FlaggedContent, UserModeration
 from rest_framework import serializers
 from utils.constant_helper import ConstantHelper
 from utils.helpers import calculate_profile_completion, humanize_date
 from .models import Badge, PointTransaction, User
-from utils.enums import IssueTypeEnum
+from utils.enums import ContentTypeEnum, IssueTypeEnum
 
 
 class UserCreationSerializer(serializers.Serializer):
@@ -71,40 +72,33 @@ class BadgeSerializer(serializers.ModelSerializer):
         model = Badge
         fields = ['name', 'icon', 'description']
 
-class ReviewForProfileSerializer(serializers.ModelSerializer):
-    from_user_name = serializers.CharField(source='from_user.get_full_name', read_only=True)
-    date = serializers.SerializerMethodField()
 
+class FlaggedContentSerializer(serializers.ModelSerializer):
+    resolved_by = serializers.CharField(source='resolved_by.first_name', read_only=True)
     class Meta:
-        model = Review
-        fields = ['from_user_name', 'rating', 'comment', 'date']
+        model = FlaggedContent
+        fields = [
+            'reason', 'is_resolved', 'resolved_by', 'resolved_at', 'resolution_note',
+            'created_at', 'modified_at'
+        ]
 
-    def get_date(self, obj):
-        return humanize_date(obj.created_at)
-
-
-class TransactionForProfileSerializer(serializers.ModelSerializer):
-    type = serializers.SerializerMethodField()
-    description = serializers.CharField()
-    date = serializers.DateTimeField(source='created_at')
-    balance = serializers.IntegerField(source='balance_after')
-
+class UserModerationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PointTransaction
-        fields = ['type', 'amount', 'description', 'date', 'balance']
+        model = UserModeration
+        fields = [
+            'warning_count', 'notes'
+        ]
 
-    def get_type(self, obj):
-        return 'credit' if obj.amount > 0 else 'debit'
 
 class ProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_full_name', read_only=True)
     member_since = serializers.SerializerMethodField()
     badges = BadgeSerializer(many=True, source='user_badges', read_only=True)
+    moderation = serializers.SerializerMethodField()
+    flags = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
     trust_score = serializers.SerializerMethodField()
     avg_rating = serializers.SerializerMethodField()
-    review_count = serializers.SerializerMethodField()
-    reviews = serializers.SerializerMethodField()
-    transactions = serializers.SerializerMethodField()
     edit_day = serializers.SerializerMethodField()
     profile_completion = serializers.SerializerMethodField()
     class Meta:
@@ -115,9 +109,9 @@ class ProfileSerializer(serializers.ModelSerializer):
             'department', 'faculty', 'level',
             'member_since', 'hall_residence', 'hall_number',
             'email_verified', 'hall_verified', 'hall_verified_status',
-            'badges',
+            'badges', 'flags', 'moderation',
             'trust_score', 'avg_rating', 'review_count',
-            'reviews', 'transactions', 'profile_completion',
+            'profile_completion',
             'notification', 'visibility', 'edit_day', 'modified_at'
         ]
 
@@ -134,22 +128,24 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     def get_review_count(self, obj):
         return obj.reviews_received.filter(is_deleted=False).count()
-
-    def get_reviews(self, obj):
-        # Get latest 10 reviews received
-        reviews = obj.reviews_received.filter(is_deleted=False).order_by('-created_at')[:10]
-        return ReviewForProfileSerializer(reviews, many=True).data
-
-    def get_transactions(self, obj):
-        # Get latest 10 transactions
-        transactions = obj.point_transactions.order_by('-created_at')[:10]
-        return TransactionForProfileSerializer(transactions, many=True).data
     
     def get_edit_day(self, obj):
         return ConstantHelper.USER_EDIT_DAY
     
     def get_profile_completion(self, obj):
         return calculate_profile_completion(obj)
+
+    def get_moderation(self, obj):
+        mod, created = UserModeration.objects.get_or_create(user=obj)
+        print(mod)
+        return UserModerationSerializer(mod).data
+
+    def get_flags(self, obj):
+        flags = FlaggedContent.objects.filter(
+            content_type=ContentTypeEnum.USER.value,
+            content_id=obj.id,
+        )
+        return FlaggedContentSerializer(flags, many=True).data
     
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):

@@ -1,19 +1,29 @@
-import os
+from .base import *
 
 DEBUG = False
 ALLOWED_HOSTS = ["yourdomain.com"]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("PROD_DB_NAME"),
-        "USER": os.environ.get("PROD_DB_USER"),
-        "PASSWORD": os.environ.get("PROD_DB_PASSWORD"),
-        "HOST": os.environ.get("PROD_DB_HOST", "localhost"),
-        "PORT": os.environ.get("PROD_DB_PORT", "5432"),
-    }
-}
+if os.environ.get("DATABASE_TYPE") == "sqlite3":
 
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
+else:
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME"),
+            "USER": os.environ.get("DB_USER"),
+            "PASSWORD": os.environ.get("DB_PASSWORD"),
+            "HOST": os.environ.get("DB_HOST"),
+            "PORT": os.environ.get("DB_PORT"),
+        }
+    }
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_USE_SSL = True
@@ -36,6 +46,24 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-key-id',
+]
+
 BASE_FRONTEND_URL = os.environ.get("BASE_FRONTEND_URL")
 
 # Payment Gateway Keys
@@ -49,4 +77,10 @@ FLUTTERWAVE_INITIALIZE_URL=os.getenv('FLUTTERWAVE_INITIALIZE_URL')
 FLUTTERWAVE_VERIFY_URL=os.getenv('FLUTTERWAVE_VERIFY_URL')
 
 
-COOKIE_SECURE = True 
+MONNIFY_API_KEY=os.getenv('MONNIFY_API_KEY')
+MONNIFY_SECRET_KEY=os.getenv('MONNIFY_SECRET_KEY')
+MONNIFY_CONTRACT_CODE=os.getenv('MONNIFY_CONTRACT_CODE')
+MONNIFY_BASE_URL=os.getenv('MONNIFY_BASE_URL')
+
+COOKIE_SECURE = True
+COOKIE_SAMESITE = 'None' if COOKIE_SECURE else 'Lax'

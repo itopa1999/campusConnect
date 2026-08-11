@@ -1,4 +1,5 @@
 from apps.campus.models import Favourite, Listing
+from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.enums import NotificationEnum
 from utils.helpers import create_notification
@@ -8,7 +9,7 @@ from django.utils import timezone
 
 class FavouriteCommand:
     @staticmethod
-    def toggle_favourite(user, listing_id: int) -> BaseResultWithData:
+    def toggle_favourite(user: User, listing_id: int) -> BaseResultWithData:
         """
         Toggle favourite status for a listing.
         - If active favourite exists → soft delete it (unfavourite)
