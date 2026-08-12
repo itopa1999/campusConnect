@@ -370,8 +370,8 @@ CampusConnect Team
             return False
 
     @staticmethod
-    def send_expired_lisiting_emails(ids):
-        op = OperationLogger("EmailHelper.send_expired_lisiting_emails", ids=ids)
+    def send_expired_listing_emails(ids):
+        op = OperationLogger("EmailHelper.send_expired_listing_emails", ids=ids)
         op.start()
         try:
             listings = Listing.objects.filter(id__in=ids, is_deleted=False).select_related('user')
@@ -426,7 +426,7 @@ CampusConnect Team
             op.success(f"Sent {sent_count} expired email(s) for {len(listings)} listing(s)")
             return True
         except Exception as e:
-            op.fail(f"Error in send_expired_lisiting_emails: {str(e)}")
+            op.fail(f"Error in send_expired_listing_emails: {str(e)}")
             return False
 
     @staticmethod

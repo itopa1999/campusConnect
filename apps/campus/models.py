@@ -13,7 +13,7 @@ def listing_upload_path(instance, filename):
     ext = os.path.splitext(filename)[1]
     unique = uuid.uuid4().hex[:10]
 
-    return f"Lisiting_images/Lisiting_image_{instance.title}_{unique}{ext}"
+    return f"Listing_images/Listing_image_{instance.title}_{unique}{ext}"
 
 def lost_and_found_upload_path(instance, filename):
     ext = os.path.splitext(filename)[1]
@@ -45,6 +45,43 @@ class Category(BaseModel):
         return self.name
 
 
+class SubCategory(BaseModel):
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.RESTRICT,
+        related_name="subcategories",
+    )
+    name = models.CharField(max_length=100)
+    icon = models.CharField(max_length=50, blank=True, null=True)
+    slug = models.SlugField(max_length=100)
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["category", "name"],
+                name="unique_subcategory_per_category",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["category"]),
+            models.Index(fields=["name"]),
+            models.Index(fields=["slug"]),
+            models.Index(fields=["is_deleted"]),
+            models.Index(fields=["sort_order"]),
+            models.Index(fields=["category", "is_deleted", "sort_order"]),
+        ]
+        ordering = ["sort_order", "name"]
+
+    def __str__(self):
+        return f"{self.category.name} → {self.name}"
+
+
 class CampusHotspot(BaseModel):
     name = models.CharField(max_length=150)
     slug = models.SlugField(max_length=100, null=True) 
@@ -69,6 +106,13 @@ class CampusHotspot(BaseModel):
 class Listing(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='listings')
     category = models.ForeignKey(Category, on_delete=models.RESTRICT, related_name='listings')
+    subcategory = models.ForeignKey(
+        SubCategory,
+        on_delete=models.RESTRICT,
+        related_name="listings",
+        null=True,
+        blank=True,
+    )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)

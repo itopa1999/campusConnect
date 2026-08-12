@@ -233,14 +233,14 @@ class TestCategoryQueryDetail:
 
     #     # Create a mock image that is truthy and has a url
     #     mock_image = mocker.Mock()
-    #     mock_image.url = '/media/Lisiting_images/test.jpg'
+    #     mock_image.url = '/media/Listing_images/test.jpg'
 
     #     # Patch the listing's image field with the mock
     #     with mocker.patch.object(listing, 'image', mock_image):
     #         result = CategoryQuery.get_category_detail(request_with_user, cat.id)
     #         data = result.data
     #         listing_data = data['listings_data'][0]
-    #         expected_url = request_with_user.build_absolute_uri('/media/Lisiting_images/test.jpg')
+    #         expected_url = request_with_user.build_absolute_uri('/media/Listing_images/test.jpg')
     #         assert listing_data['image'] == expected_url
 
     def test_get_category_detail_image_none(self, request_with_user, category_with_listings):

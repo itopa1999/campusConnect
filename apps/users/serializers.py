@@ -101,6 +101,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     avg_rating = serializers.SerializerMethodField()
     edit_day = serializers.SerializerMethodField()
     profile_completion = serializers.SerializerMethodField()
+    missing_fields = serializers.SerializerMethodField()
     class Meta:
         model = User
         fields = [
@@ -111,7 +112,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'email_verified', 'hall_verified', 'hall_verified_status',
             'badges', 'flags', 'moderation',
             'trust_score', 'avg_rating', 'review_count',
-            'profile_completion',
+            'profile_completion', 'missing_fields',
             'notification', 'visibility', 'edit_day', 'modified_at'
         ]
 
@@ -133,7 +134,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         return ConstantHelper.USER_EDIT_DAY
     
     def get_profile_completion(self, obj):
-        return calculate_profile_completion(obj)
+        data = calculate_profile_completion(obj)
+        return data['percentage']
+
+    def get_missing_fields(self, obj):
+        data = calculate_profile_completion(obj)
+        return data['missing_fields']
 
     def get_moderation(self, obj):
         mod, created = UserModeration.objects.get_or_create(user=obj)

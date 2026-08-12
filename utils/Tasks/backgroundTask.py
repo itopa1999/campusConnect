@@ -94,7 +94,7 @@ def background_task_send_founder_details_to_claimer_email(self, item_name, found
     max_retries=5
 )
 def background_task_send_expired_listing_emails(self, ids):
-    EmailHelper.send_expired_lisiting_emails(ids)
+    EmailHelper.send_expired_listing_emails(ids)
 
 
 @shared_task(

@@ -154,5 +154,6 @@ def verify_paystack_payment(reference):
             "purchase_id": purchase.id,
             "points_awarded": purchase.points_awarded,
             "amount_paid": float(purchase.amount_paid),
+            'notification': True
         }
     }

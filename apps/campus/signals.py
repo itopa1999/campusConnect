@@ -69,7 +69,10 @@ def convert_listing_image(sender, instance, created, **kwargs):
 def listing_changed(sender, instance, **kwargs):
     user_id = instance.user_id if instance else None
     if user_id:
-        invalidate_dashboard_cache(user_id)
+        key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user_id)
+        GlobalCache.delete(key)
+
+
     invalidate_listing_caches(instance, user_id)
     GlobalCache.delete(CacheKeysEnum.INDEX_PRODUCTS.value)
 
@@ -79,8 +82,10 @@ def listing_changed(sender, instance, **kwargs):
 def review_changed(sender, instance, **kwargs):
     user_id = instance.to_user_id if instance else None
     if user_id:
-        invalidate_dashboard_cache(user_id)
+        key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user_id)
+        GlobalCache.delete(key)
 
+        
     listing = getattr(instance, 'listing', None)
     if listing is not None:
         invalidate_listing_caches(listing, user_id)
@@ -129,13 +134,6 @@ def point_transaction_changed(sender, instance, **kwargs):
 def favourite_changed(sender, instance, **kwargs):
     key = f'favourite_{instance.user_id}_'
     GlobalCache.delete_prefix(key)
-
-
-def invalidate_dashboard_cache(user_id):
-    if not user_id:
-        return
-    key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user_id)
-    GlobalCache.delete(key)
 
 
 def invalidate_lookup_cache():

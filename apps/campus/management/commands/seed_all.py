@@ -9,13 +9,13 @@ from django.core.management import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from apps.campus.models import CampusHotspot, Category, Listing, ListingHotspot
+from apps.campus.models import CampusHotspot, Category, Listing, ListingHotspot, SubCategory
 from apps.users.models import Badge, FeatureFlag, PointPackage, User
 from utils.enums import BadgeListingTypeEnum, GroupNamesEnum, ListingStatusTypeEnum, ListingTypeEnum
 
 
 class Command(BaseCommand):
-    help = "Seed categories, campus hotspots, badges, feature flags, point packages, and sample listings from utils/lookups.json"
+    help = "Seed categories, subcategories, campus hotspots, badges, feature flags, point packages, and sample listings from utils/lookups.json"
 
     def handle(self, *args, **options):
         # ------------------- 1. Create default groups -------------------
@@ -72,7 +72,7 @@ class Command(BaseCommand):
         with open(lookups_path, encoding="utf-8") as lookup_file:
             lookup_data = json.load(lookup_file)
 
-        categories = lookup_data.get("categories", [])
+        categories_data = lookup_data.get("categories", [])
         hotspots = lookup_data.get("campus_hotspots", [])
         badges = lookup_data.get("badges", [])
         listings_data = lookup_data.get("listings", [])
@@ -81,6 +81,7 @@ class Command(BaseCommand):
 
         created = {
             "categories": 0,
+            "subcategories": 0,
             "hotspots": 0,
             "badges": 0,
             "listings_created": 0,
@@ -90,30 +91,57 @@ class Command(BaseCommand):
         }
         updated = {
             "categories": 0,
+            "subcategories": 0,
             "hotspots": 0,
             "badges": 0,
             "point_packages": 0,
             "feature_flags": 0,
         }
 
-        # ------------------- 4. Seed categories, hotspots, badges, feature flags -------------------
+        # ------------------- 4. Seed categories, subcategories, hotspots, badges, feature flags -------------------
         with transaction.atomic():
-            for category in categories:
+            # First, create/update categories and store them in a dict for later subcategory association
+            category_map = {}
+
+            for cat_data in categories_data:
+                slug = cat_data.get("slug")
                 defaults = {
-                    "name": category.get("name", ""),
-                    "icon": category.get("icon", ""),
-                    "description": category.get("description", ""),
-                    "sort_order": category.get("sort_order", 0),
+                    "name": cat_data.get("name", ""),
+                    "icon": cat_data.get("icon", ""),
+                    "description": cat_data.get("description", ""),
+                    "sort_order": cat_data.get("sort_order", 0),
                 }
-                obj, was_created = Category.objects.update_or_create(
-                    slug=category.get("slug", ""),
+                category, was_created = Category.objects.update_or_create(
+                    slug=slug,
                     defaults=defaults,
                 )
+                category_map[slug] = category
                 if was_created:
                     created["categories"] += 1
                 else:
                     updated["categories"] += 1
 
+                # Now seed subcategories for this category
+                subcategories = cat_data.get("subcategories", [])
+                for sub_data in subcategories:
+                    sub_slug = sub_data.get("slug")
+                    sub_defaults = {
+                        "name": sub_data.get("name", ""),
+                        "description": sub_data.get("description", ""),
+                        "sort_order": sub_data.get("sort_order", 0),
+                        "category": category,   # link to parent
+                    }
+                    sub_obj, sub_created = SubCategory.objects.update_or_create(
+                        slug=sub_slug,
+                        category=category,
+                        defaults=sub_defaults,
+                    )
+                    if sub_created:
+                        created["subcategories"] += 1
+                    else:
+                        updated["subcategories"] += 1
+
+            # Hotspots
             for hotspot in hotspots:
                 defaults = {
                     "description": hotspot.get("description", ""),
@@ -128,6 +156,7 @@ class Command(BaseCommand):
                 else:
                     updated["hotspots"] += 1
 
+            # Badges
             for badge in badges:
                 icon_value = badge.get("icon") or None
                 defaults = {
@@ -143,7 +172,7 @@ class Command(BaseCommand):
                 else:
                     updated["badges"] += 1
 
-            # ------------------- Feature Flags -------------------
+            # Feature Flags
             for flag_data in feature_flags_data:
                 defaults = {
                     "description": flag_data.get("description", ""),
@@ -154,7 +183,6 @@ class Command(BaseCommand):
                     name=flag_data.get("name"),
                     defaults=defaults,
                 )
-                # users ManyToMany is left empty by default
                 if was_created:
                     created["feature_flags"] += 1
                 else:
@@ -162,12 +190,13 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"Seed complete: {created['categories']} categories created, {updated['categories']} updated; "
+            f"{created['subcategories']} subcategories created, {updated['subcategories']} updated; "
             f"{created['hotspots']} hotspots created, {updated['hotspots']} updated; "
             f"{created['badges']} badges created, {updated['badges']} updated; "
             f"{created['feature_flags']} feature flags created, {updated['feature_flags']} updated."
         ))
 
-        # ------------------- 5. Seed sample listings with create-or-update -------------------
+        # ------------------- 5. Seed sample listings with subcategories -------------------
         if Category.objects.count() == 0 or CampusHotspot.objects.count() == 0:
             self.stdout.write(self.style.WARNING("Skipping listing seed: no categories or hotspots found."))
             return
@@ -177,6 +206,9 @@ class Command(BaseCommand):
         listing_type = ListingTypeEnum.SELL.value
         expires_in_10_years = timezone.now() + timedelta(days=3650)
 
+        # Get all subcategories to potentially assign to listings
+        all_subcategories = list(SubCategory.objects.all())
+
         for item in listings_data:
             title = item.get("title")
             description = item.get("description", "")
@@ -185,11 +217,20 @@ class Command(BaseCommand):
             category = random.choice(Category.objects.all())
             badge = random.choice(badge_choices)
 
+            # Optionally assign a random subcategory (if available)
+            subcategory = None
+            if all_subcategories:
+                # Filter subcategories belonging to the chosen category
+                category_subcategories = [sc for sc in all_subcategories if sc.category == category]
+                if category_subcategories:
+                    subcategory = random.choice(category_subcategories)
+
             listing, was_created = Listing.objects.update_or_create(
                 title=title,
                 user=admin_user,
                 defaults={
                     "category": category,
+                    "subcategory": subcategory,
                     "description": description,
                     "price": price,
                     "badge": badge,

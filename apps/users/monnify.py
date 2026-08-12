@@ -2,6 +2,7 @@ import base64
 import secrets
 
 import requests
+from django.urls import reverse
 
 from django.conf import settings
 from django.db import transaction
@@ -75,7 +76,11 @@ def initiate_monnify(request, user: User, package: PointPackage):
 
         return None
 
-    payload = {
+    redirect_url = request.build_absolute_uri(
+        reverse('flutterwave-points-confirm', kwargs={"reference": ref})
+    )
+
+    monnify_data = {
         "amount": float(package.price),
         "customerName": user.get_full_name(),
         "customerEmail": user.email,
@@ -83,7 +88,7 @@ def initiate_monnify(request, user: User, package: PointPackage):
         "paymentDescription": package.description,
         "currencyCode": "NGN",
         "contractCode": settings.MONNIFY_CONTRACT_CODE,
-        "redirectUrl": settings.MONNIFY_REDIRECT_URL,
+        "redirectUrl": redirect_url,
         "paymentMethods": [
             "CARD",
             "ACCOUNT_TRANSFER",
@@ -93,7 +98,6 @@ def initiate_monnify(request, user: User, package: PointPackage):
     try:
 
         token = authenticate()
-
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -103,7 +107,7 @@ def initiate_monnify(request, user: User, package: PointPackage):
             f"{settings.MONNIFY_BASE_URL}"
             "/api/v1/merchant/transactions/init-transaction",
             headers=headers,
-            json=payload,
+            json=monnify_data,
         )
 
         result = response.json()
@@ -120,8 +124,6 @@ def initiate_monnify(request, user: User, package: PointPackage):
 
         return None
 
-    # Monnify returns request successfully but payment
-    # initialization failed.
     if (
         response.status_code != 200
         or not result.get("requestSuccessful")
@@ -138,15 +140,6 @@ def initiate_monnify(request, user: User, package: PointPackage):
         return None
 
     body = result["responseBody"]
-
-    # Optional
-    purchase.transaction_reference = body.get(
-        "transactionReference"
-    )
-
-    purchase.save(
-        update_fields=["transaction_reference"]
-    )
 
     op.success(
         f"Monnify initiated successfully."

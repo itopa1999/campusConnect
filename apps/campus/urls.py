@@ -2,8 +2,8 @@ from django.urls import path, include
 
 from apps.campus.views import (ToggleFavouriteListingView, 
         ApproveClaimView, CategorizedListingsView, 
-        GetDashboardLisitingView, GetDashboardReviewsView, GetDashboardUpCommingExpirationLisitingView, 
-        GetDashboardView, GetIndexDefaultLisitingView, GetLookUpView, 
+        GetDashboardListingView, GetDashboardReviewsView, GetDashboardUpCommingExpirationListingView, 
+        GetDashboardView, GetIndexDefaultListingView, GetLookUpView, 
         ListFavouriteListingView, ListingAutoActivation, ListingDetailView, 
         ListingDetailsView, ListingView, LostAndFoundClaimView, LostAndFoundListView, 
         LostAndFoundView, MarkAsSoldView, UpdateAdsView, UploadImageView)
@@ -17,14 +17,14 @@ urlpatterns = [
         include(
             [
                 path("dashboard", GetDashboardView.as_view(), name="campus-dashboard"),
-                path("dashboard-upcoming-listing", GetDashboardUpCommingExpirationLisitingView.as_view(), name="campus-dashboard-upcoming-listing"),
-                path("dashboard-listing", GetDashboardLisitingView.as_view(), name="campus-dashboard-listing"),
+                path("dashboard-upcoming-listing", GetDashboardUpCommingExpirationListingView.as_view(), name="campus-dashboard-upcoming-listing"),
+                path("dashboard-listing", GetDashboardListingView.as_view(), name="campus-dashboard-listing"),
                 path("dashboard-reviews", GetDashboardReviewsView.as_view(), name="campus-dashboard-reviews"),
 
-                path("index-products", GetIndexDefaultLisitingView.as_view(), name="get_index_products"),
+                path("index-products", GetIndexDefaultListingView.as_view(), name="get_index_products"),
                 path("get-lookup", GetLookUpView.as_view(), name="get_lookup"),
 
-                path("create-listing", ListingView.as_view(), name="create_lisiting"),
+                path("create-listing", ListingView.as_view(), name="create_listing"),
                 path("mark-sold/<int:listing_id>", MarkAsSoldView.as_view(), name="mark_sold"),
                 path('listing/<int:listing_id>', ListingDetailView.as_view(), name='listing_detail'),
                 path('listing-upload-image/<int:listing_id>', UploadImageView.as_view(), name='listing_upload_image'),

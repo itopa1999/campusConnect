@@ -3,11 +3,17 @@
 from decimal import Decimal
 
 from rest_framework import serializers
-from apps.campus.models import Claim, Listing, Category, CampusHotspot, LostAndFound
+from apps.campus.models import Claim, Listing, Category, CampusHotspot, LostAndFound, SubCategory
 
 class ListingSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.filter(is_deleted=False),
+        write_only=True
+    )
+    subcategory = serializers.PrimaryKeyRelatedField(
+        queryset=SubCategory.objects.filter(is_deleted=False),
+        required=False,
+        allow_null=True,
         write_only=True
     )
     hotspots = serializers.PrimaryKeyRelatedField(
@@ -26,7 +32,7 @@ class ListingSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'price', 'listing_type',
             'badge', 'status', 'expires_at', 'image',
-            'category', 'hotspots', 'is_ads_banner', 'is_hot_sales'
+            'category', 'subcategory', 'hotspots', 'is_ads_banner', 'is_hot_sales'
         ]
         read_only_fields = ['id', 'status', 'expires_at']
 
@@ -35,7 +41,7 @@ class ListingSerializer(serializers.ModelSerializer):
         listing = Listing.objects.create(**validated_data)
         listing.hotspots.set(hotspots)
         return listing
-    
+
 
 class LostAndFoundSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,7 +68,7 @@ class ClaimSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'full_name', 'email', 'phone']
 
 
-class UploadLisitingImageSerializer(serializers.Serializer):
+class UploadListingImageSerializer(serializers.Serializer):
     image = serializers.ImageField(required=True)
 
 

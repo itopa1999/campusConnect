@@ -32,7 +32,9 @@ class DashboardQuery:
             trust_score = round((float(user.average_rating) / 5.0) * 100, 1) if user.average_rating else 0.0
 
             # ── Profile completion ──
-            profile_completion = calculate_profile_completion(user)
+            profile_data = calculate_profile_completion(user)
+            profile_completion = profile_data['percentage']
+            missing_fields = profile_data['missing_fields']
 
             flagged_listing_count = FlaggedContent.objects.filter(
                 content_type=ContentTypeEnum.LISTING.value,
@@ -45,13 +47,14 @@ class DashboardQuery:
                 'total_items_sold': user.sold_items,
                 'trust_score': trust_score,
                 'profile_completion': profile_completion,
+                'missing_fields': missing_fields,
                 'flagged_listing_count': flagged_listing_count,
             }
 
         data = GlobalCache.get_or_set(
             key=cache_key,
             callback=build_dashboard_data,
-            timeout=3600,
+            timeout=300,
             lock_timeout=30,
             max_wait=5.0,
         )
@@ -252,7 +255,7 @@ class DashboardQuery:
                     'badge': listing.badge,
                     'is_hot_sale': listing.is_hot_sales,
                     'is_ads_banner': listing.is_ads_banner,
-                    'lisiting_type': listing.listing_type,
+                    'listing_type': listing.listing_type,
                     'auto_reactivate': listing.auto_reactivate,
                     'location': location,
                     'status': listing.status,

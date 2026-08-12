@@ -75,7 +75,7 @@ class ListingQuery:
                 'is_hot_sale': listing.is_hot_sales,
                 'is_ads_banner': listing.is_ads_banner,
                 'auto_reactivate': listing.auto_reactivate,
-                'lisiting_type': listing.listing_type,
+                'listing_type': listing.listing_type,
                 'hotspots': hotspot_ids,
                 'hotspot_names': hotspot_names,
                 'image': image_url,

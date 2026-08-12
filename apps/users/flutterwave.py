@@ -169,5 +169,6 @@ def validate(reference):
             "purchase_id": purchase.id,
             "points_awarded": purchase.points_awarded,
             "amount_paid": float(purchase.amount_paid),
+            'notification': True
             }
     }

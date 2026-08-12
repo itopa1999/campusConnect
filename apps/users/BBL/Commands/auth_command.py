@@ -295,7 +295,7 @@ class AuthCommand:
             op.success(f"Password reset successful and notification email queued for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Password reset successful. You can now log in with your new password.",
-                data=None,
+                data={'notification': True},
                 status_code=200
             )
             
@@ -371,7 +371,7 @@ class AuthCommand:
             op.success(f"Password changed successfully and change password email queued for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Password changed successfully",
-                data=None,
+                data={'notification': True},
                 status_code=200
             )
             

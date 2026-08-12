@@ -69,6 +69,7 @@ class BuyPointsCommand:
             )
 
         # Route to payment gateway
+        print(gateway)
         checkout_url = None
         if gateway == ConstantHelper.PAYSTACK:
             checkout_url = initiate_paystack(request, user, package)

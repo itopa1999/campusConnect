@@ -1,6 +1,6 @@
 from apps.campus.BBL.Commands.favourite import FavouriteCommand
 from apps.campus.BBL.Queries.favourite import FavouriteQuery
-from apps.campus.serializers import (ClaimSerializer, ListingAutoActivationSerializer, ListingSerializer, ListingUpdateSerializer, LostAndFoundSerializer, UpdateAdsViewSerializer, UploadLisitingImageSerializer)
+from apps.campus.serializers import (ClaimSerializer, ListingAutoActivationSerializer, ListingSerializer, ListingUpdateSerializer, LostAndFoundSerializer, UpdateAdsViewSerializer, UploadListingImageSerializer)
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -11,7 +11,7 @@ from apps.campus.BBL.Commands.lost_and_found import LostandFoundCommand
 from apps.campus.BBL.Queries.get_dashboard import DashboardQuery
 from apps.campus.BBL.Queries.get_lookup import LookUpQuery
 from apps.campus.BBL.Queries.index_products import IndexProductsQuery
-from apps.campus.BBL.Commands.lisiting import ListingCommand
+from apps.campus.BBL.Commands.listing import ListingCommand
 from apps.campus.BBL.Queries.listing import ListingQuery
 from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
 from django.shortcuts import render
@@ -28,7 +28,7 @@ from drf_yasg import openapi
 # PUBLIC VIEWS
 # ──────────────────────────────────────────────
 
-class GetIndexDefaultLisitingView(APIView):
+class GetIndexDefaultListingView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
     throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.ANON)]
@@ -125,7 +125,7 @@ class GetDashboardReviewsView(APIView):
     
 
 
-class GetDashboardLisitingView(APIView):
+class GetDashboardListingView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
@@ -140,7 +140,7 @@ class GetDashboardLisitingView(APIView):
         return Response(result.to_dict(), status=result.status_code)
     
 
-class GetDashboardUpCommingExpirationLisitingView(APIView):
+class GetDashboardUpCommingExpirationListingView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request):
@@ -154,6 +154,7 @@ class GetLookUpView(APIView):
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('is_category', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('is_subcategory', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
             openapi.Parameter('is_hotspot', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
             openapi.Parameter('is_badge_choices', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
             openapi.Parameter('is_type_choices', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
@@ -187,7 +188,7 @@ class MarkAsSoldView(APIView):
 
 class UploadImageView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
-    serializer_class = UploadLisitingImageSerializer
+    serializer_class = UploadListingImageSerializer
     parser_classes = [MultiPartParser, FormParser]
     throttle_classes = [CustomRateThrottle(rate=10, period=300, user_type=UserTypeEnum.AUTH)]
     
@@ -247,7 +248,7 @@ class ListingAutoActivation(generics.GenericAPIView):
     throttle_classes = [CustomRateThrottle(rate=5, period=300, user_type=UserTypeEnum.AUTH)]
     
     def patch(self, request, listing_id):
-        result = ListingCommand.lisiting_auto_reactivation(request.user, listing_id, request.data, partial=False)
+        result = ListingCommand.listing_auto_reactivation(request.user, listing_id, request.data, partial=False)
         return Response(result.to_dict(), status=result.status_code)
 
 

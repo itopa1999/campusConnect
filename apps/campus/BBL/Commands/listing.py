@@ -3,7 +3,7 @@ import json
 from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
-from apps.campus.models import CampusHotspot, Listing
+from apps.campus.models import CampusHotspot, Category, Listing, SubCategory
 from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
@@ -24,6 +24,7 @@ class ListingCommand:
         - Image extension allowed (jpg, jpeg, png, webp)
         - Price ≥ 0
         - Freebie listings must have price = 0 or null
+        - Subcategory (optional) must belong to the selected category
         - Basic field validations via serializer
         """
         op = OperationLogger(f"ListingCommand.create_listing for user: {user.first_name or user.email}", data=data)
@@ -56,8 +57,6 @@ class ListingCommand:
                     status_code=400
                 )
         data['price'] = price
-
-        
 
         is_banner = parse_bool(data.get('is_ads_banner', False))
         is_hot = parse_bool(data.get('is_hot_sales', False))
@@ -94,13 +93,11 @@ class ListingCommand:
 
         # The serializer expects a field named 'hotspots' (not 'hotspot_ids')
         data['hotspots'] = hotspot_ids
-        # Optionally remove the old key to avoid confusion
         data.pop('hotspot_ids', None)
 
         # --- 3. Image validation (if provided) ---
         image = data.get('image')
         if image:
-    
             if image.size > ConstantHelper.IMAGE_SIZE:
                 op.fail(f"Image too large for listing: {data.get('title')}")
                 return BaseResultWithData(
@@ -115,8 +112,6 @@ class ListingCommand:
                     status_code=400
                 )
 
-        
-
         # --- 5. Freebie specific rule ---
         listing_type = data.get('listing_type')
         if listing_type == ListingTypeEnum.FREEBIE.value and price not in (None, 0):
@@ -126,17 +121,57 @@ class ListingCommand:
                 status_code=400
             )
 
-        # --- 6. The 'category' field is already named 'category' in the frontend,
-        #     and the serializer expects 'category', so no mapping needed.
-        #     However, we ensure it exists.
-        if not data.get('category'):
+        # --- 6. Category validation ---
+        category_id = data.get('category')
+        if not category_id:
             op.fail(f"Category missing for listing: {data.get('title')}")
             return BaseResultWithData(
                 message="Category is required.",
                 status_code=400
             )
 
-        # --- 7. Serializer validation ---
+        try:
+            category = Category.objects.get(id=category_id, is_deleted=False)
+        except Category.DoesNotExist:
+            op.fail(f"Invalid category ID: {category_id}")
+            return BaseResultWithData(
+                message="Selected category does not exist.",
+                status_code=400
+            )
+
+        # --- 7. Subcategory validation (optional) ---
+        subcategory_id = data.get('subcategory')
+        if subcategory_id:
+            # Ensure it's an integer
+            try:
+                subcategory_id = int(subcategory_id)
+            except (ValueError, TypeError):
+                op.fail(f"Invalid subcategory ID: {subcategory_id}")
+                return BaseResultWithData(
+                    message="Invalid subcategory format.",
+                    status_code=400
+                )
+            try:
+                subcategory = SubCategory.objects.get(id=subcategory_id, is_deleted=False)
+            except SubCategory.DoesNotExist:
+                op.fail(f"Subcategory not found: {subcategory_id}")
+                return BaseResultWithData(
+                    message="Selected subcategory does not exist.",
+                    status_code=400
+                )
+            # Ensure the subcategory belongs to the selected category
+            if subcategory.category_id != category.id:
+                op.fail(f"Subcategory {subcategory_id} does not belong to category {category.id}")
+                return BaseResultWithData(
+                    message="The selected subcategory does not belong to the selected category.",
+                    status_code=400
+                )
+            data['subcategory'] = subcategory_id   # pass the ID to the serializer
+        else:
+            # If no subcategory, ensure it's None in data (serializer expects null)
+            data['subcategory'] = None
+
+        # --- 8. Serializer validation ---
         serializer = ListingSerializer(data=data, context={'user': user})
         try:
             serializer.is_valid(raise_exception=True)
@@ -148,10 +183,10 @@ class ListingCommand:
                 status_code=400
             )
 
-        # --- 8. Save within a transaction ---
+        # --- 9. Save within a transaction ---
         try:
             with transaction.atomic():
-                listing = serializer.save(user=user)                
+                listing = serializer.save(user=user)
                 UpdatePointsService.update_points(
                     user=user,
                     points=total_points_needed,
@@ -172,16 +207,17 @@ class ListingCommand:
                 op.success(f"Listing created: {listing.id} for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Listing created successfully, It will appear in the marketplace once approved",
-                    data={'listing_id': listing.id},
+                    data={'listing_id': listing.id, 'notification': True},
                     status_code=201
                 )
         except Exception as e:
-            op.fail(f"Listing: {data.get('title')}Unexpected error during creation", exc=e)
+            op.fail(f"Listing: {data.get('title')} Unexpected error during creation", exc=e)
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
             )
-        
+
+                
     @staticmethod
     def update_listing(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
         op = OperationLogger(f"UpdateListingCommand.update_listing for user: {user.first_name or user.email}", data={'listing_id': listing_id, **data})
@@ -331,7 +367,7 @@ class ListingCommand:
                 op.success(f"Listing: {listing_id} updated for user: {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Listing updated successfully.",
-                    data={'id': updated_listing.id},
+                    data={'id': updated_listing.id, 'notification': True},
                     status_code=200
                 )
 
@@ -384,6 +420,7 @@ class ListingCommand:
             op.success(f"Listing: {listing_id} deleted for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Listing deleted successfully.",
+                data = {'notification': True},
                 status_code=200
             )
 
@@ -462,7 +499,7 @@ class ListingCommand:
             op.success(f"Listing: {listing_id} reactivated for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Listing reactivated successfully.",
-                data={'id': listing.id},
+                data={'id': listing.id, 'notification': True},
                 status_code=200
             )
 
@@ -518,7 +555,7 @@ class ListingCommand:
             op.success(f"Listing: {listing_id} mark as sold for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Listing mark as sold successfully.",
-                data={'id': listing.id},
+                data={'id': listing.id, 'notification': True},
                 status_code=200
             )
 
@@ -725,7 +762,8 @@ class ListingCommand:
                     data={
                         'id': listing.id,
                         'is_ads_banner': listing.is_ads_banner,
-                        'is_hot_sales': listing.is_hot_sales
+                        'is_hot_sales': listing.is_hot_sales,
+                        'notification': True
                     },
                     status_code=200
                 )
@@ -739,8 +777,8 @@ class ListingCommand:
         
 
     @staticmethod
-    def lisiting_auto_reactivation(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
-        op = OperationLogger(f"UpdateListingCommand.lisiting_auto_reactivation for user: {user.first_name or user.email}", data={'listing_id': listing_id, **data})
+    def listing_auto_reactivation(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
+        op = OperationLogger(f"UpdateListingCommand.listing_auto_reactivation for user: {user.first_name or user.email}", data={'listing_id': listing_id, **data})
         op.start()
 
         if listing_id is None:
@@ -798,7 +836,7 @@ class ListingCommand:
             op.success(f"Auto-reactivation toggled to {auto_reactivate} for listing: {listing_id}, user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message=f"Auto-reactivation {'enabled' if auto_reactivate else 'disabled'} successfully.",
-                data={'auto_reactivate': listing.auto_reactivate},
+                data={'auto_reactivate': listing.auto_reactivate, 'notification': True},
                 status_code=200
             )
         

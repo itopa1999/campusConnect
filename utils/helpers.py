@@ -222,6 +222,12 @@ def parse_bool(val):
 def calculate_profile_completion(user):
     """
     Calculate the profile completion percentage for a given user.
+
+    Returns:
+        dict: {
+            'percentage': int,          # completion percentage (0-100)
+            'missing_fields': list      # field names that are empty/False
+        }
     """
     profile_fields = {
         'phone': user.phone,
@@ -234,10 +240,16 @@ def calculate_profile_completion(user):
         'hall_verified': user.hall_verified,
         'email_verified': user.email_verified,
     }
-    total_fields = len(profile_fields)
-    filled_fields = sum(1 for value in profile_fields.values() if value)
-    return int((filled_fields / total_fields) * 100) if total_fields else 0
 
+    missing_fields = [field for field, value in profile_fields.items() if not value]
+    total_fields = len(profile_fields)
+    filled_fields = total_fields - len(missing_fields)
+    percentage = int((filled_fields / total_fields) * 100) if total_fields else 0
+
+    return {
+        'percentage': percentage,
+        'missing_fields': missing_fields
+    }
 
 def create_notification(user, notification_type, title, message, action_url='') -> Notification:
     """

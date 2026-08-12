@@ -5,7 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from rest_framework import serializers 
-from apps.campus.BBL.Commands.lisiting import ListingCommand
+from apps.campus.BBL.Commands.listing import ListingCommand
 from apps.campus.models import Listing, CampusHotspot
 from apps.users.models import User
 from utils.enums import ListingStatusTypeEnum, ListingTypeEnum, PointTransactionTypeEnum
@@ -107,7 +107,7 @@ class TestCreateListing:
         assert listing.hotspots.count() == len(valid_listing_data["hotspot_ids"])
 
     def test_create_listing_insufficient_points(self, test_user_low_points, valid_listing_data):
-        with patch("apps.campus.BBL.Commands.lisiting.UpdatePointsService.check_points", return_value=0):
+        with patch("apps.campus.BBL.Commands.listing.UpdatePointsService.check_points", return_value=0):
             result = ListingCommand.create_listing(test_user_low_points, valid_listing_data)
             assert result.is_success is False
             assert result.status_code == 400
@@ -172,7 +172,7 @@ class TestCreateListing:
         assert listing.is_ads_banner is True
         assert listing.is_hot_sales is True
 
-    @patch("apps.campus.BBL.Commands.lisiting.ListingSerializer")
+    @patch("apps.campus.BBL.Commands.listing.ListingSerializer")
     def test_create_listing_serializer_validation_error(self, mock_serializer, test_user, valid_listing_data):
         """Mock serializer to raise validation error."""
         mock_serializer.return_value.is_valid.side_effect = serializers.ValidationError({"title": "Invalid"})
@@ -237,7 +237,7 @@ class TestUpdateListing:
         test_listing.save()
 
         # Mock ConstantHelper.EDIT_DATE to be > 0
-        with patch("apps.campus.BBL.Commands.lisiting.ConstantHelper.EDIT_DATE", 7):
+        with patch("apps.campus.BBL.Commands.listing.ConstantHelper.EDIT_DATE", 7):
             data = {"title": "Should fail"}
             result = ListingCommand.update_listing(test_user, test_listing.id, data)
             assert result.is_success is False
@@ -273,7 +273,7 @@ class TestUpdateListing:
         assert result.status_code == 400
         assert "Category must be a valid ID" in result.message
 
-    @patch("apps.campus.BBL.Commands.lisiting.ListingSerializer")
+    @patch("apps.campus.BBL.Commands.listing.ListingSerializer")
     def test_update_listing_serializer_error(self, mock_serializer, test_user, test_listing):
         mock_serializer.return_value.is_valid.side_effect = serializers.ValidationError({"title": "Invalid"})
         result = ListingCommand.update_listing(test_user, test_listing.id, {"title": "Invalid"})
@@ -335,7 +335,7 @@ class TestReactivateListing:
         assert "Only sold or expired listings can be reactivated" in result.message
 
     def test_reactivate_insufficient_points(self, test_user, test_listing):
-        with patch("apps.campus.BBL.Commands.lisiting.UpdatePointsService.check_points", return_value=0):
+        with patch("apps.campus.BBL.Commands.listing.UpdatePointsService.check_points", return_value=0):
             test_listing.status = ListingStatusTypeEnum.SOLD.value
             test_listing.save()
             result = ListingCommand.reactivate_listing(test_user, test_listing.id)
@@ -377,8 +377,8 @@ class TestMarkSold:
 
 class TestImageUpload:
 
-    @patch("apps.campus.BBL.Commands.lisiting.default_storage")
-    @patch("apps.campus.BBL.Commands.lisiting.Image")
+    @patch("apps.campus.BBL.Commands.listing.default_storage")
+    @patch("apps.campus.BBL.Commands.listing.Image")
     def test_image_upload_success(self, mock_image, mock_storage, test_user, test_listing):
         # Mock image validation
         mock_image.open.return_value = MagicMock()
@@ -411,7 +411,7 @@ class TestImageUpload:
         assert result.status_code == 400
         assert "Only JPG, PNG, and WEBP images are allowed" in result.message
 
-    @patch("apps.campus.BBL.Commands.lisiting.Image.open")
+    @patch("apps.campus.BBL.Commands.listing.Image.open")
     def test_image_upload_corrupt_image(self, mock_image_open, test_user, test_listing):
         """Simulate a corrupted image by making Image.open raise an exception."""
         # Make Image.open raise an exception to simulate corrupt file
@@ -468,7 +468,7 @@ class TestUpdateAds:
         assert test_listing.is_ads_banner is False
 
     def test_update_ads_insufficient_points(self, test_user, test_listing):
-        with patch("apps.campus.BBL.Commands.lisiting.UpdatePointsService.check_points", return_value=0):
+        with patch("apps.campus.BBL.Commands.listing.UpdatePointsService.check_points", return_value=0):
             data = {"is_ads_banner": True}
             result = ListingCommand.update_ads(test_user, test_listing.id, data)
             assert result.is_success is False
@@ -497,13 +497,13 @@ class TestUpdateAds:
         assert result.is_success is False
         assert result.status_code == 404
 
-# ── Test: lisiting_auto_reactivation ────────────────────────────────
+# ── Test: listing_auto_reactivation ────────────────────────────────
 
 class TestAutoReactivation:
 
     def test_enable_auto_reactivate_success(self, test_user, test_listing):
         data = {"auto_reactivate": True}
-        result = ListingCommand.lisiting_auto_reactivation(test_user, test_listing.id, data)
+        result = ListingCommand.listing_auto_reactivation(test_user, test_listing.id, data)
         assert result.is_success is True
         assert result.status_code == 200
         test_listing.refresh_from_db()
@@ -513,7 +513,7 @@ class TestAutoReactivation:
         test_listing.auto_reactivate = True
         test_listing.save()
         data = {"auto_reactivate": False}
-        result = ListingCommand.lisiting_auto_reactivation(test_user, test_listing.id, data)
+        result = ListingCommand.listing_auto_reactivation(test_user, test_listing.id, data)
         assert result.is_success is True
         test_listing.refresh_from_db()
         assert test_listing.auto_reactivate is False
@@ -522,20 +522,20 @@ class TestAutoReactivation:
         test_listing.status = ListingStatusTypeEnum.SOLD.value
         test_listing.save()
         data = {"auto_reactivate": True}
-        result = ListingCommand.lisiting_auto_reactivation(test_user, test_listing.id, data)
+        result = ListingCommand.listing_auto_reactivation(test_user, test_listing.id, data)
         assert result.is_success is False
         assert result.status_code == 400
         assert "Auto-reactivation can only be set for active or expired listings" in result.message
 
     def test_auto_reactivate_insufficient_points(self, test_user, test_listing):
-        with patch("apps.campus.BBL.Commands.lisiting.UpdatePointsService.check_points", return_value=0):
+        with patch("apps.campus.BBL.Commands.listing.UpdatePointsService.check_points", return_value=0):
             data = {"auto_reactivate": True}
-            result = ListingCommand.lisiting_auto_reactivation(test_user, test_listing.id, data)
+            result = ListingCommand.listing_auto_reactivation(test_user, test_listing.id, data)
             assert result.is_success is False
             assert result.status_code == 400
             assert "You need at least 1 point" in result.message
 
     def test_auto_reactivate_not_found(self, test_user):
-        result = ListingCommand.lisiting_auto_reactivation(test_user, 9999, {"auto_reactivate": True})
+        result = ListingCommand.listing_auto_reactivation(test_user, 9999, {"auto_reactivate": True})
         assert result.is_success is False
         assert result.status_code == 404

@@ -16,8 +16,8 @@ env_file = env_files.get(ENV, env_files["dev"])
 
 load_dotenv(env_file)
 
-print(f"Loading environment: {ENV}")
-print(f"Loading env file: {env_file}")
+# print(f"Loading environment: {ENV}")
+# print(f"Loading env file: {env_file}")
 
 if ENV == "prod":
     from .prod import *

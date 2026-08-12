@@ -6,7 +6,7 @@ from django.utils.safestring import mark_safe
 from django.urls import reverse
 
 from apps.campus.models import (CampusHotspot, Category, Claim, Favourite, Favourite, Listing, 
-                                ListingHotspot, LostAndFound, Review)
+                                ListingHotspot, LostAndFound, Review, SubCategory)
 from common.admin import SoftDeleteAdmin
 
 # ==================== INLINES ====================
@@ -70,6 +70,18 @@ class UserListingInline(admin.TabularInline):
     show_change_link = True
 
 
+class SubCategoryInline(admin.TabularInline):
+    """Edit subcategories directly from the Category admin"""
+    model = SubCategory
+    extra = 1
+    fields = ('name', 'slug', 'icon', 'description', 'sort_order')
+    prepopulated_fields = {'slug': ('name',)}
+    verbose_name = "Subcategory"
+    verbose_name_plural = "Subcategories"
+    # classes = ('collapse',)
+    ordering = ('sort_order', 'name')
+
+
 # ==================== MODEL ADMINS ====================
 
 @admin.register(Category)
@@ -86,6 +98,8 @@ class CategoryAdmin(SoftDeleteAdmin):
         'is_deleted', 'deleted_at', 'deleted_by',
         'listing_count_display',
     )
+
+    inlines = [SubCategoryInline]
     
     fieldsets = (
         (None, {
@@ -115,6 +129,66 @@ class CategoryAdmin(SoftDeleteAdmin):
         queryset.update(is_deleted=False)
     mark_active.short_description = "Mark as active"
 
+
+
+@admin.register(SubCategory)
+class SubCategoryAdmin(SoftDeleteAdmin):
+    list_display = (
+        'id', 'name', 'category_link', 'slug', 'icon',
+        'sort_order', 'is_deleted', 'listing_count'
+    )
+    list_filter = ('category', 'is_deleted', 'sort_order')
+    search_fields = ('name', 'slug', 'description', 'category__name')
+    prepopulated_fields = {'slug': ('name',)}
+    autocomplete_fields = ['category']
+    actions = ['mark_active']
+
+    # ─── Audit trail fields as readonly ───
+    readonly_fields = (
+        'created_at', 'created_by',
+        'modified_at', 'modified_by',
+        'is_deleted', 'deleted_at', 'deleted_by',
+        'listing_count_display',
+    )
+
+    fieldsets = (
+        (None, {
+            'fields': ('category', 'name', 'slug', 'icon', 'description', 'sort_order')
+        }),
+        ('Audit Trail', {
+            'fields': (
+                'created_at', 'created_by',
+                'modified_at', 'modified_by',
+                'is_deleted', 'deleted_at', 'deleted_by',
+            ),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def category_link(self, obj):
+        """Link to the parent Category admin change page"""
+        url = reverse('admin:campus_category_change', args=[obj.category.id])
+        return format_html('<a href="{}">{}</a>', url, obj.category.name)
+    category_link.short_description = 'Category'
+    category_link.admin_order_field = 'category__name'
+
+    def listing_count(self, obj):
+        """Number of listings in this subcategory"""
+        return obj.listings.count() if hasattr(obj, 'listings') else 0
+    listing_count.short_description = 'Listings'
+
+    def listing_count_display(self, obj):
+        """Display count as clickable link to filtered listing changelist"""
+        url = reverse('admin:campus_listing_changelist') + f'?subcategory__id__exact={obj.id}'
+        return format_html('<a href="{}">{} listings</a>', url, obj.listings.count())
+    listing_count_display.short_description = 'Total Listings'
+
+    def mark_active(self, request, queryset):
+        """Action to mark selected subcategories as active (undeleted)"""
+        queryset.update(is_deleted=False)
+    mark_active.short_description = "Mark as active"
+
+    ordering = ('category__name', 'sort_order', 'name')
 
 
 @admin.register(CampusHotspot)

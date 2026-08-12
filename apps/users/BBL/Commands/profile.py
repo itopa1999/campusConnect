@@ -92,6 +92,7 @@ class ProfileCommand:
                 op.success(f"Profile updated for user {user.email}")
                 return BaseResultWithData(
                     message="Profile updated successfully.",
+                    data = {'notification': True},
                     status_code=200
                 )
 
@@ -245,6 +246,7 @@ class ProfileCommand:
                 op.success(f"Id Uploaded for user {user.first_name or user.email}")
                 return BaseResultWithData(
                     message="Id Uploaded successfully. We review and update you on the progress",
+                    data = {'notification': True},
                     status_code=200
                 )
  
@@ -301,7 +303,8 @@ class ProfileCommand:
                     "hall_residence": hall_residence,
                     "hall_number": hall_number,
                     "student_hall_verified": False,
-                    "student_hall_verified_status": "pending",
+                    "student_hall_verified_status": UserIdVerificationEnum.PENDING.value,
+                    'notification': True
                 },
                 status_code=200
             )

@@ -53,17 +53,24 @@ class FavouriteCommand:
                 action = 'added'
                 message = "Listing added to favourites."
 
+        favourites_count = Favourite.objects.filter(user=user, is_deleted=False).count()
+
         create_notification(
-                user=user,
-                notification_type=NotificationEnum.LISTING.value,
-                title="Favourite Updated",
-                message=f"Your favourite status for '{listing.title}' has been {action}.",
-                action_url="/student/favourites.html"
+            user=user,
+            notification_type=NotificationEnum.LISTING.value,
+            title="Favourite Updated",
+            message=f"Your favourite status for '{listing.title}' has been {action}.",
+            action_url="/student/favourites.html"
         )
 
         op.success(f"Favourite {action} for listing {listing_id} by user {user.email}")
         return BaseResultWithData(
             message=message,
-            data={'listing_id': listing_id, 'action': action},
+            data={
+                'listing_id': listing_id,
+                'action': action,
+                'favourites_count': favourites_count,
+                'notification': True
+            },
             status_code=200
         )

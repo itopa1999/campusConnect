@@ -7,6 +7,13 @@ from utils.log_helpers import OperationLogger
 
 
 class NotificationCommand:
+
+    @staticmethod
+    def _has_unread_notifications(user) -> bool:
+        """Return True if the user has any unread notifications."""
+        return Notification.objects.filter(user=user, is_read=False, is_deleted=False).exists()
+
+
     @staticmethod
     def mark_as_read(user, notification_id) -> BaseResultWithData:
         """Mark a specific notification as read for the user."""
@@ -16,9 +23,15 @@ class NotificationCommand:
             notification = Notification.objects.get(id=notification_id, user=user, is_deleted=False)
             notification.is_read = True
             notification.save(update_fields=['is_read'])
+
+            notification_check = NotificationCommand._has_unread_notifications(user)
+
+            print(notification_check)
+
             op.success(f"Notification: {notification_id} mark_as_read successfully for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Notification marked as read successfully",
+                data = {'notification': notification_check},
                 status_code=200
             )
 
@@ -40,6 +53,7 @@ class NotificationCommand:
         op.success(f"Notification mark_all_as_read successfully for user: {user.first_name or user.email}")
         return BaseResultWithData(
             message=f"{updated_count} notifications marked as read successfully",
+            data = {'notification': False},
             status_code=200
         )
     
@@ -52,9 +66,12 @@ class NotificationCommand:
             notification = Notification.objects.get(id=notification_id, user=user, is_deleted=False)
             notification.is_deleted = True
             notification.save(update_fields=['is_deleted'])
+
+            notification_check = NotificationCommand._has_unread_notifications(user)
             op.success(f"Notification: {notification_id} delete_notification successfully for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Notification deleted successfully",
+                data = {'notification': notification_check},
                 status_code=200
             )
         except Notification.DoesNotExist:
@@ -75,5 +92,6 @@ class NotificationCommand:
         op.success(f"Notification delete_all_notifications successfully for user: {user.first_name or user.email}")
         return BaseResultWithData(
             message=f"{updated_count} notifications deleted successfully",
+            data = {'notification': False},
             status_code=200
         )
