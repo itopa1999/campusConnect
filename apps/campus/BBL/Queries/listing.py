@@ -331,8 +331,9 @@ class ListingQuery:
             listing = Listing.objects.filter(
                 id=listing_id,
                 is_deleted=False,
+
                 status=ListingStatusTypeEnum.ACTIVE.value
-            ).select_related('user', 'category').prefetch_related(
+            ).exclude(user__groups__name=GroupNamesEnum.ADMIN.value).select_related('user', 'category', 'subcategory').prefetch_related(
                 'hotspots',
                 Prefetch('reviews', queryset=Review.objects.filter(is_deleted=False).select_related('from_user')),
                 Prefetch('user__user_badges')
@@ -342,7 +343,7 @@ class ListingQuery:
             ).first()
 
             if not listing:
-                return None  # Will be cached as CACHE_NULL
+                return None
 
             seller = listing.user
             visibility = seller.visibility
@@ -371,9 +372,9 @@ class ListingQuery:
                 'id': seller.id,
                 'name': seller.get_full_name() if visibility else None,
                 'profile_picture': request.build_absolute_uri(seller.profile_picture.url) if seller.profile_picture and visibility else None,
-                'phone': seller.phone if visibility else None,
-                'department': seller.department if visibility else None,
-                'level': seller.level if visibility else None,
+                'phone': seller.phone,
+                'department': seller.department,
+                'level': seller.level,
                 'matric_no': seller.matric_number if visibility else None,
                 'member_since': seller.date_joined.year if seller.date_joined else None,
                 'average_rating': float(seller.average_rating) if seller.average_rating else 0.0,
@@ -397,6 +398,7 @@ class ListingQuery:
                 'description': listing.description or "",
                 'price': float(listing.price) if listing.price else 0,
                 'category': listing.category.name if listing.category else None,
+                'sub_category': listing.subcategory.name if listing.subcategory else None,
                 'badge': listing.badge or "",
                 'listing_type': listing.listing_type,
                 'is_hot_sale': listing.is_hot_sales,

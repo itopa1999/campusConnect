@@ -11,7 +11,7 @@ from django.utils import timezone
 import os
 from PIL import Image
 from django.core.files.storage import default_storage
-
+from datetime import timedelta
 
 class ProfileCommand:
     @staticmethod
@@ -19,68 +19,98 @@ class ProfileCommand:
         op = OperationLogger(f"ProfileCommand.update_profile for user: {user.first_name or user.email}", data=validated_data)
         op.start()
 
-        if ConstantHelper.USER_EDIT_DAY > 0 and user.modified_at:
-            days_since = (timezone.now() - user.modified_at).days
-            if days_since < ConstantHelper.USER_EDIT_DAY:
+        # ─── Edit Restriction Logic ──────────────────────────────
+        edit_day = ConstantHelper.USER_EDIT_DAY
+        modified_at = user.modified_at
+
+        # If modified_at is None, treat as today's date (new user)
+        if modified_at is None:
+            modified_at = timezone.now()
+
+        if edit_day > 0:
+            days_since = (timezone.now() - modified_at).days
+            if days_since < edit_day:
+                next_edit_date = modified_at + timedelta(days=edit_day)
                 op.fail(f"Edit restriction for user: {user.first_name or user.email}")
                 return BaseResultWithData(
-                    message=f"You can only edit once every {ConstantHelper.EDIT_DATE} days. Last edit was {user.modified_at.strftime('%Y-%m-%d')}.",
+                    message=f"You can only edit once every {edit_day} days. Editing will be available on {next_edit_date.strftime('%Y-%m-%d')}.",
                     status_code=400
                 )
 
         try:
             with transaction.atomic():
+                # ─── Extract fields ──────────────────────────────
                 phone = validated_data.get('phone')
+                level = validated_data.get('level')
+                department = validated_data.get('department')
+                faculty = validated_data.get('faculty')
+                matric_number = validated_data.get('matric_number')
+
+                # ─── Validate phone uniqueness ──────────────────
                 if phone is not None and phone.strip() != '':
                     phone_exists = User.objects.filter(
                         phone=phone,
                         is_deleted=False
                     ).exclude(id=user.id).exists()
                     if phone_exists:
-                        op.fail(f"Phone {phone} number already in use by another user.")
+                        op.fail(f"Phone {phone} already in use by another user.")
                         return BaseResultWithData(
                             message="Phone number already in use by another user.",
                             status_code=400
                         )
 
-                # ─── Validate matric_number uniqueness ─────────
-                matric_number = validated_data.get('matric_number')
+                # ─── Validate matric_number uniqueness ──────────
                 if matric_number is not None and matric_number.strip() != '':
                     matric_exists = User.objects.filter(
                         matric_number=matric_number,
                         is_deleted=False
                     ).exclude(id=user.id).exists()
                     if matric_exists:
-                        op.fail(f"Matric number {matric_number} already in use by another user.")
+                        op.fail(f"Matric number {matric_number} already in use.")
                         return BaseResultWithData(
                             message="Matric number already in use by another user.",
                             status_code=400
                         )
-                    
-                # ─── Validate level range ─────────
-                level = validated_data.get('level')
+
+                # ─── Validate level range ───────────────────────
                 if level is not None:
                     if level < 1 or level > 7:
-                        op.fail(f"Invalid level: {level}. Please enter a value between 1 and 7.")
+                        op.fail(f"Invalid level: {level}. Must be between 1 and 7.")
                         return BaseResultWithData(
                             message="Invalid level. Please enter a value between 1 and 7.",
                             status_code=400
                         )
 
-                # ─── Handle full_name ──────────────────────────
-                full_name = validated_data.pop('full_name', None)
-                if full_name:
-                    parts = full_name.title().split(' ', 1)
-                    user.first_name = parts[0]
-                    user.last_name = parts[1] if len(parts) > 1 else ''
+                # ─── Conditional Field Updates ──────────────────
+                # Always update phone if provided
+                if phone is not None:
+                    user.phone = phone
 
-                # ─── Update remaining fields ────────────────────
-                for field in ['phone', 'department', 'faculty', 'level', 'matric_number']:
-                    if field in validated_data:
-                        setattr(user, field, validated_data[field])
+                # Always update level if provided
+                if level is not None:
+                    user.level = level
+
+                # Only update department if currently empty (null or empty string)
+                if department is not None:
+                    if user.department is None or user.department == '':
+                        user.department = department
+                    # else: silently ignore – already has a value
+
+                # Only update faculty if currently empty (null or empty string)
+                if faculty is not None:
+                    if user.faculty is None or user.faculty == '':
+                        user.faculty = faculty
+                    # else: silently ignore – already has a value
+
+                # Only update matric_number if currently empty (null or empty string)
+                if matric_number is not None:
+                    if user.matric_number is None or user.matric_number == '':
+                        user.matric_number = matric_number
+                    # else: silently ignore – already has a value
 
                 user.save()
 
+                # ─── Send notification ──────────────────────────
                 create_notification(
                     user=user,
                     notification_type=NotificationEnum.ACCOUNT.value,
@@ -92,7 +122,7 @@ class ProfileCommand:
                 op.success(f"Profile updated for user {user.email}")
                 return BaseResultWithData(
                     message="Profile updated successfully.",
-                    data = {'notification': True},
+                    data={'notification': True},
                     status_code=200
                 )
 
@@ -101,8 +131,7 @@ class ProfileCommand:
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
-            )
-        
+            )        
 
     @staticmethod
     def update_profile_picture(request, user, validated_data) -> BaseResultWithData:

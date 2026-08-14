@@ -70,6 +70,62 @@ class AuthCommand:
                     data=None,
                     status_code=400
                 )
+
+            moderation = getattr(
+                user,
+                "moderation",
+                None,
+            )
+
+            if moderation:
+                moderation.clear_expired_suspension()
+
+                if moderation.is_banned:
+
+                    op.fail(
+                        "[AuthCommand.Execute] "
+                        "Banned user attempted login: "
+                        f"{user.email}"
+                    )
+
+                    return BaseResultWithData(
+                        message=(
+                            "Your account has been "
+                            "permanently banned."
+                        ),
+                        data={
+                            "is_banned": True,
+                            "is_suspended": False,
+                            "suspended_until": None,
+                            "ban_reason": (
+                                moderation.ban_reason
+                                or None
+                            ),
+                        },
+                        status_code=403,
+                    )
+
+                if moderation.is_currently_suspended:
+
+                    op.fail(
+                        "[AuthCommand.Execute] "
+                        "Suspended user attempted login: "
+                        f"{user.email}"
+                    )
+
+                    return BaseResultWithData(
+                        message=(
+                            "Your account is currently suspended."
+                        ),
+                        data={
+                            "is_banned": False,
+                            "is_suspended": True,
+                            "suspended_until": (
+                                moderation.suspended_until
+                            ),
+                        },
+                        status_code=403,
+                    )
             
             try:
                 status = prepare_2fa_challenge(user)
@@ -447,6 +503,62 @@ class AuthCommand:
                     op.fail("Blacklist method not available")
                 except Exception as e:
                     op.fail(f"Failed to blacklist old token {refresh_token_str}: {e}")
+
+            moderation = getattr(
+                user,
+                "moderation",
+                None,
+            )
+
+            if moderation:
+                moderation.clear_expired_suspension()
+
+                if moderation.is_banned:
+
+                    op.fail(
+                        "[AuthCommand.Execute] "
+                        "Banned user attempted login: "
+                        f"{user.email}"
+                    )
+
+                    return BaseResultWithData(
+                        message=(
+                            "Your account has been "
+                            "permanently banned."
+                        ),
+                        data={
+                            "is_banned": True,
+                            "is_suspended": False,
+                            "suspended_until": None,
+                            "ban_reason": (
+                                moderation.ban_reason
+                                or None
+                            ),
+                        },
+                        status_code=403,
+                    )
+
+                if moderation.is_currently_suspended:
+
+                    op.fail(
+                        "[AuthCommand.Execute] "
+                        "Suspended user attempted login: "
+                        f"{user.email}"
+                    )
+
+                    return BaseResultWithData(
+                        message=(
+                            "Your account is currently suspended."
+                        ),
+                        data={
+                            "is_banned": False,
+                            "is_suspended": True,
+                            "suspended_until": (
+                                moderation.suspended_until
+                            ),
+                        },
+                        status_code=403,
+                    )
 
             # 4. Create brand new tokens
             new_refresh = RefreshToken.for_user(user)

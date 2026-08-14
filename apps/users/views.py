@@ -473,7 +473,7 @@ class ProfileView(generics.GenericAPIView):
         return Response(result.to_dict(), status=result.status_code)
 
     def put(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         result = ProfileCommand.update_profile(request, request.user, serializer.validated_data)
         return Response(result.to_dict(), status=result.status_code)

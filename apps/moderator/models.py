@@ -1,7 +1,7 @@
 from django.db import models
 from apps.campus.models import Listing, Review
 from utils.base_model import BaseModel
-
+from django.utils import timezone
 
 from apps.users.models import User
 from utils.enums import ContentTypeEnum, ModeratorActionTypeEnum
@@ -104,6 +104,70 @@ class UserModeration(BaseModel):
 
     def __str__(self):
         return f"Moderation for {self.user.email}"
+
+
+    @property
+    def is_currently_suspended(self):
+        """
+        Returns True when the user currently has
+        an active suspension.
+
+        suspended_until = None means the suspension
+        has no expiry date.
+        """
+
+        if not self.is_suspended:
+            return False
+
+        # Indefinite suspension
+        if self.suspended_until is None:
+            return True
+
+        # Temporary suspension
+        return self.suspended_until > timezone.now()
+
+
+    @property
+    def can_login(self):
+        """
+        Determines whether moderation status allows
+        the user to log in.
+        """
+
+        if self.is_banned:
+            return False
+
+        if self.is_currently_suspended:
+            return False
+
+        return True
+
+
+    def clear_expired_suspension(self):
+        """
+        Automatically clears a suspension when
+        suspended_until has passed.
+        """
+
+        if (
+            self.is_suspended
+            and self.suspended_until is not None
+            and self.suspended_until <= timezone.now()
+        ):
+
+            self.is_suspended = False
+            self.suspended_until = None
+
+            self.save(
+                update_fields=[
+                    "is_suspended",
+                    "suspended_until",
+                ]
+            )
+
+            return True
+
+        return False
 
 
 class ModeratorNote(BaseModel):

@@ -102,6 +102,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     edit_day = serializers.SerializerMethodField()
     profile_completion = serializers.SerializerMethodField()
     missing_fields = serializers.SerializerMethodField()
+    notification_status = serializers.BooleanField(source='notification', read_only=True)
     class Meta:
         model = User
         fields = [
@@ -113,7 +114,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             'badges', 'flags', 'moderation',
             'trust_score', 'avg_rating', 'review_count',
             'profile_completion', 'missing_fields',
-            'notification', 'visibility', 'edit_day', 'modified_at'
+            'notification_status', 'visibility', 'edit_day', 'modified_at'
         ]
 
     def get_member_since(self, obj):
@@ -155,7 +156,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField(required=True, write_only=True)
+    full_name = serializers.CharField(required=False, write_only=True, allow_blank=True)
     class Meta:
         model = User
         fields = [

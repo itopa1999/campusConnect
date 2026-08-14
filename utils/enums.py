@@ -79,6 +79,15 @@ class ListingTypeEnum(Enum):
     FREEBIE = 'freebie'
     SERVICE = 'service'
 
+    RENT = "rent"
+    EXCHANGE = "exchange"
+    ROOMMATE = "roommate"
+    ACCOMMODATION = "accommodation"
+    JOB = "job"
+    EVENT = "event"
+    LOST_FOUND = "lost_found"
+    DONATION = "donation"
+
     @classmethod
     def choices(cls):
         """Return choices for Django model field"""

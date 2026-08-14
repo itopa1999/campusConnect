@@ -291,6 +291,62 @@ class TwoFactorCommand:
         if not valid:
             return BaseResultWithData(message="Verification failed", status_code=400)
 
+        moderation = getattr(
+            user,
+            "moderation",
+            None,
+        )
+
+        if moderation:
+            moderation.clear_expired_suspension()
+
+            if moderation.is_banned:
+
+                op.fail(
+                    "[AuthCommand.Execute] "
+                    "Banned user attempted login: "
+                    f"{user.email}"
+                )
+
+                return BaseResultWithData(
+                    message=(
+                        "Your account has been "
+                        "permanently banned."
+                    ),
+                    data={
+                        "is_banned": True,
+                        "is_suspended": False,
+                        "suspended_until": None,
+                        "ban_reason": (
+                            moderation.ban_reason
+                            or None
+                        ),
+                    },
+                    status_code=403,
+                )
+
+            if moderation.is_currently_suspended:
+
+                op.fail(
+                    "[AuthCommand.Execute] "
+                    "Suspended user attempted login: "
+                    f"{user.email}"
+                )
+
+                return BaseResultWithData(
+                    message=(
+                        "Your account is currently suspended."
+                    ),
+                    data={
+                        "is_banned": False,
+                        "is_suspended": True,
+                        "suspended_until": (
+                            moderation.suspended_until
+                        ),
+                    },
+                    status_code=403,
+                )
+
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
