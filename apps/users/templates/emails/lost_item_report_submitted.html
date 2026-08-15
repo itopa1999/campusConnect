@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lost Item Report Submitted</title>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; background-color: #f7f9f8; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px 30px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+    .header { text-align: center; margin-bottom: 30px; }
+    h1 { font-size: 24px; color: #1e2a2c; font-weight: 700; margin: 0 0 8px 0; }
+    .subhead { color: #5f7775; font-size: 16px; }
+    .divider { border: none; border-top: 2px solid #e8edea; margin: 30px 0; }
+    .info-box { background: #f8faf9; border-radius: 12px; padding: 16px 20px; margin: 20px 0; }
+    .footer { font-size: 14px; color: #7a9490; text-align: center; margin-top: 30px; border-top: 1px solid #e8edea; padding-top: 20px; }
+    .status-badge { display: inline-block; background: #e8edea; color: #2c7a5e; padding: 4px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Lost Item Report Submitted</h1>
+      <p class="subhead">Your report for "{{ item_name }}" is being reviewed</p>
+    </div>
+
+    <p>Hello <strong>{{ first_name }}</strong>,</p>
+
+    <p>Your lost item report for "<strong>{{ item_name }}</strong>" has been successfully submitted.</p>
+
+    <div class="info-box">
+      <p style="margin:0; color:#5f7775;">
+        <span class="status-badge">⏳ Pending Review</span>
+      </p>
+      <p style="margin:8px 0 0 0; font-size:14px; color:#5f7775;">
+        Our team will review your report shortly. Once approved, it will be visible to other students on CampusConnect.
+      </p>
+    </div>
+
+    <p>You don't need to do anything else for now. We will keep you informed when there is an update.</p>
+
+    <p>If someone claims this item, you will receive another email with their details and verification answers.</p>
+
+    <div class="footer">
+      &copy; 2026 CampusConnect – <a href="{{ base_url }}" style="color:#2c7a5e; text-decoration:none;">Visit CampusConnect</a>
+    </div>
+  </div>
+</body>
+</html>

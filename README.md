@@ -332,3 +332,9 @@ class JobListing(BaseModel):
 # remote
 # company
 # application_url
+
+
+
+
+check if timezone timeldetal which one is good pass to use for nigeria
+check the email template to have standard for all others

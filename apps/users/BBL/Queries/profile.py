@@ -2,7 +2,8 @@ from apps.users.models import User
 from apps.users.serializers import ProfileSerializer
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
-from utils.enums import CacheKeysEnum
+from utils.enums import CacheKeysEnum, FeatureFlagEnum, UserIdVerificationEnum
+from utils.featureflag import is_feature_active
 
 
 class ProfileQuery:
@@ -38,13 +39,19 @@ class ProfileQuery:
         cache_key = CacheKeysEnum.format(CacheKeysEnum.PROFILE_ID, user_id=user.id)
 
         def build_profile_data():
+            is_verified = (
+                user.student_id_verified is True
+                or str(user.student_id_verified_status).lower() == UserIdVerificationEnum.APPROVED.value.lower()
+            )
             data = {
                 'student_id_verified': user.student_id_verified,
                 'student_id_verified_status': user.student_id_verified_status,
                 'student_id_photo_url': None,
             }
-            if user.student_id_photo:
-                data['student_id_photo_url'] = request.build_absolute_uri(user.student_id_photo.url)
+            if not is_verified and user.student_id_photo:
+                data["student_id_photo_url"] = request.build_absolute_uri(
+                    user.student_id_photo.url
+                )
 
             return data
 
@@ -98,6 +105,10 @@ class ProfileQuery:
         cache_key = CacheKeysEnum.format(CacheKeysEnum.PROFILE_VISIBILITY, user_id=user.id)
 
         def build_profile_data():
+            if is_feature_active(FeatureFlagEnum.HIDE_VISIBILITY.value):
+                data = {
+                   'is_visibility': None, 
+                }
             data = {
                 'is_visibility': user.visibility,
             }

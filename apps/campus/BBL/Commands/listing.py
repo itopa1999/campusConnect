@@ -8,7 +8,7 @@ from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import AdvertTypeEnum, ListingStatusTypeEnum, ListingTypeEnum, NotificationEnum, PointTransactionTypeEnum
+from utils.enums import AdvertTypeEnum, ListingStatusTypeEnum, NotificationEnum, PointTransactionTypeEnum
 from utils.helpers import UpdatePointsService, create_notification, parse_bool
 from utils.log_helpers import OperationLogger
 from PIL import Image
@@ -17,16 +17,6 @@ from django.core.files.storage import default_storage
 class ListingCommand:
     @staticmethod
     def create_listing(user: User, data: dict) -> BaseResultWithData:
-        """
-        Create a listing after performing all business validations:
-        - At least one hotspot
-        - Image size < 3 MB
-        - Image extension allowed (jpg, jpeg, png, webp)
-        - Price ≥ 0
-        - Freebie listings must have price = 0 or null
-        - Subcategory (optional) must belong to the selected category
-        - Basic field validations via serializer
-        """
         op = OperationLogger(f"ListingCommand.create_listing for user: {user.first_name or user.email}", data=data)
         op.start()
 
@@ -38,36 +28,14 @@ class ListingCommand:
         if data.get('image') == '':
             data.pop('image', None)
 
-        # --- 4. Price parsing and validation ---
-        raw_price = data.get('price')
-        price = None
-        if raw_price is not None and raw_price != '':
-            try:
-                price = Decimal(str(raw_price))
-            except (ValueError, TypeError):
-                op.fail(f"Invalid price format for listing: {data.get('title')}")
-                return BaseResultWithData(
-                    message="Price must be a valid number.",
-                    status_code=400
-                )
-            if price < 0:
-                op.fail(f"Negative price for listing: {data.get('title')}")
-                return BaseResultWithData(
-                    message="Price cannot be negative.",
-                    status_code=400
-                )
-        data['price'] = price
-
+        # --- 1. Points check ---
         is_banner = parse_bool(data.get('is_ads_banner', False))
         is_hot = parse_bool(data.get('is_hot_sales', False))
-
-        # Calculate total points needed
         base_points = ConstantHelper.BASE_POINT
         banner_points = AdvertTypeEnum.BANNER.points if is_banner else 0
         hot_points = AdvertTypeEnum.HOT_SALE.points if is_hot else 0
         total_points_needed = base_points + banner_points + hot_points
 
-        # --- 1. Points check ---
         current_points = UpdatePointsService.check_points(user)
         if current_points < total_points_needed:
             op.fail(f"Insufficient points for listing: {data.get('title')}")
@@ -76,7 +44,7 @@ class ListingCommand:
                 status_code=400
             )
 
-        # --- 2. Hotspots: parse JSON string and map to 'hotspots' field ---
+        # --- 2. Hotspots validation ---
         hotspot_ids = data.get('hotspot_ids')
         if isinstance(hotspot_ids, str):
             try:
@@ -91,11 +59,19 @@ class ListingCommand:
                 status_code=400
             )
 
-        # The serializer expects a field named 'hotspots' (not 'hotspot_ids')
+        # Validate all hotspots exist
+        existing_hotspots = CampusHotspot.objects.filter(id__in=hotspot_ids, is_deleted=False)
+        if existing_hotspots.count() != len(hotspot_ids):
+            op.fail(f"Invalid hotspot IDs for listing: {data.get('title')}")
+            return BaseResultWithData(
+                message="One or more meeting spots are invalid.",
+                status_code=400
+            )
+
         data['hotspots'] = hotspot_ids
         data.pop('hotspot_ids', None)
 
-        # --- 3. Image validation (if provided) ---
+        # --- 3. Image validation ---
         image = data.get('image')
         if image:
             if image.size > ConstantHelper.IMAGE_SIZE:
@@ -112,45 +88,22 @@ class ListingCommand:
                     status_code=400
                 )
 
-        # --- 5. Freebie specific rule ---
-        listing_type = data.get('listing_type')
-        if listing_type == ListingTypeEnum.FREEBIE.value and price not in (None, 0):
-            op.fail(f"{ListingTypeEnum.FREEBIE.value} price must be 0 for listing: {data.get('title')}")
-            return BaseResultWithData(
-                message=f"{ListingTypeEnum.FREEBIE.value} must have price set to 0.",
-                status_code=400
-            )
-
-        # --- 6. Category validation ---
+        # --- 4. Category validation (if provided) ---
         category_id = data.get('category')
-        if not category_id:
-            op.fail(f"Category missing for listing: {data.get('title')}")
-            return BaseResultWithData(
-                message="Category is required.",
-                status_code=400
-            )
-
-        try:
-            category = Category.objects.get(id=category_id, is_deleted=False)
-        except Category.DoesNotExist:
-            op.fail(f"Invalid category ID: {category_id}")
-            return BaseResultWithData(
-                message="Selected category does not exist.",
-                status_code=400
-            )
-
-        # --- 7. Subcategory validation (optional) ---
-        subcategory_id = data.get('subcategory')
-        if subcategory_id:
-            # Ensure it's an integer
+        if category_id:
             try:
-                subcategory_id = int(subcategory_id)
-            except (ValueError, TypeError):
-                op.fail(f"Invalid subcategory ID: {subcategory_id}")
+                category = Category.objects.get(id=category_id, is_deleted=False)
+            except Category.DoesNotExist:
+                op.fail(f"Invalid category ID: {category_id}")
                 return BaseResultWithData(
-                    message="Invalid subcategory format.",
+                    message="Selected category does not exist.",
                     status_code=400
                 )
+            # Validate category listing_type matches? optional
+
+        # --- 5. Subcategory validation (if provided) ---
+        subcategory_id = data.get('subcategory')
+        if subcategory_id:
             try:
                 subcategory = SubCategory.objects.get(id=subcategory_id, is_deleted=False)
             except SubCategory.DoesNotExist:
@@ -159,19 +112,15 @@ class ListingCommand:
                     message="Selected subcategory does not exist.",
                     status_code=400
                 )
-            # Ensure the subcategory belongs to the selected category
-            if subcategory.category_id != category.id:
-                op.fail(f"Subcategory {subcategory_id} does not belong to category {category.id}")
+            # Ensure subcategory belongs to category (if category provided)
+            if category_id and subcategory.category_id != category_id:
+                op.fail(f"Subcategory {subcategory_id} does not belong to category {category_id}")
                 return BaseResultWithData(
                     message="The selected subcategory does not belong to the selected category.",
                     status_code=400
                 )
-            data['subcategory'] = subcategory_id   # pass the ID to the serializer
-        else:
-            # If no subcategory, ensure it's None in data (serializer expects null)
-            data['subcategory'] = None
 
-        # --- 8. Serializer validation ---
+        # --- 6. Serializer validation and creation ---
         serializer = ListingSerializer(data=data, context={'user': user})
         try:
             serializer.is_valid(raise_exception=True)
@@ -183,7 +132,6 @@ class ListingCommand:
                 status_code=400
             )
 
-        # --- 9. Save within a transaction ---
         try:
             with transaction.atomic():
                 listing = serializer.save(user=user)
@@ -217,7 +165,6 @@ class ListingCommand:
                 status_code=500
             )
 
-                
     @staticmethod
     def update_listing(user: User, listing_id: int, data: dict, partial: bool = False) -> BaseResultWithData:
         op = OperationLogger(f"UpdateListingCommand.update_listing for user: {user.first_name or user.email}", data={'listing_id': listing_id, **data})
@@ -231,12 +178,7 @@ class ListingCommand:
             )
 
         try:
-            listing = Listing.objects.filter(
-                id=listing_id,
-                user=user,
-                is_deleted=False
-            ).select_related('category').first()
-
+            listing = Listing.objects.filter(id=listing_id, user=user, is_deleted=False).first()
             if not listing:
                 op.fail(f"Listing not found for listing: {listing_id}")
                 return BaseResultWithData(
@@ -244,8 +186,8 @@ class ListingCommand:
                     status_code=404
                 )
 
-            fields_to_update = set(data.keys())
-            if ConstantHelper.EDIT_DATE > 0 and fields_to_update and listing.modified_at:
+            # Edit restriction (optional)
+            if ConstantHelper.EDIT_DATE > 0 and data and listing.modified_at:
                 days_since = (timezone.now() - listing.modified_at).days
                 if days_since < ConstantHelper.EDIT_DATE:
                     op.fail(f"Edit restriction for listing: {listing.title}")
@@ -254,42 +196,19 @@ class ListingCommand:
                         status_code=400
                     )
 
-            # ─── 1. Handle category ─────────────────────────────────────
-            # The frontend may send 'category_id' or 'category'
-            if 'category_id' in data:
-                data['category'] = data.pop('category_id')
-            # Ensure category is an integer
-            if 'category' in data:
-                try:
-                    data['category'] = int(data['category'])
-                except (ValueError, TypeError):
-                    op.fail(f"Invalid category ID for listing: {listing.title}")
-                    return BaseResultWithData(
-                        message="Category must be a valid ID.",
-                        status_code=400
-                    )
-
-            # ─── 2. Handle hotspots ─────────────────────────────────────
-            # Remove 'hotspots' from data so it doesn't reach the serializer
-            hotspot_ids = None
-            if 'hotspots' in data:
-                raw_hotspots = data.pop('hotspots')
-                if isinstance(raw_hotspots, str):
+            hotspot_ids = data.get('hotspots')
+            if hotspot_ids is not None:
+                if isinstance(hotspot_ids, str):
                     try:
-                        hotspot_ids = json.loads(raw_hotspots)
+                        hotspot_ids = json.loads(hotspot_ids)
                     except json.JSONDecodeError:
                         hotspot_ids = None
-                else:
-                    hotspot_ids = raw_hotspots
-
                 if not hotspot_ids or not isinstance(hotspot_ids, list) or len(hotspot_ids) == 0:
                     op.fail(f"No meeting spots selected for listing: {listing.title}")
                     return BaseResultWithData(
                         message="Please select at least one meeting spot.",
                         status_code=400
                     )
-
-                # Validate all hotspots exist
                 existing_hotspots = CampusHotspot.objects.filter(id__in=hotspot_ids, is_deleted=False)
                 if existing_hotspots.count() != len(hotspot_ids):
                     op.fail(f"Invalid hotspot IDs for listing: {listing.title}")
@@ -297,46 +216,38 @@ class ListingCommand:
                         message="One or more meeting spots are invalid.",
                         status_code=400
                     )
+            else:
+                pass
 
-            # ─── 3. Price parsing ──────────────────────────────────────
-            if 'price' in data:
-                raw_price = data['price']
-                if raw_price is None or raw_price == '':
-                    data['price'] = None
-                else:
-                    try:
-                        data['price'] = Decimal(str(raw_price))
-                    except (ValueError, TypeError):
-                        op.fail(f"Invalid price for listing: {listing.title}")
-                        return BaseResultWithData(
-                            message="Price must be a valid number.",
-                            status_code=400
-                        )
-                    if data['price'] < 0:
-                        op.fail(f"Negative price from listing: {listing.title}")
-                        return BaseResultWithData(
-                            message="Price cannot be negative.",
-                            status_code=400
-                        )
-
-            # ─── 4. Listing type validation ────────────────────────────
-            if 'listing_type' in data and data['listing_type'] not in ListingTypeEnum.values():
-                op.fail(f"Invalid listing type for listing: {listing.title}")
-                return BaseResultWithData(
-                    message="Invalid listing type.",
-                    status_code=400
-                )
-
-            if data.get('listing_type') == ListingTypeEnum.FREEBIE.value:
-                if 'price' in data and data['price'] not in (None, 0):
-                    op.fail(f"Freebie price must be 0 for listing: {listing.title}")
+            category_id = data.get('category')
+            if category_id:
+                try:
+                    Category.objects.get(id=category_id, is_deleted=False)
+                except Category.DoesNotExist:
+                    op.fail(f"Invalid category ID: {category_id}")
                     return BaseResultWithData(
-                        message="Freebie listings must have price set to 0.",
+                        message="Selected category does not exist.",
                         status_code=400
                     )
 
-            # ─── 5. Serializer validation ──────────────────────────────
-            # Always use partial=True so missing fields are allowed
+            subcategory_id = data.get('subcategory')
+            if subcategory_id:
+                try:
+                    subcategory = SubCategory.objects.get(id=subcategory_id, is_deleted=False)
+                except SubCategory.DoesNotExist:
+                    op.fail(f"Subcategory not found: {subcategory_id}")
+                    return BaseResultWithData(
+                        message="Selected subcategory does not exist.",
+                        status_code=400
+                    )
+                if category_id and subcategory.category_id != int(category_id):
+                    op.fail(f"Subcategory {subcategory_id} does not belong to category {category_id}")
+                    return BaseResultWithData(
+                        message="The selected subcategory does not belong to the selected category.",
+                        status_code=400
+                    )
+
+            # --- Pass to serializer ---
             serializer = ListingSerializer(listing, data=data, partial=True, context={'user': user})
             try:
                 serializer.is_valid(raise_exception=True)
@@ -348,14 +259,9 @@ class ListingCommand:
                     status_code=400
                 )
 
-            # ─── 6. Save within transaction ────────────────────────────
             with transaction.atomic():
                 updated_listing = serializer.save()
-                # Handle hotspots if provided
-                if hotspot_ids is not None:
-                    updated_listing.hotspots.set(hotspot_ids)
-                    updated_listing.save(update_fields=['modified_at'])
-
+                # Notify user
                 create_notification(
                     user=user,
                     notification_type=NotificationEnum.LISTING.value,
@@ -377,7 +283,7 @@ class ListingCommand:
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
             )
-        
+                
     
     @staticmethod
     def delete_listing(user: User, listing_id: int) -> BaseResultWithData:

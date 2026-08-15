@@ -294,7 +294,7 @@ class ContactReportAdmin(SoftDeleteAdmin):
             'fields': ('status', 'assigned_to', 'resolved_by', 'resolved_at', 'resolution_notes'),
         }),
         ('Escalation', {
-            'fields': ('escalated_to_admin', 'escalated_at', 'escalated_note'),
+            'fields': ('escalated_to_admin', 'escalated_at', 'escalated_note', 'escalated_by'),
         }),
         ('Admin Handling (legacy)', {
             'fields': ('is_reviewed', 'admin_notes'),

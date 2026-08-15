@@ -30,9 +30,26 @@ def student_id_upload_path(instance, filename):
 
 
 class Badge(BaseModel):
-    name = models.CharField(max_length=50)
-    icon = models.ImageField(upload_to='badges/', blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
+    name = models.CharField(
+        max_length=50,
+        unique=True,
+        help_text="Name of the badge (e.g., 'Top Seller', 'Verified Student')."
+    )
+    icon = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Optional icon class (e.g., FontAwesome icon name)."
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Description of what the badge represents."
+    )
+
+    class Meta:
+        verbose_name = "Badge"
+        verbose_name_plural = "Badges"
 
     def __str__(self):
         return self.name
@@ -40,7 +57,12 @@ class Badge(BaseModel):
 
 class User(BaseModel, AbstractUser):
     username = None
-    email = models.EmailField(max_length=40, unique=True, db_index=True)
+    email = models.EmailField(
+        max_length=40,
+        unique=True,
+        db_index=True,
+        help_text="User's primary email address (used for login)."
+    )
     phone_regex = RegexValidator(
         regex=r'^(?:\+234|0)[789][01]\d{8}$',
         message="Phone number must be a valid Nigerian number (e.g., 08012345678 or +2348012345678)."
@@ -49,46 +71,125 @@ class User(BaseModel, AbstractUser):
         validators=[phone_regex],
         max_length=15,
         blank=True,
-        null=True
+        null=True,
+        unique=True,
+        help_text="Nigerian phone number (e.g., 08012345678 or +2348012345678)."
     )
     profile_picture = models.ImageField(
         upload_to=profile_picture_upload_path,
         blank=True,
         null=True,
-        help_text="Upload a profile picture that will appear on all your product listings"
+        help_text="Upload a profile picture that will appear on all your product listings."
     )
-    points = models.PositiveIntegerField(validators=[MinValueValidator(0)],null=True, default=0)
-    matric_number = models.CharField(max_length=50, null=True, blank=True)
+    points = models.PositiveIntegerField(
+        validators=[MinValueValidator(0)],
+        null=True,
+        default=0,
+        help_text="Current point balance (used for promoting listings, etc.)."
+    )
+    matric_number = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Student matriculation number (if applicable)."
+    )
 
-    student_id_photo = models.ImageField(upload_to=student_id_upload_path, null =True, blank=True)
-    student_id_verified = models.BooleanField(default=False)
-    student_id_verified_status = models.CharField(max_length=50, choices=UserIdVerificationEnum.choices(), default=UserIdVerificationEnum.PENDING.value)
+    student_id_photo = models.ImageField(
+        upload_to=student_id_upload_path,
+        null=True,
+        blank=True,
+        help_text="Photo of student ID for verification purposes."
+    )
+    student_id_verified = models.BooleanField(
+        default=False,
+        help_text="Whether the student ID has been verified."
+    )
+    student_id_verified_status = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        choices=UserIdVerificationEnum.choices(),
+        help_text="Verification status of the student ID (pending, approved, rejected)."
+    )
     
-    department = models.CharField(max_length=100, blank=True, null=True)
-    faculty = models.CharField(max_length=100, blank=True, null=True)
-    level = models.PositiveIntegerField(blank=True, null=True)
-    average_rating = models.DecimalField(max_digits=2, decimal_places=1, default=0.00)
-    sold_items = models.PositiveIntegerField(blank=True, null=True, default=0)
+    department = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Academic department of the student."
+    )
+    faculty = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Faculty to which the department belongs."
+    )
+    level = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Year of study (e.g., 100, 200, 300, 400)."
+    )
+    average_rating = models.DecimalField(
+        max_digits=2,
+        decimal_places=1,
+        default=0.00,
+        help_text="Average rating received from other users (0.0 to 5.0)."
+    )
+    sold_items = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        default=0,
+        help_text="Total number of items sold by this user."
+    )
     email_verified = models.BooleanField(
         default=False,
-        help_text="Email verification status"
+        help_text="Email verification status (True if verified)."
     )
 
-    hall_residence = models.CharField(max_length=255, null=True, blank=True)
-    hall_number = models.CharField(max_length=255, null=True, blank=True)
-    hall_verified = models.BooleanField(default=False, help_text="Student hall/residence verified")
-    hall_verified_status = models.CharField(max_length=50, choices=UserIdVerificationEnum.choices(), default=UserIdVerificationEnum.PENDING.value)
+    hall_residence = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Name of the student hall of residence."
+    )
+    hall_number = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Room/hall number or block."
+    )
+    hall_verified = models.BooleanField(
+        default=False,
+        help_text="Whether the student hall/residence has been verified."
+    )
+    hall_verified_status = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        choices=UserIdVerificationEnum.choices(),
+        help_text="Verification status of hall/residence (pending, approved, rejected)."
+    )
 
     user_badges = models.ManyToManyField(
         Badge,
         blank=True,
-        related_name="users_with_badge"
+        related_name="users_with_badge",
+        help_text="Badges earned by the user (e.g., for trust, activity, achievements)."
     )
 
-    notification = models.BooleanField(default=True)
-    visibility = models.BooleanField(default=True)
+    notification = models.BooleanField(
+        default=True,
+        help_text="Whether the user wants to receive notifications."
+    )
+    visibility = models.BooleanField(
+        default=True,
+        help_text="Whether the user's profile is visible to others."
+    )
 
-    two_factor_enabled = models.BooleanField(default=False)
+    two_factor_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether two‑factor authentication is enabled for this user."
+    )
 
     def save(self, *args, **kwargs):
         self.first_name = self.first_name.title()
@@ -100,11 +201,13 @@ class User(BaseModel, AbstractUser):
     def get_full_name(self):
         return super().get_full_name()  
 
-    objects=UserManager( )
+    objects=UserManager()
     USERNAME_FIELD ='email'
     REQUIRED_FIELDS=['first_name',"last_name"]
 
     class Meta:
+        verbose_name = "User"
+        verbose_name_plural = "Users"
         ordering = ['-id']
         indexes = [
             models.Index(fields=['-id']),
@@ -121,6 +224,16 @@ class User(BaseModel, AbstractUser):
             models.Index(fields=['is_active', 'is_deleted']),
             models.Index(fields=['email_verified', 'is_deleted']),
         ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(average_rating__gte=0) & models.Q(average_rating__lte=5),
+                name="user_rating_range",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(points__gte=0),
+                name="user_points_non_negative"
+            ),
+        ]
     
     def __str__(self):
         return f"{self.email}"
@@ -129,14 +242,35 @@ def token_expiry():
     return timezone.now() + timedelta(minutes=10)
 
 class VerificationToken(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='verification_tokens')
-    token = models.PositiveIntegerField(unique=True)
-    token_type = models.CharField(max_length=50, choices=TokenTypeEnum.choices())
-    is_used = models.BooleanField(default=False, db_index=True)
-    expires_at = models.DateTimeField(default=token_expiry)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='verification_tokens',
+        help_text="The user for whom this token is generated."
+    )
+    token = models.PositiveIntegerField(
+        unique=True,
+        help_text="Six‑digit verification code."
+    )
+    token_type = models.CharField(
+        max_length=50,
+        choices=TokenTypeEnum.choices(),
+        help_text="Purpose of token (e.g., email_verification, password_reset)."
+    )
+    is_used = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Whether the token has already been consumed."
+    )
+    expires_at = models.DateTimeField(
+        default=token_expiry,
+        help_text="Timestamp when the token expires."
+    )
     
     
     class Meta:
+        verbose_name = "Verification Token"
+        verbose_name_plural = "Verification Tokens"
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['token']),
@@ -162,12 +296,31 @@ class VerificationToken(BaseModel):
 
 
 class TwoFactorMethod(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='two_factor_methods')
-    method = models.CharField(max_length=20, choices=TwoFactorMethodEnum.choices())
-    is_enabled = models.BooleanField(default=False)
-    secret = models.CharField(max_length=32, blank=True, null=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='two_factor_methods',
+        help_text="The user who enabled this 2FA method."
+    )
+    method = models.CharField(
+        max_length=20,
+        choices=TwoFactorMethodEnum.choices(),
+        help_text="2FA method (e.g., authenticator_app, sms, email)."
+    )
+    is_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether this method is currently active."
+    )
+    secret = models.CharField(
+        max_length=32,
+        blank=True,
+        null=True,
+        help_text="Secret key or TOTP seed (if applicable)."
+    )
 
     class Meta:
+        verbose_name = "Two‑Factor Method"
+        verbose_name_plural = "Two‑Factor Methods"
         unique_together = ('user', 'method')
 
     def __str__(self):
@@ -176,10 +329,28 @@ class TwoFactorMethod(BaseModel):
 
 
 class BackupCode(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='backup_codes')
-    code_hash = models.CharField(max_length=128)
-    is_used = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='backup_codes',
+        help_text="The user who owns these backup codes."
+    )
+    code_hash = models.CharField(
+        max_length=128,
+        help_text="Hashed backup code (for security, never store plaintext)."
+    )
+    is_used = models.BooleanField(
+        default=False,
+        help_text="Whether this backup code has been used."
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the backup code was generated."
+    )
+
+    class Meta:
+        verbose_name = "Backup Code"
+        verbose_name_plural = "Backup Codes"
 
     def __str__(self):
         return f"Backup code for {self.user.email}"
@@ -188,56 +359,102 @@ class BackupCode(BaseModel):
 class ContactReport(BaseModel):
 
     # Basic info
-    reporter_name = models.CharField(max_length=255, help_text="Full name of the person reporting")
-    reporter_email = models.EmailField(help_text="UI email address")
+    reporter_name = models.CharField(
+        max_length=255,
+        help_text="Full name of the person reporting."
+    )
+    reporter_email = models.EmailField(
+        help_text="Email address of the person reporting."
+    )
 
     # Issue categorization
-    issue_type = models.CharField(max_length=30, choices=IssueTypeEnum.choices(), db_index=True)
+    issue_type = models.CharField(
+        max_length=30,
+        choices=IssueTypeEnum.choices(),
+        db_index=True,
+        help_text="Category of the issue (e.g., report_listing, report_user, general_inquiry)."
+    )
 
     # Fields specific to certain issue types (optional)
     listing_identifier = models.CharField(
         max_length=500,
         blank=True,
         null=True,
-        help_text="Listing URL or title (for report_listing)"
+        help_text="Listing URL or title (for report_listing)."
     )
     reported_user_email = models.EmailField(
         blank=True,
         null=True,
-        help_text="Email of the user being reported (for report_user)"
+        help_text="Email of the user being reported (for report_user)."
     )
 
     # Main message
-    message = models.TextField(help_text="Detailed description of the issue")
+    message = models.TextField(
+        help_text="Detailed description of the issue."
+    )
 
     # Metadata
-    is_reviewed = models.BooleanField(default=False, help_text="Admin has reviewed this report")
-    admin_notes = models.TextField(blank=True, help_text="Internal notes from admin")
+    is_reviewed = models.BooleanField(
+        default=False,
+        help_text="Admin has reviewed this report."
+    )
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Internal notes from admin."
+    )
 
     status = models.CharField(
         max_length=20,
         choices=ReportStatusEnum.choices(),
-        default=ReportStatusEnum.PENDING.value
+        default=ReportStatusEnum.PENDING.value,
+        help_text="Current status of the report (pending, in_progress, resolved, closed)."
     )
     assigned_to = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='assigned_reports'
+        related_name='assigned_reports',
+        help_text="Moderator assigned to handle this report."
     )
     resolved_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='resolved_reports'
+        related_name='resolved_reports',
+        help_text="Moderator who resolved this report."
     )
-    resolved_at = models.DateTimeField(blank=True, null=True)
-    resolution_notes = models.TextField(blank=True)
-    escalated_to_admin = models.BooleanField(default=False)
-    escalated_at = models.DateTimeField(blank=True, null=True)
-    escalated_note = models.TextField(blank=True)
+    resolved_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Timestamp when the report was resolved."
+    )
+    resolution_notes = models.TextField(
+        blank=True,
+        help_text="Details of the resolution (e.g., action taken)."
+    )
+    escalated_to_admin = models.BooleanField(
+        default=False,
+        help_text="Whether this report was escalated to a higher admin level."
+    )
+    escalated_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Timestamp of escalation."
+    )
+    escalated_note = models.TextField(
+        blank=True,
+        help_text="Reason for escalation."
+    )
+    escalated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='escalated_reports',
+        help_text="Admin who escalated this report."
+    )
 
     class Meta:
         ordering = ['-created_at']
@@ -260,36 +477,46 @@ class PointPackage(BaseModel):
     Examples: 5 points for ₦2,500, 12 points for ₦5,000, etc.
     """
     points = models.PositiveIntegerField(
-        help_text="Number of points included in this package"
+        help_text="Number of points included in this package."
     )
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(0)],
-        help_text="Price in Nigerian Naira (₦)"
+        help_text="Price in Nigerian Naira (₦)."
     )
     description = models.CharField(
         max_length=100,
         blank=True,
-        help_text="Short description (e.g., 'Best value', 'Power seller')"
+        help_text="Short description (e.g., 'Best value', 'Power seller')."
     )
     is_popular = models.BooleanField(
         default=False,
-        help_text="Highlight this package as '🔥 Popular'"
+        help_text="Highlight this package as '🔥 Popular'."
     )
     is_best_value = models.BooleanField(
         default=False,
-        help_text="Mark as best value for money"
+        help_text="Mark as best value for money."
     )
     sort_order = models.PositiveIntegerField(
         default=0,
-        help_text="Order in which packages are displayed (lower first)"
+        help_text="Order in which packages are displayed (lower first)."
     )
 
     class Meta:
         ordering = ['sort_order', 'points']
         verbose_name = "Point Package"
         verbose_name_plural = "Point Packages"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(points__gt=0),
+                name="point_package_points_positive"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(price__gt=0),
+                name="point_package_price_positive"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.points} points – ₦{self.price}"
@@ -324,51 +551,69 @@ class PointPurchase(BaseModel):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='point_purchases'
+        related_name='point_purchases',
+        help_text="The user who made the purchase."
     )
     package = models.ForeignKey(
         PointPackage,
         on_delete=models.PROTECT,
-        related_name='purchases'
+        related_name='purchases',
+        help_text="The point package that was bought."
     )
     points_awarded = models.PositiveIntegerField(
-        help_text="Number of points added to the user's balance"
+        help_text="Number of points added to the user's balance."
     )
     amount_paid = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Amount paid in Naira"
+        help_text="Amount paid in Naira."
     )
     payment_reference = models.CharField(
         max_length=100,
         unique=True,
         blank=True,
         null=True,
-        help_text="Reference from payment gateway"
+        help_text="Reference from payment gateway (e.g., Paystack, Flutterwave)."
     )
     status = models.CharField(
         max_length=20,
         choices= PointPurchaseStatusEnum.choices(),
         default=PointPurchaseStatusEnum.PENDING.value,
-        db_index=True
+        db_index=True,
+        help_text="Purchase status (pending, completed, failed, refunded)."
     )
     completed_at = models.DateTimeField(
         blank=True,
         null=True,
-        help_text="When the purchase was successfully completed"
+        help_text="When the purchase was successfully completed."
     )
 
     gateway = models.CharField(
         blank=True,
         max_length=200,
         null=True,
-        help_text="payment_gateway"
+        help_text="Payment gateway used (e.g., paystack, flutterwave)."
     )
 
     class Meta:
         ordering = ['-created_at']
         verbose_name = "Point Purchase"
         verbose_name_plural = "Point Purchases"
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['status']),
+            models.Index(fields=['user', 'status']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(points_awarded__gt=0),
+                name="point_purchase_awarded_positive"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount_paid__gt=0),
+                name="point_purchase_amount_positive"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.user.email} bought {self.points_awarded} points (₦{self.amount_paid})"
@@ -381,7 +626,8 @@ class PointTransaction(BaseModel):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='point_transactions'
+        related_name='point_transactions',
+        help_text="The user whose balance is affected."
     )
     amount = models.IntegerField(
         help_text="Positive for addition, negative for subtraction."
@@ -393,7 +639,8 @@ class PointTransaction(BaseModel):
         max_length=30,
         choices=PointTransactionTypeEnum.choices(),
         default=PointTransactionTypeEnum.OTHER.value,
-        db_index=True
+        db_index=True,
+        help_text="Type of transaction (purchase, listing_promotion, refund, etc.)."
     )
     description = models.CharField(
         max_length=255,
@@ -423,6 +670,12 @@ class PointTransaction(BaseModel):
             models.Index(fields=['user', 'transaction_type']),
             models.Index(fields=['created_at']),
         ]
+        constraints = [
+            models.CheckConstraint(
+                condition=~models.Q(amount=0),
+                name="point_transaction_nonzero_amount"
+            ),
+        ]
 
     def __str__(self):
         sign = '+' if self.amount > 0 else ''
@@ -430,14 +683,29 @@ class PointTransaction(BaseModel):
     
 
 class FeatureFlag(BaseModel):
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
-    users = models.ManyToManyField(User,
-        blank=True)
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text="Feature name (e.g., 'dark_mode', 'listing_promotion')."
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description of the feature."
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether the feature is globally active."
+    )
+    users = models.ManyToManyField(
+        User,
+        blank=True,
+        help_text="Optional per‑user override (if empty, feature applies globally)."
+    )
 
     class Meta:
         ordering = ['name']
+        verbose_name = "Feature Flag"
+        verbose_name_plural = "Feature Flags"
         indexes = [
             models.Index(fields=['name', 'is_active', 'is_deleted']),
         ]
@@ -448,14 +716,35 @@ class FeatureFlag(BaseModel):
 
 
 class Notification(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notification_user")
-    notification_type = models.CharField(max_length=255, choices=NotificationEnum.choices(),
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notification_user",
+        help_text="The user who receives this notification."
+    )
+    notification_type = models.CharField(
+        max_length=255,
+        choices=NotificationEnum.choices(),
         default=NotificationEnum.OTHERS.value,
-        db_index=True)
-    title = models.CharField(max_length=255)
-    message = models.TextField()
-    is_read = models.BooleanField(default=False)
-    action_url = models.CharField(max_length=255, blank=True)
+        db_index=True,
+        help_text="Category of notification (order, listing, promotion, etc.)."
+    )
+    title = models.CharField(
+        max_length=255,
+        help_text="Notification title/short summary."
+    )
+    message = models.TextField(
+        help_text="Full notification message."
+    )
+    is_read = models.BooleanField(
+        default=False,
+        help_text="Whether the notification has been read by the user."
+    )
+    action_url = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Optional URL to navigate to when the notification is clicked."
+    )
 
 
     class Meta:
@@ -466,6 +755,7 @@ class Notification(BaseModel):
             models.Index(fields=['user']),
             models.Index(fields=['user', 'notification_type']),
             models.Index(fields=['created_at']),
+            models.Index(fields=['is_read']),
         ]
 
     def __str__(self):

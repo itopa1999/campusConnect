@@ -204,7 +204,7 @@ class ProfileCommand:
         
 
     @staticmethod
-    def upload_student_id(request, user, validated_data) -> BaseResultWithData:
+    def upload_student_id(request, user: User, validated_data) -> BaseResultWithData:
         op = OperationLogger(f"ProfileCommand.upload_student_id for user: {user.first_name or user.email}", data={'user_id': user.id})
         op.start()
 
@@ -259,8 +259,9 @@ class ProfileCommand:
                         op.fail(f"Could not delete old picture while upload_student_id for user: {user.first_name or user.email}: {e}")
 
                 user.student_id_photo = image_file
+                user.student_id_verified_status = UserIdVerificationEnum.PENDING.value
 
-                user.save(update_fields=['student_id_photo'])
+                user.save(update_fields=['student_id_photo', 'student_id_verified_status'])
 
                 create_notification(
                     user=user,
@@ -294,7 +295,7 @@ class ProfileCommand:
         )
         op.start()
         try:
-            if user.hall_verified or user.hall_verified_status == UserIdVerificationEnum.APPROVED.value:
+            if user.hall_verified or user.hall_verified_status.lower() == UserIdVerificationEnum.APPROVED.value.lower():
                 op.fail(f"User {user.email} hall is already verified; updates not allowed.")
                 return BaseResultWithData(
                     message="Your hall is already verified. Updates are not allowed.",

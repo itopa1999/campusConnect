@@ -1,5 +1,6 @@
 
 from apps.campus.models import Favourite
+from apps.campus.utils import get_listing_detail_info
 from utils.base_result import BaseResultWithData
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -39,7 +40,7 @@ class FavouriteQuery:
             per_page = 100
 
         # --- Build cache key (filters only for search) ---
-        filter_keys = ['price', 'category_name', 'listing_type', 'search', 'badge', 'date_from', 'date_to']
+        filter_keys = ['search',]
         filter_values = []
         for key in filter_keys:
             value = filters.get(key)
@@ -58,28 +59,17 @@ class FavouriteQuery:
         
         def build_favourites_data():
             favourites_qs = Favourite.objects.select_related(
-                'listing', 'listing__category'
+                'listing',
+                'listing__sell_details',
+                'listing__sell_details__category',
+                'listing__service_details',
+                'listing__service_details__category',
+                'listing__accommodation_details',
             ).filter(
                 user=user,
                 is_deleted=False,
                 listing__is_deleted=False
             ).order_by('-created_at')
-
-            price = filters.get('price')
-            if price is not None:
-                try:
-                    max_price = float(price)
-                    favourites_qs = favourites_qs.filter(listing__price__lte=max_price)
-                except ValueError:
-                    pass
-
-            category_name = filters.get('category_name')
-            if category_name:
-                favourites_qs = favourites_qs.filter(listing__category__name__icontains=category_name)
-
-            listing_type = filters.get('listing_type')
-            if listing_type:
-                favourites_qs = favourites_qs.filter(listing__listing_type__icontains=listing_type)
 
             search = filters.get('search')
             if search:
@@ -87,17 +77,6 @@ class FavouriteQuery:
                     Q(listing__title__icontains=search) |
                     Q(listing__description__icontains=search)
                 )
-
-            badge = filters.get('badge')
-            if badge:
-                qs = favourites_qs.filter(listing__badge__icontains=badge)
-
-            date_from = filters.get('date_from')
-            if date_from:
-                qs = qs.filter(created_at__gte=date_from)
-            date_to = filters.get('date_to')
-            if date_to:
-                qs = qs.filter(created_at__lte=date_to)
 
             paginator = Paginator(favourites_qs, per_page)
             page_obj = paginator.get_page(page)
@@ -115,11 +94,16 @@ class FavouriteQuery:
                 hotspot_name = listing.hotspots.values_list('name', flat=True).first()
                 hotspots = hotspot_name or "Campus"
 
+                price, category_name, category_icon = get_listing_detail_info(listing)
+
                 items.append({
                     'id': listing.id,
                     'title': listing.title,
-                    'price': float(listing.price) if listing.price is not None else 0.0,
-                    'category': listing.category.name if listing.category else '',
+                    'price': price,
+                    'category': {
+                        'name': category_name,
+                        'icon': category_icon
+                    },
                     'image': image_url,
                     'badge': listing.listing_type,
                     'hotspots': hotspots,

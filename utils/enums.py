@@ -2,51 +2,87 @@ from enum import Enum
 
 from utils.constant_helper import ConstantHelper
 
-class GroupNamesEnum(Enum):
+
+# ============================================================
+# BASE ENUM
+# ============================================================
+
+class BaseChoiceEnum(Enum):
+
+    @classmethod
+    def choices(cls):
+        """
+        Return Django-compatible choices.
+
+        Example:
+            SELL = "Sell"
+
+        becomes:
+
+            [("Sell", "Sell")]
+        """
+        return [
+            (member.value, member.value)
+            for member in cls
+        ]
+
+    @classmethod
+    def values(cls):
+        """
+        Return all enum values.
+        """
+        return [
+            member.value
+            for member in cls
+        ]
+
+
+# ============================================================
+# GROUPS
+# ============================================================
+
+class GroupNamesEnum(BaseChoiceEnum):
     ADMIN = "Admin"
     STUDENT = "Student"
     MODERATOR = "Moderator"
 
-    @classmethod
-    def choices(cls):
-        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
-    
-    @classmethod
-    def values(cls):
-        """Return all enum values as a list"""
-        return [group.value for group in cls]
+
+# ============================================================
+# USER ID VERIFICATION
+# ============================================================
+
+class UserIdVerificationEnum(BaseChoiceEnum):
+    APPROVED = "Approved"
+    REJECTED = "Rejected"
+    PENDING = "Pending"
 
 
-class UserIdVerificationEnum(Enum):
-    APPROVED = 'approved'
-    REJECTED = 'rejected'
-    PENDING = 'pending'
+# ============================================================
+# TOKEN TYPES
+# ============================================================
 
-    @classmethod
-    def choices(cls):
-        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+class TokenTypeEnum(BaseChoiceEnum):
+    EMAIL_VERIFICATION = "Email Verification"
+    PASSWORD_RESET = "Password Reset"
+    ACCOUNT_ACTIVATION = "Account Activation"
 
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
 
-class TokenTypeEnum(Enum):
-    EMAIL_VERIFICATION = "email_verification"
-    PASSWORD_RESET = "password_reset"
-    ACCOUNT_ACTIVATION = "account_activation"
-    
-    @classmethod
-    def choices(cls):
-        """Return choices for Django model field"""
-        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+# ============================================================
+# ADVERT TYPES
+# ============================================================
 
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-    
 class AdvertTypeEnum(Enum):
-    BANNER = ("banner", "Banner", ConstantHelper.POINT_CHARGES_FOR_BANNER)
-    HOT_SALE = ("hot_sale", "Hot Sale", ConstantHelper.POINT_CHARGES_FOR_HOT_SALES)
+    BANNER = (
+        "banner",
+        "Banner",
+        ConstantHelper.POINT_CHARGES_FOR_BANNER,
+    )
+
+    HOT_SALE = (
+        "hot_sale",
+        "Hot Sale",
+        ConstantHelper.POINT_CHARGES_FOR_HOT_SALES,
+    )
 
     @property
     def value_code(self):
@@ -70,319 +106,319 @@ class AdvertTypeEnum(Enum):
             }
             for item in cls
         ]
-    
-
-
-class ListingTypeEnum(Enum):
-    SELL = 'sell'
-    WANTED = 'wanted'
-    FREEBIE = 'freebie'
-    SERVICE = 'service'
-
-    RENT = "rent"
-    EXCHANGE = "exchange"
-    ROOMMATE = "roommate"
-    ACCOMMODATION = "accommodation"
-    JOB = "job"
-    EVENT = "event"
-    LOST_FOUND = "lost_found"
-    DONATION = "donation"
-
-    @classmethod
-    def choices(cls):
-        """Return choices for Django model field"""
-        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
 
     @classmethod
     def values(cls):
-        return [item.value for item in cls]
-
-class ListingStatusTypeEnum(Enum):
-    ACTIVE = 'active'
-    REJECT = 'reject'
-    SOLD = 'sold'
-    EXPIRED = 'expired'
-    PENDING = 'pending'
-    HIDDEN = 'hidden'
-
-    @classmethod
-    def choices(cls):
-        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
-
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-
-class BadgeListingTypeEnum(Enum):
-    NEW = 'new'
-    FAIR = 'fair'
-    BUNDLE = 'bundle'
-    ALMOST_NEW = 'almost_new'
-    OTHER = 'other'
-
-    @classmethod
-    def choices(cls):
-        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
-    
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-
-class IssueTypeEnum(Enum):
-    REPORT_LISTING = "report_listing"
-    REPORT_USER = "report_user"
-    BUG = "bug"
-    QUESTION = "question"
-    OTHER = "other"
-    ACCOUNT = "account"
-
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
-
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]    
+        return [
+            item.value_code
+            for item in cls
+        ]
 
 
-class BadgeChoiceEnum(Enum):
-    UN_VERIFIED = "unverified"
-    VERIFIED = "verified"
-    TRUSTED = "trusted"
-    TOP_SELLER = "top_seller"
+# ============================================================
+# PURPOSE
+# ============================================================
 
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+class PurposeChoicesEnum(BaseChoiceEnum):
+    RENT_ENTIRE = "Rent Entire Unit"
+    RENT_ROOM = "Rent a Room (Shared)"
+    ROOMMATE_WANTED = "Looking for Roommate"
 
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-    
 
-class LostAndFoundStatusEnum(Enum):
-    PENDING = 'pending'
-    REJECT = 'reject'
-    HIDDEN = 'hide'
-    OPEN = "open"
-    CLAIMED = "claimed"
-    EXPIRED = "expired"
+# ============================================================
+# LISTING TYPES
+# ============================================================
 
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+class ListingTypeEnum(BaseChoiceEnum):
+    SELL = "Sell"
+    SERVICE = "Service"
+    ACCOMMODATION = "Accommodation"
 
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
+    # RENT = "Rent"
+    # EXCHANGE = "Exchange"
+    # ROOMMATE = "Roommate"
+    # WANTED = "Wanted"
+    # FREEBIE = "Freebie"
+    # JOB = "Job"
+    # EVENT = "Event"
+    # LOST_FOUND = "Lost Found"
+    # DONATION = "Donation"
 
+
+# ============================================================
+# LISTING STATUS
+# ============================================================
+
+class ListingStatusTypeEnum(BaseChoiceEnum):
+    ACTIVE = "Active"
+    REJECT = "Reject"
+    SOLD = "Sold"
+    EXPIRED = "Expired"
+    PENDING = "Pending"
+    HIDDEN = "Hidden"
+
+
+# ============================================================
+# LISTING CONDITION
+# ============================================================
+
+class ListingConditionEnum(BaseChoiceEnum):
+    NEW = "New"
+    FAIR = "Fair"
+    BUNDLE = "Bundle"
+    ALMOST_NEW = "Almost New"
+    OTHER = "Other"
+
+
+# ============================================================
+# ISSUE TYPES
+# ============================================================
+
+class IssueTypeEnum(BaseChoiceEnum):
+    REPORT_LISTING = "Report Listing"
+    REPORT_USER = "Report User"
+    BUG = "Bug"
+    QUESTION = "Question"
+    OTHER = "Other"
+    ACCOUNT = "Account"
+
+
+# ============================================================
+# BADGES
+# ============================================================
+
+class BadgeChoiceEnum(BaseChoiceEnum):
+    UN_VERIFIED = "Unverified"
+    VERIFIED = "Verified"
+    TRUSTED = "Trusted"
+    TOP_SELLER = "Top Seller"
+
+
+# ============================================================
+# LOST AND FOUND STATUS
+# ============================================================
+
+class LostAndFoundStatusEnum(BaseChoiceEnum):
+    PENDING = "Pending"
+    REJECT = "Reject"
+    HIDDEN = "Hidden"
+    OPEN = "Open"
+    CLAIMED = "Claimed"
+    EXPIRED = "Expired"
+
+
+# ============================================================
+# DEFAULT POINT
+# ============================================================
 
 class DefaultPointEnum(Enum):
-    DefaultPoint = 3
+    DEFAULT_POINT = 3
 
     @classmethod
     def values(cls):
-        return [item.value for item in cls]
-    
-class PointPurchaseStatusEnum(Enum):
-    PENDING = 'pending'
-    COMPLETED = 'completed'
-    FAILED = 'failed'
-    REFUNDED = 'refunded'
+        return [
+            item.value
+            for item in cls
+        ]
 
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
 
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-    
+# ============================================================
+# POINT PURCHASE STATUS
+# ============================================================
 
-class PointTransactionTypeEnum(Enum):
-    ACCOUNT_CREATION_BONUS = 'account_creation_bonus'
-    PURCHASE = 'purchase'
-    LISTING_CREATION = 'listing_creation'
-    LISTING_UPDATE = 'listing_update'
-    REACTIVATION = 'reactivation'
-    BADGE_UPGRADE = 'badge_upgrade'
-    PROMOTION = 'promotion'
-    ADMIN_ADJUSTMENT = 'admin_adjustment'
-    TRANSFER = 'transfer'
-    REFUND = 'refund'
-    OTHER = 'other'
+class PointPurchaseStatusEnum(BaseChoiceEnum):
+    PENDING = "Pending"
+    COMPLETED = "Completed"
+    FAILED = "Failed"
+    REFUNDED = "Refunded"
 
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
 
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-    
+# ============================================================
+# POINT TRANSACTION TYPE
+# ============================================================
 
-class NotificationEnum(Enum):
-    LISTING = "listing"
-    ACCOUNT = "account"
-    SYSTEM = "system"
-    TRANSACTION = 'transaction'
-    OTHERS = "others"
+class PointTransactionTypeEnum(BaseChoiceEnum):
+    ACCOUNT_CREATION_BONUS = "Account Creation Bonus"
+    PURCHASE = "Purchase"
+    LISTING_CREATION = "Listing Creation"
+    LISTING_UPDATE = "Listing Update"
+    REACTIVATION = "Reactivation"
+    BADGE_UPGRADE = "Badge Upgrade"
+    PROMOTION = "Promotion"
+    ADMIN_ADJUSTMENT = "Admin Adjustment"
+    TRANSFER = "Transfer"
+    REFUND = "Refund"
+    OTHER = "Other"
 
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
 
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-    
-class FeatureFlagEnum(Enum):
-    FREE_BANNER = "free_banner"
-    ACCOUNT_CREATION_BONUS= "account_creation_bonus"
+# ============================================================
+# NOTIFICATIONS
+# ============================================================
 
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
+class NotificationEnum(BaseChoiceEnum):
+    LISTING = "Listing"
+    ACCOUNT = "Account"
+    SYSTEM = "System"
+    NOTIFICATION = "Notification"
+    TRANSACTION = "Transaction"
+    OTHERS = "Others"
 
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-    
+
+# ============================================================
+# FEATURE FLAGS
+# ============================================================
+
+class FeatureFlagEnum(BaseChoiceEnum):
+    FREE_BANNER = "Free Banner"
+    ACCOUNT_CREATION_BONUS = "Account Creation Bonus"
+    HIDE_VISIBILITY = "Profile Visibility"
+
+
+# ============================================================
+# CACHE KEYS
+# ============================================================
+# IMPORTANT:
+# DO NOT CHANGE THESE TO HUMAN-READABLE VALUES.
+#
+# Cache keys are technical identifiers and intentionally contain
+# underscores/placeholders.
 
 class CacheKeysEnum(Enum):
-    """
-    Centralized cache key names for consistency across the project.
-    Always use CacheKeys.KEY_NAME.value when accessing cache.
-    """
 
-    # ANNO and Student
     DASHBOARD = "get_dashboard_{user_id}"
-    DASHBOARD_UPCOMING_EXPIRATION_LISTING = "get_upcoming_expiration_listing_{user_id}"
-    DASHBOARD_LISTING = "get_dashboard_listing_{user_id}_{page}_{per_page}_{filters}"
-    DASHBOARD_REVIEW = "get_dashboard_review_{user_id}_{page}_{per_page}_{filters}"
-    GET_POINTS_BALANCE = "get_points_balance_{user_id}"
-    LOOKUP_DATA = "lookup_data_{filters}"
-    INDEX_PRODUCTS = "index_products"
-    LISTING_DETAIL = "listing_detail_{user_id}_{listing_id}"
-    CATEGORIZED_LISTINGS = "categorized_listings_{user_id}_{section}_{page}_{per_page}_{filters}"
-    LOST_ITEMS = "lost_items_{page}_{per_page}_{filters}"
-    POINT_PACKAGES = "point_packages"
-    PURCHASES = "purchases_{user_id}_{page}_{per_page}_{filters}"
-    TRANSACTIONS = "transactions_{user_id}_{page}_{per_page}_{filters}"
-    PROFILE = "profile_{user_id}"
-    PROFILE_ID = "profile_id_{user_id}"
-    PROFILE_HALL = "profile_hall_{user_id}"
-    PROFILE_VISIBILITY = "profile_visibility_{user_id}"
-    PUBLIC_LISTING_DETAILS = "public_listing_details_{user_id}_{listing_id}"
-    NOTIFICATIONS = "notifications_{user_id}_{page}_{per_page}_{filters}"
-    NOTIFICATION_HEADER = "notifications_header_{user_id}"
-    FAVOURITE = "favourite_{user_id}_{page}_{per_page}_{filters}"
 
+    DASHBOARD_UPCOMING_EXPIRATION_LISTING = (
+        "get_upcoming_expiration_listing_{user_id}"
+    )
+
+    DASHBOARD_LISTING = (
+        "get_dashboard_listing_{user_id}_{page}_{per_page}_{filters}"
+    )
+
+    DASHBOARD_REVIEW = (
+        "get_dashboard_review_{user_id}_{page}_{per_page}_{filters}"
+    )
+
+    GET_POINTS_BALANCE = "get_points_balance_{user_id}"
+
+    LOOKUP_DATA = "lookup_data_{filters}"
+
+    INDEX_PRODUCTS = "index_products"
+
+    LISTING_DETAIL = "listing_detail_{user_id}_{listing_id}"
+
+    CATEGORIZED_LISTINGS = (
+        "categorized_listings_"
+        "{user_id}_{section}_{page}_{per_page}_{filters}"
+    )
+
+    LOST_ITEMS = "lost_items_{page}_{per_page}_{filters}"
+
+    POINT_PACKAGES = "point_packages"
+
+    PURCHASES = "purchases_{user_id}_{page}_{per_page}_{filters}"
+
+    TRANSACTIONS = (
+        "transactions_{user_id}_{page}_{per_page}_{filters}"
+    )
+
+    PROFILE = "profile_{user_id}"
+
+    PROFILE_ID = "profile_id_{user_id}"
+
+    PROFILE_HALL = "profile_hall_{user_id}"
+
+    PROFILE_VISIBILITY = "profile_visibility_{user_id}"
+
+    PUBLIC_LISTING_DETAILS = (
+        "public_listing_details_{user_id}_{listing_id}"
+    )
+
+    NOTIFICATIONS = (
+        "notifications_{user_id}_{page}_{per_page}_{filters}"
+    )
+
+    NOTIFICATION_HEADER = "notifications_header_{user_id}"
+
+    FAVOURITE = (
+        "favourite_{user_id}_{page}_{per_page}_{filters}"
+    )
 
     # Moderator
-    MOD_DASHBOARD = 'mod_get_dashboard_{user_id}'
-
+    MOD_DASHBOARD = "mod_get_dashboard_{user_id}"
 
     @classmethod
     def format(cls, key, **kwargs):
-        """
-        Helper method to fill in placeholders for formatted keys.
-        Example:
-            CacheKeys.format(CacheKeys.USER_PROFILE, user_id=5)
-        """
         return key.value.format(**kwargs)
-    
 
 
+# ============================================================
+# MODERATOR ACTIONS
+# ============================================================
 
-class ModeratorActionTypeEnum(Enum):
-    APPROVE = 'approve'
-    REJECT = 'reject'
-    HIDE = 'hide'
-    DELETE = 'delete'
-    FLAG = 'flag'
-    UNFLAG = 'unflag'
-    WARNING = 'warning'
-    SUSPEND = 'suspend'
-    BAN = 'ban'
-    REINSTATE = 'reinstate'
-    RESOLVE_REPORT = 'resolve_report'
-    ESCALATE = 'escalate'
-    UNHIDE = 'unhide'
-    ASSIGN = 'assign'
-    REOPEN = 'reopen'
-    CREATE = 'create'
-    UPDATE = 'update'
-
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
-
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-    
-
-class ContentTypeEnum(Enum):
-    LISTING = 'listing'
-    REVIEW = 'review'
-    USER = 'user'
-    REPORT = 'report'
-    CATEGORY = 'category'
-    HOTSPOT = 'hotspot'
-    LOST_ITEM = 'lost_item'
-
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
-
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-    
+class ModeratorActionTypeEnum(BaseChoiceEnum):
+    APPROVE = "Approve"
+    REJECT = "Reject"
+    HIDE = "Hide"
+    DELETE = "Delete"
+    FLAG = "Flag"
+    UNFLAG = "Unflag"
+    WARNING = "Warning"
+    SUSPEND = "Suspend"
+    BAN = "Ban"
+    REINSTATE = "Reinstate"
+    RESOLVE_REPORT = "Resolve Report"
+    ESCALATE = "Escalate"
+    UNHIDE = "Unhide"
+    ASSIGN = "Assign"
+    REOPEN = "Reopen"
+    CREATE = "Create"
+    UPDATE = "Update"
 
 
-class ReportStatusEnum(Enum):
-    PENDING = 'pending'
-    IN_REVIEW = 'in_review'
-    RESOLVED = 'resolved'
-    ESCALATED = 'escalated'
+# ============================================================
+# CONTENT TYPES
+# ============================================================
 
-    @classmethod
-    def choices(cls):
-        return [(item.value, item.name.replace('_', ' ').title()) for item in cls]
-
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
-
-
-class PlatformEnum(Enum):
-    SWAGGER = 'swagger'
-    WEB = 'web'
-    POSTMAN = 'postman'
-    MOBILE = 'mobile'
-
-    @classmethod
-    def choices(cls):
-        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
-
-    @classmethod
-    def values(cls):
-        return [item.value for item in cls]
+class ContentTypeEnum(BaseChoiceEnum):
+    LISTING = "Listing"
+    REVIEW = "Review"
+    USER = "User"
+    REPORT = "Report"
+    CATEGORY = "Category"
+    HOTSPOT = "Hotspot"
+    LOST_ITEM = "Lost Item"
 
 
-class TwoFactorMethodEnum(Enum):
-    TOTP = 'totp'
-    SMS = 'sms'
-    EMAIL = 'email'
-    HARDWARE = 'hardware'
-    BACKUP = 'backup'
+# ============================================================
+# REPORT STATUS
+# ============================================================
 
-    @classmethod
-    def choices(cls):
-        return [(member.value, member.name.replace('_', ' ').title()) for member in cls]
+class ReportStatusEnum(BaseChoiceEnum):
+    PENDING = "Pending"
+    IN_REVIEW = "In Review"
+    RESOLVED = "Resolved"
+    ESCALATED = "Escalated"
 
-    @classmethod
-    def values(cls):
-        return [member.value for member in cls]
+
+# ============================================================
+# PLATFORM
+# ============================================================
+
+class PlatformEnum(BaseChoiceEnum):
+    SWAGGER = "Swagger"
+    WEB = "Web"
+    POSTMAN = "Postman"
+    MOBILE = "Mobile"
+
+
+# ============================================================
+# TWO FACTOR AUTHENTICATION
+# ============================================================
+
+class TwoFactorMethodEnum(BaseChoiceEnum):
+    TOTP = "TOTP"
+    SMS = "SMS"
+    EMAIL = "Email"
+    HARDWARE = "Hardware"
+    BACKUP = "Backup"

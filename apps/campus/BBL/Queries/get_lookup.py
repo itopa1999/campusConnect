@@ -1,7 +1,7 @@
-from apps.campus.models import Category, CampusHotspot, SubCategory   # <-- added SubCategory
+from apps.campus.models import Category, CampusHotspot, SubCategory
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
-from utils.enums import AdvertTypeEnum, BadgeListingTypeEnum, CacheKeysEnum, ListingTypeEnum
+from utils.enums import AdvertTypeEnum, CacheKeysEnum, ListingConditionEnum, ListingTypeEnum
 
 
 class LookUpQuery:
@@ -24,9 +24,9 @@ class LookUpQuery:
         # Include the new filter key 'is_subcategory'
         filter_keys = [
             'is_category',
-            'is_subcategory',      # new
+            'is_subcategory', 
             'is_hotspot',
-            'is_badge_choices',
+            'is_condition_choices',
             'is_type_choices',
             'is_advert_type'
         ]
@@ -100,13 +100,13 @@ class LookUpQuery:
                 ]
 
             # ─── Badge choices ───
-            if is_true(filters.get("is_badge_choices")):
-                data["badge_choices"] = [
+            if is_true(filters.get("is_condition_choices")):
+                data["condition_choices"] = [
                     {
                         "value": choice[0],
                         "label": choice[1],
                     }
-                    for choice in BadgeListingTypeEnum.choices()
+                    for choice in ListingConditionEnum.choices()
                 ]
 
             # ─── Listing type choices ───

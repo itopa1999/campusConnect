@@ -138,7 +138,7 @@ class LoginView(generics.GenericAPIView):
         access_token = result.data.get('access_token')
         refresh_token = result.data.get('refresh_token')
         if not result.data.get('requires_2fa'):
-            if result.data.get('platform') == PlatformEnum.WEB.value:
+            if result.data.get('platform').lower() == PlatformEnum.WEB.value.lower():
                 access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
                 refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
                 response.set_cookie(
@@ -329,7 +329,7 @@ class LogoutUserView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         platform = serializer.validated_data.get('platform')
         refresh_token_str = None
-        if platform == PlatformEnum.WEB.value:
+        if platform.lower() == PlatformEnum.WEB.value.lower():
             refresh_token_str = request.COOKIES.get('refresh_token')                
         else:
             refresh_token_str = serializer.validated_data.get('refresh_token')
@@ -652,7 +652,7 @@ class TwoFALoginView(generics.GenericAPIView):
         response = Response(result.to_dict(), status=result.status_code)
         access_token = result.data.get('access_token')
         refresh_token = result.data.get('refresh_token')
-        if result.data.get('platform') == PlatformEnum.WEB.value:
+        if result.data.get('platform').lower() == PlatformEnum.WEB.value.lower():
             access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
             refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
             response.set_cookie(

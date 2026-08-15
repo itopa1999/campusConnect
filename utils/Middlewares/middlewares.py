@@ -14,8 +14,8 @@ class KeyIDMiddleware(MiddlewareMixin):
         '/doc/',
         '/media/', 
         '/static/',
-        '/user/api/auth/paystack-points-confirm/',
-        '/user/api/auth/flutterwave-points-confirm/',   
+        '/v1/user/api/auth/paystack-points-confirm/',
+        '/v1/user/api/auth/flutterwave-points-confirm/',   
     )
 
     def process_request(self, request):

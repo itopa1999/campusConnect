@@ -256,9 +256,77 @@ Campus Connect Team
             op.fail(f"Error sending report received email: {str(e)}")
             return False
 
+
     @staticmethod
-    def send_lost_item_claim_email(item_name, founder_email, founder_full_name, verification1, verification2,
-                                approval_link, claimer_full_name, answer1, answer2):
+    def send_lost_and_found_notification_email(email, first_name, item_name):
+        op = OperationLogger(
+            "EmailHelper.send_lost_and_found_notification_email",
+            email=email,
+            item=item_name,
+        )
+        op.start()
+
+        try:
+            base_url = settings.BASE_FRONTEND_URL
+
+            context = {
+                "first_name": first_name,
+                "item_name": item_name,
+                "base_url": base_url,
+            }
+
+            html_content = render_to_string(
+                "emails/lost_item_report_submitted.html",
+                context,
+            )
+
+            plain_text = f"""
+    Hello {first_name},
+
+    Your lost item report for "{item_name}" has been successfully submitted.
+
+    Our team will review the report shortly. Once it has been approved, the lost item will be displayed on CampusConnect so that other students can see it.
+
+    You don't need to do anything else for now. We will keep you informed when there is an update.
+
+    Thank you for using CampusConnect.
+
+    Best regards,
+    CampusConnect Team
+            """
+
+            subject = f"Lost Item Report Submitted: {item_name}"
+
+            success = EmailHelper.send_email(
+                subject=subject,
+                message=plain_text,
+                recipient_list=[email],
+                html_message=html_content,
+                fail_silently=False,
+            )
+
+            if success:
+                op.success(
+                    f"Lost item report submission email sent to {email}"
+                )
+            else:
+                op.fail(
+                    f"Failed to send lost item report submission email to {email}"
+                )
+
+            return success
+
+        except Exception as e:
+            op.fail(
+                f"Error sending lost item report submission email: {str(e)}"
+            )
+            return False
+
+
+
+    @staticmethod
+    def send_lost_item_claim_email(item_name, founder_email, founder_full_name, approval_link, verification1, verification2,
+                                claimer_full_name, answer1, answer2):
         op = OperationLogger("EmailHelper.send_lost_item_claim_email", founder_email=founder_email)
         op.start()
         try:

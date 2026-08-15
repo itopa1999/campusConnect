@@ -1,10 +1,11 @@
 from apps.campus.models import Favourite, Listing, Review
+from apps.campus.utils import get_listing_detail_info
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
 from django.db.models import Avg, Count, Prefetch, Q
-from utils.enums import CacheKeysEnum, GroupNamesEnum, ListingStatusTypeEnum
+from utils.enums import CacheKeysEnum, GroupNamesEnum, ListingStatusTypeEnum, ListingTypeEnum
 from utils.helpers import humanize_date
 from django.core.paginator import Paginator
 
@@ -133,17 +134,27 @@ class ListingQuery:
         per_page = max(1, min(per_page, 100))
 
         # --- Section validation ---
-        section = filters.get('section')
-        valid_sections = ['banner', 'hot_sales', 'departmental', 'for_you', 'search']
+        raw_section = filters.get('section')
+        if not raw_section:
+            return BaseResultWithData(
+                message='Missing section parameter',
+                status_code=400
+            )
+
+        section = raw_section.lower()
+
+    
+        listing_type_values = [v.lower() for v in ListingTypeEnum.values()]
+        valid_sections = listing_type_values + ['banner', 'departmental', 'search']
         if section not in valid_sections:
             return BaseResultWithData(
-                message='Invalid section parameter',
+                message=f'Invalid section parameter: {raw_section}',
                 status_code=400
             )
 
         # --- Build cache key (filters only for search) ---
         if section == 'search':
-            filter_keys = ['price', 'category_name', 'listing_type', 'search_query', 'badge', 'date_from', 'date_to']
+            filter_keys = ['max_price', 'category_name', 'listing_type', 'search_query', 'condition', 'date_from', 'date_to']
             filter_parts = []
             for key in filter_keys:
                 value = filters.get(key)
@@ -172,7 +183,14 @@ class ListingQuery:
                 is_deleted=False,
                 user__is_active=True
             ).exclude(user__groups__name=GroupNamesEnum.ADMIN.value)
-            base_qs = base_qs.select_related('user', 'category').prefetch_related('hotspots')
+            base_qs = base_qs.select_related(
+                'user',
+                'sell_details',
+                'sell_details__category',
+                'service_details',
+                'service_details__category',
+                'accommodation_details'
+            ).prefetch_related('hotspots')
 
             # --- Section-specific logic ---
             if section == 'banner':
@@ -182,45 +200,52 @@ class ListingQuery:
                     image_url = None
                     if listing.image and request:
                         image_url = request.build_absolute_uri(listing.image.url)
-                    hotspots = list(listing.hotspots.values_list('name', flat=True))
+                    price, category_name, category_icon = get_listing_detail_info(listing)
                     items.append({
                         'id': listing.id,
                         'title': listing.title,
-                        'price': float(listing.price) if listing.price else 0,
-                        # 'category': listing.category.name if listing.category else '',
+                        'price': price,
+                        'category': category_name,
+                        'category_icon': category_icon,
                         'image': image_url,
                     })
                 return {'items': items}
 
-            # --- Sections that require user context (user is always authenticated) ---
-            if section == 'hot_sales':
-                qs = base_qs.filter(is_hot_sales=True)
+            listing_type_values = [v.lower() for v in ListingTypeEnum.values()]
+            if section in listing_type_values:
+                qs = base_qs.filter(listing_type__iexact=section)
             elif section == 'departmental':
                 user_dept = getattr(user, 'department', None)
                 if user_dept:
                     qs = base_qs.filter(user__department__icontains=user_dept)
                 else:
                     qs = base_qs.none()
-            elif section == 'for_you':
-                qs = base_qs
             elif section == 'search':
                 qs = base_qs
                 # Apply search filters (only if present)
-                price = filters.get('price')
+                price = filters.get('max_price')
                 if price is not None:
                     try:
                         max_price = float(price)
-                        qs = qs.filter(price__lte=max_price)
+                        qs = qs.filter(
+                            Q(sell_details__price__lte=max_price) |
+                            Q(service_details__price__lte=max_price) |
+                            Q(accommodation_details__rent_price__lte=max_price)
+                        )
                     except ValueError:
                         pass
 
                 category_name = filters.get('category_name')
                 if category_name:
-                    qs = qs.filter(category__name__icontains=category_name)
+                    qs = qs.filter(
+                        Q(sell_details__category__name__icontains=category_name) |
+                        Q(service_details__category__name__icontains=category_name) |
+                        Q(accommodation_details__property_type__icontains=category_name)
+                    )
 
-                listing_type = filters.get('listing_type')
-                if listing_type:
-                    qs = qs.filter(listing_type__icontains=listing_type)
+                condition = filters.get('condition')
+                if condition:
+                    qs = qs.filter(sell_details__condition__icontains=condition) 
 
                 search = filters.get('search_query')
                 if search:
@@ -229,16 +254,12 @@ class ListingQuery:
                         Q(description__icontains=search)
                     )
 
-                badge = filters.get('badge')
-                if badge:
-                    qs = qs.filter(badge__icontains=badge)
-
                 date_from = filters.get('date_from')
                 if date_from:
-                    qs = qs.filter(created_at__gte=date_from)
+                    qs = qs.filter(created_at__date__gte=date_from)
                 date_to = filters.get('date_to')
                 if date_to:
-                    qs = qs.filter(created_at__lte=date_to)
+                    qs = qs.filter(created_at__date__lte=date_to)
             else:
                 qs = base_qs.none()  # fallback
 
@@ -268,12 +289,17 @@ class ListingQuery:
                 image_url = None
                 if listing.image and request:
                     image_url = request.build_absolute_uri(listing.image.url)
+
+                price, category_name, category_icon = get_listing_detail_info(listing)
                 hotspots = listing.hotspots.values_list("name", flat=True).first() or "Campus"
                 items.append({
                     'id': listing.id,
                     'title': listing.title,
-                    'price': float(listing.price) if listing.price else 0,
-                    'category': listing.category.name if listing.category else '',
+                    'price': price,
+                    'category': {
+                        'name': category_name,
+                        'icon': category_icon,
+                    },
                     'image': image_url,
                     'badge': listing.listing_type,
                     'hotspots': hotspots,

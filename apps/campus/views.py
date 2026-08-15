@@ -57,11 +57,7 @@ class LostAndFoundListView(APIView):
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]    
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter('item_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('description', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('found_location', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('found_date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('found_date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         ]
@@ -156,7 +152,7 @@ class GetLookUpView(APIView):
             openapi.Parameter('is_category', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
             openapi.Parameter('is_subcategory', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
             openapi.Parameter('is_hotspot', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
-            openapi.Parameter('is_badge_choices', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
+            openapi.Parameter('is_condition_choices', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
             openapi.Parameter('is_type_choices', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
             openapi.Parameter('is_advert_type', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN),
         ]
@@ -258,11 +254,10 @@ class CategorizedListingsView(APIView):
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('section', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('price', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('max_price', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('category_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('listing_type', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+            openapi.Parameter('condition', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('search_query', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('badge', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
@@ -297,13 +292,7 @@ class ListFavouriteListingView(APIView):
     throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter('price', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
-            openapi.Parameter('category_name', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('listing_type', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('badge', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('date_from', openapi.IN_QUERY, type=openapi.TYPE_STRING),
-            openapi.Parameter('date_to', openapi.IN_QUERY, type=openapi.TYPE_STRING),
             openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
             openapi.Parameter('per_page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
         ]

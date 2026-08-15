@@ -34,7 +34,7 @@ class AccountCommand:
             #         status_code=400
             #     )
 
-            if User.objects.filter(email=email, is_deleted=False).exists():
+            if User.objects.filter(email__iexact=email, is_deleted=False).exists():
                 op.fail(f"[AccountCommand.Execute] Email already registered: {email}")
                 return BaseResult(
                     message="Email already registered.",
@@ -102,7 +102,7 @@ class AccountCommand:
         except Exception as e:
             op.fail(f"Error creating account for email {email}", exc=e)
             return BaseResult(
-                message=f"Error creating account: {str(e)}",
+                message=f"Error creating account",
                 status_code=400
             )
     

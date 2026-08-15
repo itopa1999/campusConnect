@@ -71,8 +71,20 @@ def background_task_send_report_recieved_email(self, email, first_name, issue_ty
     retry_backoff_max=300,
     max_retries=5
 )
+def background_task_send_lost_and_found_notification_email(self, email, first_name, item_name):
+    EmailHelper.send_lost_and_found_notification_email(email, first_name, item_name)
+
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=300,
+    max_retries=5
+)
 def background_task_send_lost_item_claim_email(self, item_name, founder_email, founder_full_name, approval_link, verification1, verification2, claimer_full_name, answer1, answer2):
-    EmailHelper.send_lost_item_claim_email(item_name, founder_email, founder_full_name, verification1, verification2, approval_link, claimer_full_name, answer1, answer2)
+    EmailHelper.send_lost_item_claim_email(item_name, founder_email, founder_full_name, approval_link, verification1, verification2, claimer_full_name, answer1, answer2)
     
 
 @shared_task(
@@ -138,6 +150,7 @@ def background_task_send_hot_sales_expired_emails(self, ids):
 )
 def background_task_send_login_notification_email(self, email, first_name):
     EmailHelper.send_login_notification_email(email, first_name)
+
 
 # 2FA 
 @shared_task(

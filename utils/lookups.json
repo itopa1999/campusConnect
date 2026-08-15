@@ -2,679 +2,623 @@
   "categories": [
     {
       "name": "Books & Study Materials",
+      "listing_type": "sell",
       "slug": "books-study-materials",
       "icon": "fas fa-book",
-      "description": "Textbooks, handouts, lecture notes, and study resources.",
+      "description": "Books, lecture materials, stationery, and other study resources.",
       "sort_order": 1,
       "subcategories": [
         {
           "name": "Textbooks",
           "slug": "textbooks",
+          "icon": "fas fa-book-open",
           "description": "Course textbooks and recommended reading materials.",
           "sort_order": 1
         },
         {
-          "name": "Handouts",
-          "slug": "handouts",
-          "description": "Course handouts and printed academic materials.",
+          "name": "Lecture Notes & Handouts",
+          "slug": "lecture-notes-handouts",
+          "icon": "fas fa-file-alt",
+          "description": "Lecture notes, handouts, and course materials.",
           "sort_order": 2
         },
         {
-          "name": "Lecture Notes",
-          "slug": "lecture-notes",
-          "description": "Lecture notes and class materials.",
+          "name": "Stationery",
+          "slug": "stationery",
+          "icon": "fas fa-pen",
+          "description": "Notebooks, pens, folders, calculators, and study supplies.",
           "sort_order": 3
         },
         {
           "name": "Study Guides",
           "slug": "study-guides",
-          "description": "Study guides, revision materials, and academic resources.",
+          "icon": "fas fa-graduation-cap",
+          "description": "Revision guides and other study resources.",
           "sort_order": 4
-        },
-        {
-          "name": "Stationery",
-          "slug": "stationery",
-          "description": "Notebooks, pens, folders, and other study supplies.",
-          "sort_order": 5
-        }
-      ]
-    },
-    {
-      "name": "Past Questions",
-      "slug": "past-questions",
-      "icon": "fas fa-file-alt",
-      "description": "Past examination questions and revision materials.",
-      "sort_order": 2,
-      "subcategories": [
-        {
-          "name": "Departmental Past Questions",
-          "slug": "departmental-past-questions",
-          "description": "Past questions from specific departments and courses.",
-          "sort_order": 1
-        },
-        {
-          "name": "Faculty Past Questions",
-          "slug": "faculty-past-questions",
-          "description": "Faculty-level examination past questions.",
-          "sort_order": 2
-        },
-        {
-          "name": "Examination Materials",
-          "slug": "examination-materials",
-          "description": "Other examination and revision materials.",
-          "sort_order": 3
         }
       ]
     },
     {
       "name": "Phones & Accessories",
+      "listing_type": "sell",
       "slug": "phones-accessories",
       "icon": "fas fa-mobile-alt",
-      "description": "Smartphones, chargers, earphones, smartwatches, and accessories.",
-      "sort_order": 3,
+      "description": "Phones, chargers, earphones, power banks, and phone accessories.",
+      "sort_order": 2,
       "subcategories": [
         {
           "name": "Smartphones",
           "slug": "smartphones",
+          "icon": "fas fa-mobile-alt",
           "description": "New and used smartphones.",
           "sort_order": 1
         },
         {
           "name": "Chargers & Cables",
           "slug": "chargers-cables",
+          "icon": "fas fa-charging-station",
           "description": "Phone chargers, USB cables, adapters, and related accessories.",
           "sort_order": 2
         },
         {
           "name": "Earphones & Headphones",
           "slug": "earphones-headphones",
+          "icon": "fas fa-headphones",
           "description": "Wired and wireless earphones and headphones.",
           "sort_order": 3
         },
         {
           "name": "Power Banks",
           "slug": "power-banks",
+          "icon": "fas fa-battery-full",
           "description": "Portable power banks and charging devices.",
           "sort_order": 4
         },
         {
-          "name": "Smartwatches",
-          "slug": "smartwatches",
-          "description": "Smartwatches and wearable devices.",
-          "sort_order": 5
-        },
-        {
           "name": "Phone Accessories",
           "slug": "phone-accessories",
+          "icon": "fas fa-mobile",
           "description": "Phone cases, screen protectors, holders, and other accessories.",
-          "sort_order": 6
+          "sort_order": 5
         }
       ]
     },
     {
       "name": "Laptops & Computers",
+      "listing_type": "sell",
       "slug": "laptops-computers",
       "icon": "fas fa-laptop",
-      "description": "Laptops, desktops, monitors, and computer accessories.",
-      "sort_order": 4,
+      "description": "Laptops, computers, monitors, and computer accessories.",
+      "sort_order": 3,
       "subcategories": [
         {
           "name": "Laptops",
           "slug": "laptops",
+          "icon": "fas fa-laptop",
           "description": "New and used laptops.",
           "sort_order": 1
         },
         {
           "name": "Desktop Computers",
           "slug": "desktop-computers",
+          "icon": "fas fa-desktop",
           "description": "Desktop computers and workstations.",
           "sort_order": 2
         },
         {
           "name": "Monitors",
           "slug": "monitors",
+          "icon": "fas fa-tv",
           "description": "Computer monitors and displays.",
           "sort_order": 3
         },
         {
           "name": "Computer Accessories",
           "slug": "computer-accessories",
-          "description": "Keyboards, mice, storage devices, laptop stands, and other accessories.",
+          "icon": "fas fa-keyboard",
+          "description": "Keyboards, mice, storage devices, laptop stands, and accessories.",
           "sort_order": 4
         }
       ]
     },
     {
       "name": "Electronics & Gadgets",
+      "listing_type": "sell",
       "slug": "electronics-gadgets",
       "icon": "fas fa-plug",
-      "description": "Speakers, gaming devices, gadgets, and electronic accessories.",
-      "sort_order": 5,
+      "description": "Electronic devices, entertainment gadgets, and useful campus tech.",
+      "sort_order": 4,
       "subcategories": [
         {
           "name": "Speakers",
           "slug": "speakers",
-          "description": "Bluetooth speakers and other audio systems.",
+          "icon": "fas fa-volume-up",
+          "description": "Bluetooth speakers and audio systems.",
           "sort_order": 1
         },
         {
-          "name": "Gaming Devices",
-          "slug": "gaming-devices",
+          "name": "Gaming",
+          "slug": "gaming",
+          "icon": "fas fa-gamepad",
           "description": "Gaming consoles, controllers, and gaming accessories.",
           "sort_order": 2
         },
         {
           "name": "Televisions",
           "slug": "televisions",
+          "icon": "fas fa-tv",
           "description": "New and used televisions.",
           "sort_order": 3
         },
         {
           "name": "Other Electronics",
           "slug": "other-electronics",
-          "description": "Electronic devices and gadgets that do not fit elsewhere.",
+          "icon": "fas fa-microchip",
+          "description": "Other electronic devices and gadgets.",
           "sort_order": 4
-        }
-      ]
-    },
-    {
-      "name": "Food & Catering",
-      "slug": "food-catering",
-      "icon": "fas fa-utensils",
-      "description": "Meals, snacks, drinks, food vendors, and catering services.",
-      "sort_order": 6,
-      "subcategories": [
-        {
-          "name": "Meals",
-          "slug": "meals",
-          "description": "Ready-to-eat meals and food.",
-          "sort_order": 1
-        },
-        {
-          "name": "Snacks",
-          "slug": "snacks",
-          "description": "Snacks and light refreshments.",
-          "sort_order": 2
-        },
-        {
-          "name": "Drinks",
-          "slug": "drinks",
-          "description": "Soft drinks, juices, water, and other beverages.",
-          "sort_order": 3
-        },
-        {
-          "name": "Cakes & Pastries",
-          "slug": "cakes-pastries",
-          "description": "Cakes, pastries, desserts, and baked goods.",
-          "sort_order": 4
-        },
-        {
-          "name": "Catering Services",
-          "slug": "catering-services",
-          "description": "Catering and food preparation services.",
-          "sort_order": 5
         }
       ]
     },
     {
       "name": "Fashion & Clothing",
+      "listing_type": "sell",
       "slug": "fashion-clothing",
       "icon": "fas fa-tshirt",
       "description": "Clothing, shoes, bags, watches, and fashion accessories.",
-      "sort_order": 7,
+      "sort_order": 5,
       "subcategories": [
         {
           "name": "Clothing",
           "slug": "clothing",
+          "icon": "fas fa-tshirt",
           "description": "Shirts, trousers, dresses, jackets, and other clothing.",
           "sort_order": 1
         },
         {
           "name": "Shoes",
           "slug": "shoes",
+          "icon": "fas fa-shoe-prints",
           "description": "Sneakers, sandals, formal shoes, and other footwear.",
           "sort_order": 2
         },
         {
-          "name": "Bags",
-          "slug": "bags",
-          "description": "Backpacks, handbags, school bags, and other bags.",
+          "name": "Bags & Backpacks",
+          "slug": "bags-backpacks",
+          "icon": "fas fa-shopping-bag",
+          "description": "Backpacks, handbags, school bags, and travel bags.",
           "sort_order": 3
         },
         {
           "name": "Watches",
           "slug": "watches",
-          "description": "Wristwatches and fashion watches.",
+          "icon": "fas fa-clock",
+          "description": "Wristwatches and smartwatches.",
           "sort_order": 4
         },
         {
           "name": "Fashion Accessories",
           "slug": "fashion-accessories",
-          "description": "Belts, caps, sunglasses, jewelry, and other accessories.",
+          "icon": "fas fa-gem",
+          "description": "Caps, belts, sunglasses, jewelry, and other accessories.",
           "sort_order": 5
+        }
+      ]
+    },
+    {
+      "name": "Food & Drinks",
+      "listing_type": "sell",
+      "slug": "food-drinks",
+      "icon": "fas fa-utensils",
+      "description": "Meals, snacks, drinks, pastries, and food products.",
+      "sort_order": 6,
+      "subcategories": [
+        {
+          "name": "Meals",
+          "slug": "meals",
+          "icon": "fas fa-utensils",
+          "description": "Ready-to-eat meals and homemade food.",
+          "sort_order": 1
+        },
+        {
+          "name": "Snacks",
+          "slug": "snacks",
+          "icon": "fas fa-cookie-bite",
+          "description": "Snacks and light refreshments.",
+          "sort_order": 2
+        },
+        {
+          "name": "Drinks",
+          "slug": "drinks",
+          "icon": "fas fa-glass-whiskey",
+          "description": "Water, soft drinks, juices, and other beverages.",
+          "sort_order": 3
+        },
+        {
+          "name": "Cakes & Pastries",
+          "slug": "cakes-pastries",
+          "icon": "fas fa-birthday-cake",
+          "description": "Cakes, pastries, desserts, and baked goods.",
+          "sort_order": 4
         }
       ]
     },
     {
       "name": "Beauty & Personal Care",
+      "listing_type": "sell",
       "slug": "beauty-personal-care",
       "icon": "fas fa-spa",
-      "description": "Haircare, skincare, cosmetics, perfumes, and grooming products.",
-      "sort_order": 8,
+      "description": "Beauty, skincare, haircare, fragrances, and grooming products.",
+      "sort_order": 7,
       "subcategories": [
         {
           "name": "Haircare",
           "slug": "haircare",
-          "description": "Hair products and haircare accessories.",
+          "icon": "fas fa-cut",
+          "description": "Hair products and haircare items.",
           "sort_order": 1
         },
         {
           "name": "Skincare",
           "slug": "skincare",
-          "description": "Skincare products and accessories.",
+          "icon": "fas fa-leaf",
+          "description": "Skincare products and personal care items.",
           "sort_order": 2
         },
         {
           "name": "Cosmetics",
           "slug": "cosmetics",
+          "icon": "fas fa-palette",
           "description": "Makeup and cosmetic products.",
           "sort_order": 3
         },
         {
-          "name": "Perfumes",
-          "slug": "perfumes",
-          "description": "Perfumes, fragrances, and body sprays.",
+          "name": "Perfumes & Fragrances",
+          "slug": "perfumes-fragrances",
+          "icon": "fas fa-spray-can",
+          "description": "Perfumes, body sprays, and fragrances.",
           "sort_order": 4
         },
         {
           "name": "Grooming",
           "slug": "grooming",
-          "description": "Personal grooming products and equipment.",
+          "icon": "fas fa-user",
+          "description": "Shaving, grooming, and personal care products.",
           "sort_order": 5
         }
       ]
     },
     {
-      "name": "Furniture & Home Essentials",
-      "slug": "furniture-home-essentials",
+      "name": "Furniture & Room Essentials",
+      "listing_type": "sell",
+      "slug": "furniture-room-essentials",
       "icon": "fas fa-couch",
-      "description": "Beds, tables, chairs, wardrobes, fans, and home essentials.",
-      "sort_order": 9,
+      "description": "Furniture and items students need for their rooms and apartments.",
+      "sort_order": 8,
       "subcategories": [
         {
           "name": "Beds & Mattresses",
           "slug": "beds-mattresses",
+          "icon": "fas fa-bed",
           "description": "Beds, mattresses, and sleeping essentials.",
           "sort_order": 1
         },
         {
           "name": "Tables & Desks",
           "slug": "tables-desks",
-          "description": "Reading tables, desks, and other tables.",
+          "icon": "fas fa-table",
+          "description": "Reading tables, study desks, and other tables.",
           "sort_order": 2
         },
         {
           "name": "Chairs",
           "slug": "chairs",
-          "description": "Office, reading, dining, and other chairs.",
+          "icon": "fas fa-chair",
+          "description": "Reading, office, dining, and other chairs.",
           "sort_order": 3
         },
         {
           "name": "Wardrobes & Storage",
           "slug": "wardrobes-storage",
-          "description": "Wardrobes, shelves, cabinets, and storage solutions.",
+          "icon": "fas fa-archive",
+          "description": "Wardrobes, shelves, cabinets, and storage items.",
           "sort_order": 4
-        },
-        {
-          "name": "Fans",
-          "slug": "fans",
-          "description": "Standing fans, table fans, rechargeable fans, and other fans.",
-          "sort_order": 5
         },
         {
           "name": "Room Essentials",
           "slug": "room-essentials",
-          "description": "Curtains, rugs, decorations, and other room essentials.",
-          "sort_order": 6
+          "icon": "fas fa-home",
+          "description": "Curtains, rugs, mirrors, decorations, and other room items.",
+          "sort_order": 5
         }
       ]
     },
     {
       "name": "Sports & Fitness",
+      "listing_type": "sell",
       "slug": "sports-fitness",
       "icon": "fas fa-futbol",
-      "description": "Sports equipment, gym items, and fitness-related products.",
-      "sort_order": 10,
+      "description": "Sports equipment, sportswear, gym items, and fitness accessories.",
+      "sort_order": 9,
       "subcategories": [
         {
           "name": "Sports Equipment",
           "slug": "sports-equipment",
+          "icon": "fas fa-futbol",
           "description": "Football, basketball, volleyball, and other sports equipment.",
           "sort_order": 1
         },
         {
           "name": "Sportswear",
           "slug": "sportswear",
+          "icon": "fas fa-running",
           "description": "Jerseys, sportswear, and athletic clothing.",
           "sort_order": 2
         },
         {
           "name": "Gym Equipment",
           "slug": "gym-equipment",
+          "icon": "fas fa-dumbbell",
           "description": "Gym and workout equipment.",
           "sort_order": 3
         },
         {
           "name": "Fitness Accessories",
           "slug": "fitness-accessories",
+          "icon": "fas fa-heartbeat",
           "description": "Fitness accessories and workout essentials.",
           "sort_order": 4
         }
       ]
     },
     {
-      "name": "Transportation",
-      "slug": "transportation",
-      "icon": "fas fa-motorcycle",
-      "description": "Cars, motorcycles, bicycles, rides, and transportation services.",
-      "sort_order": 11,
-      "subcategories": [
-        {
-          "name": "Bicycles",
-          "slug": "bicycles",
-          "description": "Bicycles and cycling equipment.",
-          "sort_order": 1
-        },
-        {
-          "name": "Motorcycles",
-          "slug": "motorcycles",
-          "description": "Motorcycles and related accessories.",
-          "sort_order": 2
-        },
-        {
-          "name": "Cars",
-          "slug": "cars",
-          "description": "Cars and other vehicles.",
-          "sort_order": 3
-        },
-        {
-          "name": "Transport Services",
-          "slug": "transport-services",
-          "description": "Rides, transportation, and mobility services.",
-          "sort_order": 4
-        }
-      ]
-    },
-    {
       "name": "Academic Services",
+      "listing_type": "service",
       "slug": "academic-services",
       "icon": "fas fa-print",
-      "description": "Typing, printing, binding, formatting, and academic document support.",
-      "sort_order": 12,
+      "description": "Academic and document-related services for students.",
+      "sort_order": 10,
       "subcategories": [
-        {
-          "name": "Typing",
-          "slug": "typing",
-          "description": "Typing and document preparation services.",
-          "sort_order": 1
-        },
         {
           "name": "Printing",
           "slug": "printing",
-          "description": "Document and photo printing services.",
+          "icon": "fas fa-print",
+          "description": "Document, assignment, project, and photo printing.",
+          "sort_order": 1
+        },
+        {
+          "name": "Typing",
+          "slug": "typing",
+          "icon": "fas fa-keyboard",
+          "description": "Typing and document preparation services.",
           "sort_order": 2
         },
         {
           "name": "Binding",
           "slug": "binding",
-          "description": "Project, thesis, and document binding services.",
+          "icon": "fas fa-book",
+          "description": "Project, thesis, assignment, and document binding.",
           "sort_order": 3
         },
         {
           "name": "Document Formatting",
           "slug": "document-formatting",
-          "description": "Professional document formatting and layout services.",
+          "icon": "fas fa-file-alt",
+          "description": "Professional document formatting and layout.",
           "sort_order": 4
         }
       ]
     },
     {
-      "name": "Tutoring & Coaching",
-      "slug": "tutoring-coaching",
+      "name": "Tutoring & Academic Support",
+      "listing_type": "service",
+      "slug": "tutoring-academic-support",
       "icon": "fas fa-chalkboard-teacher",
-      "description": "Private lessons, exam preparation, and academic coaching.",
-      "sort_order": 13,
+      "description": "Tutoring, revision, academic coaching, and study support.",
+      "sort_order": 11,
       "subcategories": [
         {
           "name": "Private Tutoring",
           "slug": "private-tutoring",
+          "icon": "fas fa-user-graduate",
           "description": "One-on-one and small-group tutoring.",
           "sort_order": 1
         },
         {
           "name": "Exam Preparation",
           "slug": "exam-preparation",
-          "description": "Exam preparation and revision coaching.",
+          "icon": "fas fa-file-signature",
+          "description": "Exam preparation and revision support.",
           "sort_order": 2
-        },
-        {
-          "name": "Academic Coaching",
-          "slug": "academic-coaching",
-          "description": "Academic guidance, mentoring, and coaching.",
-          "sort_order": 3
         },
         {
           "name": "Online Tutoring",
           "slug": "online-tutoring",
+          "icon": "fas fa-laptop",
           "description": "Remote and online tutoring services.",
+          "sort_order": 3
+        },
+        {
+          "name": "Academic Coaching",
+          "slug": "academic-coaching",
+          "icon": "fas fa-chalkboard-teacher",
+          "description": "Academic guidance, mentoring, and study coaching.",
           "sort_order": 4
         }
       ]
     },
     {
-      "name": "Freelance Services",
-      "slug": "freelance-services",
-      "icon": "fas fa-tools",
-      "description": "Graphic design, programming, photography, writing, and other services.",
-      "sort_order": 14,
+      "name": "Creative & Digital Services",
+      "listing_type": "service",
+      "slug": "creative-digital-services",
+      "icon": "fas fa-laptop-code",
+      "description": "Digital, creative, technical, and media services offered by students.",
+      "sort_order": 12,
       "subcategories": [
         {
           "name": "Graphic Design",
           "slug": "graphic-design",
-          "description": "Logos, flyers, posters, branding, and other design services.",
+          "icon": "fas fa-palette",
+          "description": "Flyers, posters, logos, branding, and other designs.",
           "sort_order": 1
-        },
-        {
-          "name": "Programming",
-          "slug": "programming",
-          "description": "Software development and programming services.",
-          "sort_order": 2
         },
         {
           "name": "Photography",
           "slug": "photography",
-          "description": "Photography and photo editing services.",
-          "sort_order": 3
+          "icon": "fas fa-camera",
+          "description": "Event, portrait, graduation, and campus photography.",
+          "sort_order": 2
         },
         {
           "name": "Videography",
           "slug": "videography",
-          "description": "Video production and editing services.",
-          "sort_order": 4
-        },
-        {
-          "name": "Writing",
-          "slug": "writing",
-          "description": "Content writing, editing, proofreading, and related services.",
-          "sort_order": 5
+          "icon": "fas fa-video",
+          "description": "Event coverage and video production.",
+          "sort_order": 3
         },
         {
           "name": "Video Editing",
           "slug": "video-editing",
+          "icon": "fas fa-film",
           "description": "Video editing and post-production services.",
+          "sort_order": 4
+        },
+        {
+          "name": "Programming & Tech",
+          "slug": "programming-tech",
+          "icon": "fas fa-code",
+          "description": "Programming, websites, software, and technical services.",
+          "sort_order": 5
+        },
+        {
+          "name": "Writing & Editing",
+          "slug": "writing-editing",
+          "icon": "fas fa-pen-nib",
+          "description": "Writing, proofreading, editing, and content services.",
           "sort_order": 6
         }
       ]
     },
     {
-      "name": "Hostels & Accommodation",
-      "slug": "hostels-accommodation",
-      "icon": "fas fa-home",
-      "description": "Hostels, apartments, rooms, and accommodation listings.",
+      "name": "Beauty Services",
+      "listing_type": "service",
+      "slug": "beauty-services",
+      "icon": "fas fa-cut",
+      "description": "Hair, grooming, makeup, and other personal beauty services.",
+      "sort_order": 13,
+      "subcategories": [
+        {
+          "name": "Hairdressing",
+          "slug": "hairdressing",
+          "icon": "fas fa-cut",
+          "description": "Hair styling, braiding, cutting, and related services.",
+          "sort_order": 1
+        },
+        {
+          "name": "Barbing",
+          "slug": "barbing",
+          "icon": "fas fa-user",
+          "description": "Haircuts and barbering services.",
+          "sort_order": 2
+        },
+        {
+          "name": "Makeup",
+          "slug": "makeup",
+          "icon": "fas fa-paint-brush",
+          "description": "Makeup and beauty preparation services.",
+          "sort_order": 3
+        },
+        {
+          "name": "Nail Services",
+          "slug": "nail-services",
+          "icon": "fas fa-hand-sparkles",
+          "description": "Manicure, pedicure, and nail services.",
+          "sort_order": 4
+        }
+      ]
+    },
+    {
+      "name": "Repair & Technical Services",
+      "listing_type": "service",
+      "slug": "repair-technical-services",
+      "icon": "fas fa-tools",
+      "description": "Repair, maintenance, and technical services for students.",
+      "sort_order": 14,
+      "subcategories": [
+        {
+          "name": "Phone Repairs",
+          "slug": "phone-repairs",
+          "icon": "fas fa-mobile-alt",
+          "description": "Phone diagnosis, repair, and maintenance.",
+          "sort_order": 1
+        },
+        {
+          "name": "Laptop & Computer Repairs",
+          "slug": "laptop-computer-repairs",
+          "icon": "fas fa-laptop-medical",
+          "description": "Laptop and computer repair and maintenance.",
+          "sort_order": 2
+        },
+        {
+          "name": "Electrical Repairs",
+          "slug": "electrical-repairs",
+          "icon": "fas fa-bolt",
+          "description": "Electrical and small appliance repair services.",
+          "sort_order": 3
+        },
+        {
+          "name": "Other Technical Services",
+          "slug": "other-technical-services",
+          "icon": "fas fa-tools",
+          "description": "Other technical and maintenance services.",
+          "sort_order": 4
+        }
+      ]
+    },
+    {
+      "name": "Photography & Events",
+      "listing_type": "service",
+      "slug": "photography-events",
+      "icon": "fas fa-camera",
+      "description": "Photography, event coverage, decoration, and event support.",
       "sort_order": 15,
       "subcategories": [
         {
-          "name": "Hostel Rooms",
-          "slug": "hostel-rooms",
-          "description": "Available hostel rooms and spaces.",
+          "name": "Event Photography",
+          "slug": "event-photography",
+          "icon": "fas fa-camera",
+          "description": "Photography for birthdays, graduations, parties, and campus events.",
           "sort_order": 1
         },
         {
-          "name": "Apartments",
-          "slug": "apartments",
-          "description": "Apartments and flats available for rent.",
+          "name": "Event Videography",
+          "slug": "event-videography",
+          "icon": "fas fa-video",
+          "description": "Video coverage for student and campus events.",
           "sort_order": 2
         },
         {
-          "name": "Single Rooms",
-          "slug": "single-rooms",
-          "description": "Single rooms and self-contained accommodation.",
+          "name": "Event Decoration",
+          "slug": "event-decoration",
+          "icon": "fas fa-gift",
+          "description": "Decoration and setup services for student events.",
           "sort_order": 3
-        },
-        {
-          "name": "Short-Term Accommodation",
-          "slug": "short-term-accommodation",
-          "description": "Short-term and temporary accommodation.",
-          "sort_order": 4
         }
       ]
     },
     {
-      "name": "Roommates & Shared Apartments",
-      "slug": "roommates-shared-apartments",
-      "icon": "fas fa-users",
-      "description": "Find roommates and shared living arrangements.",
+      "name": "Other Services",
+      "listing_type": "service",
+      "slug": "other-services",
+      "icon": "fas fa-ellipsis-h",
+      "description": "Student services that do not fit into another service category.",
       "sort_order": 16,
       "subcategories": [
         {
-          "name": "Looking for a Roommate",
-          "slug": "looking-for-roommate",
-          "description": "Students looking for someone to share accommodation with.",
-          "sort_order": 1
-        },
-        {
-          "name": "Available Room Space",
-          "slug": "available-room-space",
-          "description": "Available spaces in shared accommodation.",
-          "sort_order": 2
-        },
-        {
-          "name": "Shared Apartments",
-          "slug": "shared-apartments",
-          "description": "Apartments available for shared living.",
-          "sort_order": 3
-        }
-      ]
-    },
-    {
-      "name": "Jobs & Side Hustles",
-      "slug": "jobs-side-hustles",
-      "icon": "fas fa-briefcase",
-      "description": "Part-time jobs, internships, student jobs, and side hustles.",
-      "sort_order": 17,
-      "subcategories": [
-        {
-          "name": "Part-Time Jobs",
-          "slug": "part-time-jobs",
-          "description": "Part-time employment opportunities for students.",
-          "sort_order": 1
-        },
-        {
-          "name": "Student Jobs",
-          "slug": "student-jobs",
-          "description": "Jobs specifically suitable for students.",
-          "sort_order": 2
-        },
-        {
-          "name": "Internships",
-          "slug": "internships",
-          "description": "Internship and work placement opportunities.",
-          "sort_order": 3
-        },
-        {
-          "name": "Side Hustles",
-          "slug": "side-hustles",
-          "description": "Business opportunities and side income opportunities.",
-          "sort_order": 4
-        }
-      ]
-    },
-    {
-      "name": "Event Tickets & Campus Events",
-      "slug": "event-tickets-campus-events",
-      "icon": "fas fa-ticket-alt",
-      "description": "Campus events, parties, concerts, workshops, and event tickets.",
-      "sort_order": 18,
-      "subcategories": [
-        {
-          "name": "Event Tickets",
-          "slug": "event-tickets",
-          "description": "Tickets for campus and student events.",
-          "sort_order": 1
-        },
-        {
-          "name": "Parties & Social Events",
-          "slug": "parties-social-events",
-          "description": "Parties, social gatherings, and entertainment events.",
-          "sort_order": 2
-        },
-        {
-          "name": "Workshops & Seminars",
-          "slug": "workshops-seminars",
-          "description": "Educational workshops, seminars, and conferences.",
-          "sort_order": 3
-        }
-      ]
-    },
-    {
-      "name": "Lost & Found",
-      "slug": "lost-found",
-      "icon": "fas fa-search",
-      "description": "Lost items, found items, and recovery assistance.",
-      "sort_order": 19,
-      "subcategories": [
-        {
-          "name": "Lost Items",
-          "slug": "lost-items",
-          "description": "Report and search for items that have been lost.",
-          "sort_order": 1
-        },
-        {
-          "name": "Found Items",
-          "slug": "found-items",
-          "description": "Report items that have been found.",
-          "sort_order": 2
-        }
-      ]
-    },
-    {
-      "name": "Others",
-      "slug": "others",
-      "icon": "fas fa-ellipsis-h",
-      "description": "Items and services that do not fit into other categories.",
-      "sort_order": 20,
-      "subcategories": [
-        {
-          "name": "Other Items",
-          "slug": "other-items",
-          "description": "Items that do not fit into another category.",
-          "sort_order": 1
-        },
-        {
           "name": "Other Services",
-          "slug": "other-services",
+          "slug": "other-services-general",
+          "icon": "fas fa-ellipsis-h",
           "description": "Services that do not fit into another category.",
-          "sort_order": 2
+          "sort_order": 1
         }
       ]
     }
@@ -781,66 +725,34 @@
       "sort_order": 20
     }
   ],
-  "badges" : [
+  "badges": [
     {
       "name": "unverified",
       "description": "User has not verified their account.",
-      "icon": ""
+      "icon": "fa-solid fa-circle-question"
     },
     {
       "name": "verified",
       "description": "User has verified their account.",
-      "icon": ""
+      "icon": "fa-solid fa-circle-check"
     },
     {
       "name": "trusted",
       "description": "User is trusted based on positive interactions and feedback.",
-      "icon": ""
+      "icon": "fa-solid fa-shield-halved"
     },
     {
       "name": "hall_verified",
       "description": "User hall is verified.",
-      "icon": ""
+      "icon": "fa-solid fa-building-circle-check"
     },
     {
       "name": "top_seller",
       "description": "User is recognized as a top seller based on sales performance.",
-      "icon": ""
+      "icon": "fa-solid fa-trophy"
     }
   ],
-  "listings": [
-    {
-      "title": "Economics 101 Textbook",
-      "description": "Good condition, few highlights.",
-      "price": 3500
-    },
-    {
-      "title": "HP Laptop - Core i5",
-      "description": "8GB RAM, 256GB SSD, great for coding.",
-      "price": 145000
-    },
-    {
-      "title": "Desk + Office Chair",
-      "description": "Wooden desk with sturdy chair.",
-      "price": 12000
-    },
-    {
-      "title": "Sony WH-1000XM4 Headphones",
-      "description": "Noise cancelling, like new.",
-      "price": 27500
-    },
-    {
-      "title": "CSC 301 Past Questions",
-      "description": "Printed and bound, 5 years compilation.",
-      "price": 2000
-    },
-    {
-      "title": "Mini Fridge",
-      "description": "45L, perfect for hostel room.",
-      "price": 85000
-    }
-  ],
-  "points": [
+    "points": [
     {
       "points": 5,
       "price": 2500.00,
@@ -877,7 +789,7 @@
   "featureflag": [
     {
       "id": 1,
-      "name": "account_creation_bonus",
+      "name": "Account Creation Bonus",
       "description": "Grants 3 bonus points to users upon successful account creation.",
       "is_active": true,
       "users": [],
@@ -885,8 +797,16 @@
     },
     {
       "id": 2,
-      "name": "free_banner",
+      "name": "Free Banner",
       "description": "Allows eligible users to promote their listing with a free banner (no point deduction).",
+      "is_active": false,
+      "users": [],
+      "is_deleted": false
+    },
+    {
+      "id": 3,
+      "name": "Profile Visibility",
+      "description": "Allows users to control whether their profile is visible to other students.",
       "is_active": false,
       "users": [],
       "is_deleted": false

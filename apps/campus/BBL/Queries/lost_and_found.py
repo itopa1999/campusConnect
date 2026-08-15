@@ -1,11 +1,9 @@
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.utils import timezone
-from datetime import datetime
 from apps.campus.models import LostAndFound
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum, LostAndFoundStatusEnum
-
+from django.db.models import Q
 
 class GetLostItemsQuery:
     @staticmethod
@@ -38,7 +36,7 @@ class GetLostItemsQuery:
         if per_page > 100:
             per_page = 100
 
-        filter_keys = ['item_name', 'description', 'location', 'date_from', 'date_to']
+        filter_keys = ['search']
         filter_values = []
         for key in filter_keys:
             value = filters.get(key)
@@ -55,7 +53,6 @@ class GetLostItemsQuery:
         )
 
         def build_lost_items_data():
-            """Heavy computation callback – runs only on cache miss."""
             # --- Start with base queryset ---
             queryset = LostAndFound.objects.filter(
                 is_deleted=False,
@@ -63,25 +60,13 @@ class GetLostItemsQuery:
             )
 
             # --- Apply filters ---
-            item_name = filters.get('item_name')
-            if item_name:
-                queryset = queryset.filter(item_name__icontains=item_name)
-
-            description = filters.get('description')
-            if description:
-                queryset = queryset.filter(description__icontains=description)
-
-            location = filters.get('found_location')
-            if location:
-                queryset = queryset.filter(location__icontains=location)
-
-            date_from = filters.get('found_date_from')
-            if date_from:
-                queryset = queryset.filter(date_found__gte=date_from)
-            date_to = filters.get('found_date_to')
-            if date_to:
-                queryset = queryset.filter(date_found__lte=date_to)
-
+            search = filters.get('search')
+            if search:
+                queryset = queryset.filter(
+                    Q(item_name__icontains=search) |
+                    Q(description__icontains=search) |
+                    Q(location__icontains=search)
+                )
             # --- Ordering ---
             queryset = queryset.order_by('-created_at')
 

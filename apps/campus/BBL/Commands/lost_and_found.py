@@ -3,10 +3,11 @@ from apps.users.models import User
 from rest_framework import serializers
 from apps.campus.models import Claim, LostAndFound
 from apps.campus.serializers import ClaimSerializer, LostAndFoundSerializer  # you'll need this
-from utils.Tasks.backgroundTask import background_task_send_founder_details_to_claimer_email, background_task_send_lost_item_claim_email
+from utils.Tasks.backgroundTask import background_task_send_founder_details_to_claimer_email, background_task_send_lost_and_found_notification_email, background_task_send_lost_item_claim_email
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import LostAndFoundStatusEnum
+from utils.enums import LostAndFoundStatusEnum, NotificationEnum
+from utils.helpers import create_notification
 from utils.log_helpers import OperationLogger
 
 
@@ -22,6 +23,13 @@ class LostandFoundCommand:
         """
         op = OperationLogger(f"LostandFoundCommand.create_item from {data.get('full_name') or data.get('email')}", data=data)
         op.start()
+
+        if not user.department:
+            op.fail("User has no department set")
+            return BaseResultWithData(
+                message="Please update your profile with your department before posting a lost item.",
+                status_code=400
+            )
 
         # Convert QueryDict to mutable dict if needed
         if hasattr(data, 'dict'):
@@ -86,13 +94,27 @@ class LostandFoundCommand:
                     phone=user.phone,
                     department=user.department,
                 )
+                try:
+                    background_task_send_lost_and_found_notification_email.delay(user.email, user.first_name, item.item_name)
+                except OperationalError:
+                    op.success("Lost item reported, but failed to queue lost Item notification email")
+
+                create_notification(
+                    user=user,
+                    notification_type=NotificationEnum.NOTIFICATION.value,
+                    title="Lost Item Reported",
+                    message=f"Your lost item report for '{item.item_name}' has been submitted "
+                            "and is awaiting approval.",
+                    action_url="/student/lost-item.html"
+                )
+                
                 op.success(f"Lost item reported: {item.item_name}")
                 return BaseResultWithData(
                     message="Item reported successfully.",
-                    data={'id': item.id},
+                    data={'notification': True},
                     status_code=201
                 )
-            # Todo: Consider sending a confirmation email to the user here if needed.
+
         except Exception as e:
             op.fail(f"Unexpected error during creation: item {data.get('item_name')}", exc=e)
             return BaseResultWithData(
@@ -128,6 +150,13 @@ class LostandFoundCommand:
                 message="The lost item does not exist.",
                 status_code=404
             )
+
+        if user.email == item.email:
+            return BaseResultWithData(
+                message="You cannot claim an item that you reported as lost.",
+                status_code=400,
+            )
+
 
         # ---- 3. Check status ----
         if item.status.lower() != LostAndFoundStatusEnum.OPEN.value.lower():
@@ -186,9 +215,9 @@ class LostandFoundCommand:
                 item.item_name,
                 item.email, 
                 item.full_name,
-                item.verification1,
-                item.verification1,
                 approval_link,
+                item.verification1,
+                item.verification1,
                 claim.full_name,
                 claim.answer1,
                 claim.answer2

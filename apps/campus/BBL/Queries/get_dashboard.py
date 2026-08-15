@@ -194,7 +194,7 @@ class DashboardQuery:
         user = request.user
         filters = filters or request.GET.dict()
         page = int(filters.get('page', 1))
-        per_page = min(max(int(filters.get('per_page', 10)), 1), 100)  
+        per_page = min(max(int(filters.get('per_page', 10)), 1), 100)
 
         filter_keys = ['search']
         filter_parts = []
@@ -205,54 +205,101 @@ class DashboardQuery:
         filter_parts.sort()
         filter_str = '&'.join(filter_parts)
 
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD_LISTING, user_id=user.id, page=page, per_page=per_page, filters = filter_str)
+        cache_key = CacheKeysEnum.format(
+            CacheKeysEnum.DASHBOARD_LISTING,
+            user_id=user.id,
+            page=page,
+            per_page=per_page,
+            filters=filter_str
+        )
+
         def build_dashboard_listing():
-            # ── All listings ──
+            # Base queryset: fetch Listing with its related detail (if any)
             qs = Listing.objects.filter(user=user, is_deleted=False) \
-             .select_related('category') \
-             .prefetch_related('hotspots') \
-             .only('id', 'title', 'description', 'price', 'badge',
-                   'is_hot_sales', 'is_ads_banner', 'listing_type',
-                   'auto_reactivate', 'status', 'image', 'created_at',
-                   'category__name') \
-             .order_by('-created_at')
+                .select_related(
+                    'sell_details',
+                    'sell_details__category',
+                    'sell_details__subcategory',
+                    'service_details',
+                    'service_details__category',
+                    'service_details__subcategory',
+                    'accommodation_details',
+                ) \
+                .prefetch_related('hotspots') \
+                .only(
+                    'id', 'title', 'description', 'listing_type',
+                    'is_hot_sales', 'is_ads_banner',
+                    'auto_reactivate', 'status', 'image', 'created_at',
+                    'sell_details__price', 'sell_details__category__name',
+                    'sell_details__subcategory__name',
+                    'service_details__price', 'service_details__category__name',
+                    'service_details__subcategory__name',
+                    'accommodation_details__rent_price',
+                    'accommodation_details__property_type',
+                ) \
+                .order_by('-created_at')
 
             search = filters.get("search")
+            print(search)
             if search:
+                # Basic search on title, description, listing_type
                 qs = qs.filter(
                     Q(title__icontains=search) |
                     Q(description__icontains=search) |
-                    Q(category__name__iexact=search) |
                     Q(listing_type__icontains=search) |
-                    Q(badge__iexact=search) 
+                    Q(sell_details__category__name__icontains=search) |
+                    Q(service_details__category__name__icontains=search) |
+                    Q(accommodation_details__property_type__icontains=search)
                 )
-
-                try:
-                    datetime.strptime(search, '%Y-%m-%d')
-                    qs |= Q(created_at__date__gte=search) | Q(created_at__date__lte=search)
-                except ValueError:
-                    try:
-                        datetime.strptime(search, '%d-%m-%Y')
-                        qs |= Q(created_at__date__gte=search) | Q(created_at__date__lte=search)
-                    except ValueError:
-                        pass
 
             paginator = Paginator(qs, per_page)
             page_obj = paginator.get_page(page)
 
             all_listings = []
             for listing in page_obj:
+                # Determine price and category based on listing_type
+                if listing.listing_type == ListingTypeEnum.SELL.value and hasattr(listing, 'sell_details') and listing.sell_details:
+                    price_display = format_naira(listing.sell_details.price)
+                    category = listing.sell_details.category
+                    category_data = {
+                        "name": category.name,
+                        "icon": category.icon,
+                    } if category else None
+
+                elif listing.listing_type == ListingTypeEnum.SERVICE.value and hasattr(listing, 'service_details') and listing.service_details:
+                    price_display = format_naira(listing.service_details.price) if listing.service_details.price else "Negotiable / Free"
+                    category = listing.service_details.category
+                    category_data = {
+                        "name": category.name,
+                        "icon": category.icon,
+                    } if category else None
+                elif listing.listing_type == ListingTypeEnum.ACCOMMODATION.value and hasattr(listing, 'accommodation_details') and listing.accommodation_details:
+                    price_display = format_naira(listing.accommodation_details.rent_price)
+                    accommodation = listing.accommodation_details
+                    category_data = {
+                        "name": accommodation.property_type if accommodation else "Accommodation",
+                        "icon": "fas fa-home",
+                    }
+                else:
+                    price_display = "N/A"
+                    category_data = {
+                        "name": "Accommodation",
+                        "icon": "fas fa-home",
+                    }
+
+                # Location from hotspots
                 location = [hs.name for hs in listing.hotspots.all()] or ["Campus"]
+
                 image_url = None
                 if listing.image:
                     image_url = request.build_absolute_uri(listing.image.url)
+
                 all_listings.append({
                     'id': listing.id,
                     'title': listing.title,
                     'description': listing.description or "",
-                    'price': 'Free' if listing.listing_type == ListingTypeEnum.FREEBIE.value else format_naira(listing.price),
-                    'category': listing.category.name,
-                    'badge': listing.badge,
+                    'price': price_display,
+                    'category': category_data,
                     'is_hot_sale': listing.is_hot_sales,
                     'is_ads_banner': listing.is_ads_banner,
                     'listing_type': listing.listing_type,

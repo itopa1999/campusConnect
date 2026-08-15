@@ -361,7 +361,7 @@ class TwoFactorCommand:
             is_read=False
         ).exists()
 
-        if platform == PlatformEnum.WEB.value:
+        if platform.lower() == PlatformEnum.WEB.value.lower():
             try:
                 background_task_send_login_notification_email.delay(user.email, user.first_name)
             except OperationalError:

@@ -19,6 +19,7 @@ class AuthCommand:
         email = validated_data.get('email')
         password = validated_data.get('password')
         platform = validated_data.get('platform')
+
         op = OperationLogger(f"AuthCommand.Execute login for user: {email}", email=email)
         op.start()                        
         try:
@@ -31,7 +32,7 @@ class AuthCommand:
             #         status_code=400
             #     )
             allowed_values = [choice[0] for choice in PlatformEnum.choices()]
-            if platform not in allowed_values:
+            if not platform or platform.lower() not in [value.lower() for value in allowed_values]:
                 op.fail(f"[AuthCommand.Execute] invalid platform for email: {email}")
                 return BaseResultWithData(
                     message=f"Platform must be one of: {', '.join(allowed_values)}",
@@ -170,7 +171,7 @@ class AuthCommand:
                 is_read=False
             ).exists()
 
-            if platform == PlatformEnum.WEB.value:
+            if platform.lower() == PlatformEnum.WEB.value.lower():
                 try:
                     background_task_send_login_notification_email.delay(user.email, user.first_name)
                 except OperationalError:
@@ -449,7 +450,7 @@ class AuthCommand:
         op.start()
         platform = validated_data.get('platform')
         refresh_token_str = None
-        if platform == PlatformEnum.WEB.value:
+        if platform.lower() == PlatformEnum.WEB.value.lower():
             refresh_token_str = request.COOKIES.get('refresh_token')                
         else:
             refresh_token_str = validated_data.get('refresh_token')
