@@ -51,7 +51,7 @@ class NotificationQueries:
             queryset = Notification.objects.filter(
                 user=user,
                 is_deleted=False
-            ).select_related('user').order_by('is_read')
+            ).select_related('user').order_by('is_read').order_by('-created_at')
 
             print(queryset.count())
 

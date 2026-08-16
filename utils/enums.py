@@ -192,6 +192,8 @@ class BadgeChoiceEnum(BaseChoiceEnum):
     VERIFIED = "Verified"
     TRUSTED = "Trusted"
     TOP_SELLER = "Top Seller"
+    HALL_VERIFIED = "Hall Verified"
+    ID_VERIFIED = "Student ID Verified"
 
 
 # ============================================================
@@ -417,8 +419,8 @@ class PlatformEnum(BaseChoiceEnum):
 # ============================================================
 
 class TwoFactorMethodEnum(BaseChoiceEnum):
-    TOTP = "TOTP"
-    SMS = "SMS"
+    TOTP = "Totp"
+    SMS = "Sms"
     EMAIL = "Email"
     HARDWARE = "Hardware"
     BACKUP = "Backup"

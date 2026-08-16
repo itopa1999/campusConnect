@@ -1,7 +1,7 @@
 from django.urls import path, include
 
 from apps.users.views import (AddStudentHallView, BuyPointView, ChangePasswordView, ConfirmResetPasswordView, CreateAccountView, DeleteAllNotificationView, Disable2FAView, 
-                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, GetPointPurchasedView, GetStudentHallRecordView, GetStudentIDView, GetStudentVisibilityView, GetTransactionView, GetUser2FAMethodsView, LoginView, LogoutUserView, 
+                              FlutterwavePointsConfirmView, ForgotPasswordView, GetAllNotificationsView, GetNotificationsHeaderView, GetPointPurchasedView, GetStudentHallRecordView, GetStudentIDView, GetStudentVisibilityView, GetTransactionView, GetUser2FAMethodsView, LoginStaffView, LoginView, LogoutUserView, 
                               MarkAllNotificationAsReadView, MonnifyPointsConfirmView, NotificationDeleteView, NotificationMarkAsReadView, 
                               PaystackPointsConfirmView, PointPackagesView, ProfileView, RefreshPointBalanceView, RefreshTokenView, 
                               ResendVerificationEmailView, RetryPurchaseView, SubmitReportView, ToggleTwoFASetupView, ToggleVisibilityView, TwoFALoginView, UploadProfilePictureView, UploadStudentIdView, 
@@ -16,6 +16,7 @@ urlpatterns = [
         path("verify-forget-password-email", VerifyForgetPasswordEmailView.as_view(), name="verify_forget_password_email"),
         path("confirm-reset-password", ConfirmResetPasswordView.as_view(), name="confirm_reset_password"),
         path("login-user", LoginView.as_view(), name="login_user"),
+        path("login-staff", LoginStaffView.as_view(), name="login_staff"),
         path("forgot-password", ForgotPasswordView.as_view(), name="forgot_password"),
         path("change-password", ChangePasswordView.as_view(), name="change_password"),
         path("logout-user", LogoutUserView.as_view(), name="logout_user"),

@@ -5,8 +5,9 @@ from apps.users.models import Notification, PointPurchase, User
 from utils.Middlewares.threadlocals import get_current_user
 from utils.base_model import BaseModel
 from utils.cache_helper import GlobalCache
-from utils.enums import CacheKeysEnum
-from utils.helpers import convert_to_webp
+from utils.constant_helper import ConstantHelper
+from utils.enums import BadgeChoiceEnum, CacheKeysEnum
+from utils.helpers import BadgeService, convert_to_webp
 from django.utils import timezone
 
 @receiver(pre_save)
@@ -77,6 +78,19 @@ def convert_updated_images_to_webp(sender, instance, created, **kwargs):
 
 
 # for cache
+
+@receiver(post_save, sender=User)
+def add_badges(sender, instance, **kwargs):
+    if instance.sold_items >= ConstantHelper.SOLD_ITEMS_COUNT_FOR_TOP_SELLER_BADGE:
+        print(instance.sold_items)
+        BadgeService.set(instance, [BadgeChoiceEnum.TOP_SELLER.value])
+
+    # if instance.hall_verified and instance.hall_verified_status == UserIdVerificationEnum.APPROVED.value:
+    #     BadgeService.set(instance, [BadgeChoiceEnum.HALL_VERIFIED.value])
+
+    # if instance.student_id_verified and instance.student_id_verified_status == UserIdVerificationEnum.APPROVED.value:
+    #     BadgeService.set(instance, [BadgeChoiceEnum.ID_VERIFIED.value])
+
 
 @receiver(post_save, sender=User)
 @receiver(post_delete, sender=User)

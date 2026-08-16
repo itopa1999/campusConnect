@@ -295,7 +295,7 @@ class ProfileCommand:
         )
         op.start()
         try:
-            if user.hall_verified or user.hall_verified_status.lower() == UserIdVerificationEnum.APPROVED.value.lower():
+            if user.hall_verified or user.hall_verified_status == UserIdVerificationEnum.APPROVED.value:
                 op.fail(f"User {user.email} hall is already verified; updates not allowed.")
                 return BaseResultWithData(
                     message="Your hall is already verified. Updates are not allowed.",
@@ -323,8 +323,6 @@ class ProfileCommand:
                 ),
                 action_url="/student/hall-verification.html"
             )
-
-            # TODO Optionally send email notification via background task
 
             op.success(f"Hall details updated for user: {user.email}")
             return BaseResultWithData(
@@ -365,7 +363,7 @@ class ProfileCommand:
         return BaseResultWithData(
             message=message,
             data={
-                'is_visibilty': user.visibility
+                'is_visibility': user.visibility
             },
             status_code=200
         )

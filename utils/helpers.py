@@ -1,6 +1,5 @@
 import re
 from django.db import transaction
-from apps.users.models import Badge, Notification, PointTransaction
 from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
 from utils.enums import CacheKeysEnum, PointTransactionTypeEnum
@@ -63,10 +62,11 @@ class BadgeService:
 
     @staticmethod
     def _get_badge_instance(badge):
+        from apps.users.models import Badge
+
         if isinstance(badge, Badge):
             return badge
         if isinstance(badge, int):
-            # Use get instead of filter().first() - more efficient
             try:
                 return Badge.objects.get(id=badge)
             except Badge.DoesNotExist:
@@ -81,6 +81,7 @@ class BadgeService:
 
     @staticmethod
     def _resolve_badges(badges):
+        from apps.users.models import Badge
         if badges is None:
             return []
         if isinstance(badges, (Badge, int, str)):
@@ -134,6 +135,7 @@ class UpdatePointsService:
         Returns:
             int: New points balance.
         """
+        from apps.users.models import PointTransaction
         if action not in [ConstantHelper.POINT_ADDITION, ConstantHelper.POINT_SUBTRACTION]:
             raise ValueError(f"Action must be {ConstantHelper.POINT_SUBTRACTION} or {ConstantHelper.POINT_ADDITION}")
 
@@ -251,7 +253,7 @@ def calculate_profile_completion(user):
         'missing_fields': missing_fields
     }
 
-def create_notification(user, notification_type, title, message, action_url='') -> Notification:
+def create_notification(user, notification_type, title, message, action_url=''):
     """
     Create a single notification for a user.
 
@@ -266,6 +268,8 @@ def create_notification(user, notification_type, title, message, action_url='') 
     Returns:
         Notification: The created (and saved) notification instance.
     """
+    from apps.users.models import Notification
+
     notification = Notification(
         user=user,
         notification_type=notification_type,

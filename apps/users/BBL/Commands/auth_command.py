@@ -1,5 +1,6 @@
 from apps.campus.models import Favourite
 from apps.users.BBL.Commands.account_command import AccountCommand
+from apps.users.BBL.Commands.two_factor import TwoFactorCommand
 from apps.users.models import Notification, TwoFactorMethod, User
 from apps.users.utils import prepare_2fa_challenge, revoke_all_user_tokens
 from utils.Tasks.backgroundTask import background_task_send_change_password_email, background_task_send_login_notification_email, background_task_send_notification_email, background_task_send_password_reset_email
@@ -10,10 +11,109 @@ from utils.log_helpers import logger, OperationLogger
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from django.conf import settings
 
-from utils.enums import NotificationEnum, PlatformEnum, TokenTypeEnum
+from utils.enums import GroupNamesEnum, NotificationEnum, PlatformEnum, TokenTypeEnum
 from utils.helpers import create_notification, is_email_verified
 
-class AuthCommand:    
+class AuthCommand:
+    @staticmethod
+    def staff_login(request, validated_data) -> BaseResultWithData:
+        email = validated_data.get('email')
+        password = validated_data.get('password')
+        platform = validated_data.get('platform')
+        code = validated_data.get('code')
+        valid_method = validated_data.get('method')
+
+        op = OperationLogger(f"AuthCommand.staff_login login for staff: {email}", email=email)
+        op.start()
+        try:
+            # if valid_method.lower() != GroupNamesEnum.ADMIN.value.lower():
+            allowed_values = [choice[0] for choice in PlatformEnum.choices()]
+            if not platform or platform.lower() not in [value.lower() for value in allowed_values]:
+                op.fail(f"[AuthCommand.staff_login] invalid platform for email: {email}")
+                return BaseResultWithData(
+                    message=f"Platform must be one of: {', '.join(allowed_values)}",
+                    status_code=400
+                )
+
+            user = User.objects.filter(email=email, is_deleted=False, groups__name=GroupNamesEnum.MODERATOR.value).first()
+
+            if not user:
+                op.fail(f"[AuthCommand.staff_login] Login failed for email: {email}")
+                return BaseResultWithData(
+                    message="Invalid email or password",
+                    data=None,
+                    status_code=400
+                )
+            
+            if not user.check_password(password):
+                op.fail(f"[AuthCommand.staff_login] Invalid password attempt for email: {email}")
+                return BaseResultWithData(
+                    message="Invalid email or password",
+                    data=None,
+                    status_code=400
+                )
+
+            validated_data_append = {
+                'user_id': user.id,
+                'code': code,
+                'platform': platform,
+                'method': valid_method
+            }
+
+            result = TwoFactorCommand._2fa_verify_login(request, validated_data_append)
+            if not result.is_success:
+                op.fail(f"[AuthCommand.staff_login] Invalid 2fa verification attempt for user: {email}")
+                return BaseResultWithData(
+                    message="Invalid code sent or passowrd",
+                    data=None,
+                    status_code=400
+                )
+
+            if not is_email_verified(user):
+                op.fail(f"[AuthCommand.staff_login] Email not verified for user: {user.first_name or user.email}")
+                return BaseResultWithData(
+                    message="Email not verified. Please check your inbox for the verification email.",
+                    data=None,
+                    status_code=400
+                )  
+
+            if not user.is_active:
+                op.fail(f"[AuthCommand.staff_login] Inactive account login attempt: user={user.first_name or user.email}")
+                return BaseResultWithData(
+                    message="Your account has been deactivated. Please contact admin for assistance.",
+                    data=None,
+                    status_code=400
+                )
+
+            print(result.data['user'])
+            op.success(f"Login successful for user: {user.first_name or user.email}")
+            return BaseResultWithData(
+                message="Login successful",
+                data={
+                    'access_token': result.data.get('access_token'),
+                    'refresh_token': result.data.get('refresh_token'),
+                    'platform': platform,
+                    'user': {
+                    "user_id": user.id,
+                    "email": user.email,
+                    "profile_pic": result.data['user']['profile_pic'],
+                    "has_unread_notifications": result.data['user']['has_unread_notifications']
+                    }
+                },
+                status_code=200
+            )
+
+        
+        except Exception as e:
+            op.fail(f"Error during login for email: {email}", exc=e)
+            return BaseResultWithData(
+                message=f"Error during login: {str(e)}",
+                data=None,
+                status_code=500
+            )
+
+
+
     @staticmethod
     def Execute(request, validated_data) -> BaseResultWithData:
         email = validated_data.get('email')
@@ -38,7 +138,7 @@ class AuthCommand:
                     message=f"Platform must be one of: {', '.join(allowed_values)}",
                     status_code=400
                 )
-            user = User.objects.filter(email=email, is_deleted=False).first()
+            user = User.objects.filter(email=email, is_deleted=False, groups__name=GroupNamesEnum.STUDENT.value).first()
             
             if not user:
                 op.fail(f"[AuthCommand.Execute] Login failed for email: {email}")

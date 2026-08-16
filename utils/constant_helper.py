@@ -10,6 +10,8 @@ class ConstantHelper:
     POINT_ADDITION = "addition" # add point
     ACCOUNT_CREATION_BONUS_POINTS = 3 # points for account creation bonus
 
+    SOLD_ITEMS_COUNT_FOR_TOP_SELLER_BADGE = 8
+
 
     MONNIFY = 'monnify'
     FLUTTERWAVE = 'flutterwave'

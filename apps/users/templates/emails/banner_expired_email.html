@@ -1,51 +1,281 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Banner Promotion Expired</title>
-  <style>
-    body { font-family: 'Inter', Arial, sans-serif; background-color: #f7f9f8; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 40px 30px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-    .header { text-align: center; margin-bottom: 30px; }
-    h1 { font-size: 24px; color: #1e2a2c; font-weight: 700; margin: 0 0 8px 0; }
-    .subhead { color: #5f7775; font-size: 16px; }
-    .divider { border: none; border-top: 2px solid #e8edea; margin: 30px 0; }
-    .listing-list { background: #f8faf9; border-radius: 12px; padding: 16px 20px; margin: 20px 0; }
-    .listing-item { padding: 6px 0; border-bottom: 1px solid #e8edea; }
-    .listing-item:last-child { border-bottom: none; }
-    .action-button { display: inline-block; background: #2c7a5e; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 40px; font-weight: 600; margin: 20px 0; }
-    .action-button:hover { background: #1f5e48; }
-    .footer { font-size: 14px; color: #7a9490; text-align: center; margin-top: 30px; border-top: 1px solid #e8edea; padding-top: 20px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banner Promotion Expired</title>
+    <style>
+        /* ─── Reset & Base ─── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: #f2f4f6;
+            margin: 0;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 0;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
+            overflow: hidden;
+            border: 1px solid #e6eaef;
+        }
+
+        /* ─── Header ─── */
+        .header {
+            background: #fafbfc;
+            padding: 28px 32px 20px;
+            text-align: center;
+            border-bottom: 1px solid #e6eaef;
+        }
+        .header .logo {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1e2a2c;
+            letter-spacing: -0.3px;
+        }
+        .header .logo span {
+            color: #2c7a5e;
+        }
+        .header .logo small {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: #7e8c8a;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        /* ─── Content ─── */
+        .content {
+            padding: 32px 32px 24px;
+            color: #1e2a2c;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        .content h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e2a2c;
+            margin: 0 0 6px 0;
+            letter-spacing: -0.2px;
+        }
+        .content .subhead {
+            color: #5f6e6c;
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+        .content p {
+            margin: 0 0 16px 0;
+            color: #1e2a2c;
+        }
+        .content p:last-child {
+            margin-bottom: 0;
+        }
+        .content strong {
+            color: #1e2a2c;
+        }
+
+        /* ─── Listing List ─── */
+        .listing-list {
+            background: #f5f7f9;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            border: 1px solid #e6eaef;
+        }
+        .listing-item {
+            padding: 6px 0;
+            border-bottom: 1px solid #e6eaef;
+            color: #1e2a2c;
+        }
+        .listing-item:last-child {
+            border-bottom: none;
+        }
+
+        /* ─── Button ─── */
+        .btn {
+            display: inline-block;
+            background: #2c7a5e;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 12px 32px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 15px;
+            margin: 8px 0 12px;
+            transition: background 0.2s ease;
+            border: none;
+        }
+        .btn:hover {
+            background: #1f5e48;
+        }
+
+        /* ─── Footer ─── */
+        .footer {
+            background: #fafbfc;
+            padding: 20px 32px 24px;
+            text-align: center;
+            border-top: 1px solid #e6eaef;
+            color: #7e8c8a;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .footer .footer-copy {
+            color: #7e8c8a;
+        }
+        .footer .footer-copy span {
+            color: #2c7a5e;
+            font-weight: 600;
+        }
+
+        /* ─── Dark mode support ─── */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #181a1b;
+            }
+            .container {
+                background: #1e2122;
+                border-color: #2c3133;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            }
+            .header {
+                background: #1a1d1e;
+                border-bottom-color: #2c3133;
+            }
+            .header .logo {
+                color: #e8edee;
+            }
+            .header .logo small {
+                color: #8a9a96;
+            }
+            .content {
+                color: #e0e4e5;
+            }
+            .content h1,
+            .content strong {
+                color: #f0f4f5;
+            }
+            .content .subhead {
+                color: #9aaeaa;
+            }
+            .content p {
+                color: #d0d6d7;
+            }
+            .listing-list {
+                background: #25292b;
+                border-color: #3a4042;
+            }
+            .listing-item {
+                border-bottom-color: #3a4042;
+                color: #d0d6d7;
+            }
+            .btn {
+                background: #45c979;
+                color: #1a1d1e !important;
+            }
+            .btn:hover {
+                background: #5ddb8a;
+            }
+            .footer {
+                background: #1a1d1e;
+                border-top-color: #2c3133;
+                color: #8a9a96;
+            }
+            .footer .footer-copy {
+                color: #8a9a96;
+            }
+            .footer .footer-copy span {
+                color: #45c979;
+            }
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+            .container {
+                border-radius: 12px;
+            }
+            .header {
+                padding: 20px 20px 16px;
+            }
+            .header .logo {
+                font-size: 22px;
+            }
+            .content {
+                padding: 24px 20px 16px;
+                font-size: 14px;
+            }
+            .content h1 {
+                font-size: 20px;
+            }
+            .btn {
+                padding: 10px 24px;
+                font-size: 14px;
+            }
+            .listing-list {
+                padding: 12px 16px;
+            }
+            .footer {
+                padding: 16px 20px 20px;
+                font-size: 11px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Banner Promotion Expired</h1>
-      <p class="subhead">Your banner ads are no longer visible</p>
+    <div class="container">
+        <!-- ─── Header ─── -->
+        <div class="header">
+            <div class="logo">
+                Campus<span>Connect</span>
+                <small>student marketplace</small>
+            </div>
+        </div>
+
+        <!-- ─── Content ─── -->
+        <div class="content">
+            <h1>Banner Promotion Expired</h1>
+            <p class="subhead">Your banner ads are no longer visible</p>
+
+            <p>Hello <strong>{{ first_name }}</strong>,</p>
+
+            <p>The banner promotion for the following listing(s) on CampusConnect has expired and is no longer visible:</p>
+
+            <div class="listing-list">
+                {% for title in titles %}
+                    <div class="listing-item">• {{ title }}</div>
+                {% endfor %}
+            </div>
+
+            <p>You can <strong>renew the banner promotion</strong> from your listing management page.</p>
+
+            <div style="text-align: center;">
+                <a href="{{ dashboard_url }}" class="btn">Manage Your Listings</a>
+            </div>
+
+            <p style="font-size: 14px; color: #5f6e6c; margin-top: 8px;">
+                If you have any questions, feel free to contact our support team.
+            </p>
+        </div>
+
+        <!-- ─── Footer ─── -->
+        <div class="footer">
+            <div class="footer-copy">
+                &copy; 2026 <span>CampusConnect</span> — Built for students, by students.
+            </div>
+        </div>
     </div>
-
-    <p>Hello <strong>{{ first_name }}</strong>,</p>
-    <p>The banner promotion for the following listing(s) on CampusConnect has expired and is no longer visible:</p>
-
-    <div class="listing-list">
-      {% for title in titles %}
-        <div class="listing-item">• {{ title }}</div>
-      {% endfor %}
-    </div>
-
-    <p>You can <strong>renew the banner promotion</strong> from your listing management page.</p>
-
-    <div style="text-align: center;">
-      <a href="{{ dashboard_url }}" class="action-button">Manage Your Listings</a>
-    </div>
-
-    <p>If you have any questions, feel free to contact our support team.</p>
-
-    <div class="footer">
-      &copy; 2026 CampusConnect – <a href="{{ base_url }}" style="color:#2c7a5e; text-decoration:none;">Visit CampusConnect</a>
-    </div>
-  </div>
 </body>
 </html>

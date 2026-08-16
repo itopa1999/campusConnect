@@ -585,7 +585,7 @@ class ListingCommand:
                     status_code=400
                 )
             
-            if listing.status != ListingStatusTypeEnum.ACTIVE.value:
+            if listing.status.lower() != ListingStatusTypeEnum.ACTIVE.value.lower():
                 op.fail(f"Invalid listing status for listing: {listing.title}")
                 return BaseResultWithData(
                     message="Ads can only be set for active listings.",

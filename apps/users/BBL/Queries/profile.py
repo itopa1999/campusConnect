@@ -38,34 +38,28 @@ class ProfileQuery:
     def get_student_id_record(request, user: User) -> BaseResultWithData:
         cache_key = CacheKeysEnum.format(CacheKeysEnum.PROFILE_ID, user_id=user.id)
 
-        def build_profile_data():
-            is_verified = (
-                user.student_id_verified is True
-                or str(user.student_id_verified_status).lower() == UserIdVerificationEnum.APPROVED.value.lower()
-            )
-            data = {
-                'student_id_verified': user.student_id_verified,
-                'student_id_verified_status': user.student_id_verified_status,
-                'student_id_photo_url': None,
-            }
-            if not is_verified and user.student_id_photo:
-                data["student_id_photo_url"] = request.build_absolute_uri(
-                    user.student_id_photo.url
-                )
-
-            return data
-
-        cached_data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_profile_data,
-            timeout=86400,
-            lock_timeout=30,
-            max_wait=5.0,
+        is_verified = (
+            user.student_id_verified is True
+            or str(user.student_id_verified_status).lower() == UserIdVerificationEnum.APPROVED.value.lower()
         )
+        data = {
+            'student_id_verified': user.student_id_verified,
+            'student_id_verified_status': user.student_id_verified_status,
+            'student_id_photo_url': None,
+            'student_id_verified_rejection_reason': None
+        }
+        if not is_verified and user.student_id_photo:
+            data["student_id_photo_url"] = request.build_absolute_uri(
+                user.student_id_photo.url
+            )
+
+        if user.student_id_verified_status == UserIdVerificationEnum.REJECTED.value:
+            data["student_id_verified_rejection_reason"] = user.student_id_verified_rejection_reason
+
 
         return BaseResultWithData(
             message="Student ID record retrieved",
-            data=cached_data,
+            data=data,
             status_code=200
         )
 
@@ -73,57 +67,37 @@ class ProfileQuery:
 
     @staticmethod
     def get_student_hall_verification_record(request, user: User) -> BaseResultWithData:
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.PROFILE_HALL, user_id=user.id)
+        data = {
+            'student_hall_verified': user.hall_verified,
+            'student_hall_verified_status': user.hall_verified_status,
+            'hall_residence': user.hall_residence,
+            'hall_number': user.hall_number,
+            'hall_verified_status_rejection_reason': None
+        }
 
-        def build_profile_data():
-            data = {
-                'student_hall_verified': user.hall_verified,
-                'student_hall_verified_status': user.hall_verified_status,
-                'hall_residence': user.hall_residence,
-                'hall_number': user.hall_number,
-            }
-
-            return data
-
-        cached_data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_profile_data,
-            timeout=86400,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        if user.hall_verified_status == UserIdVerificationEnum.REJECTED.value:
+            data["hall_verified_status_rejection_reason"] = user.hall_verified_status_rejection_reason
 
         return BaseResultWithData(
             message="Student ID record retrieved",
-            data=cached_data,
+            data=data,
             status_code=200
         )
 
 
     @staticmethod
     def get_student_visibility(request, user: User) -> BaseResultWithData:
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.PROFILE_VISIBILITY, user_id=user.id)
-
-        def build_profile_data():
-            if is_feature_active(FeatureFlagEnum.HIDE_VISIBILITY.value):
-                data = {
-                   'is_visibility': None, 
-                }
+        if is_feature_active(FeatureFlagEnum.HIDE_VISIBILITY.value):
+            data = {
+                'is_visibility': None, 
+            }
+        else:
             data = {
                 'is_visibility': user.visibility,
             }
-            return data
-
-        cached_data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_profile_data,
-            timeout=86400,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
 
         return BaseResultWithData(
             message="Student Visibility record retrieved",
-            data=cached_data,
+            data=data,
             status_code=200
         )

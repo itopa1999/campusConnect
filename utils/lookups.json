@@ -727,27 +727,32 @@
   ],
   "badges": [
     {
-      "name": "unverified",
+      "name": "Unverified",
       "description": "User has not verified their account.",
       "icon": "fa-solid fa-circle-question"
     },
     {
-      "name": "verified",
+      "name": "Verified",
       "description": "User has verified their account.",
       "icon": "fa-solid fa-circle-check"
     },
     {
-      "name": "trusted",
+      "name": "Trusted",
       "description": "User is trusted based on positive interactions and feedback.",
       "icon": "fa-solid fa-shield-halved"
     },
     {
-      "name": "hall_verified",
+      "name": "Hall Verified",
       "description": "User hall is verified.",
       "icon": "fa-solid fa-building-circle-check"
     },
     {
-      "name": "top_seller",
+      "name": "Student ID Verified",
+      "description": "User student ID is verified.",
+      "icon": "fa-solid fa-card"
+    },
+    {
+      "name": "Top Seller",
       "description": "User is recognized as a top seller based on sales performance.",
       "icon": "fa-solid fa-trophy"
     }
@@ -815,28 +820,28 @@
   "2faMethods": [
     {
       "id": 1,
-      "value": "totp",
+      "value": "Totp",
       "name": "Authenticator App",
       "description": "Use Google Authenticator, Microsoft Authenticator, or Authy.",
       "icon": "fas fa-mobile-screen-button"
     },
     {
       "id": 2,
-      "value": "sms",
+      "value": "Sms",
       "name": "SMS (Text Message)",
       "description": "Receive a one-time code via SMS on your registered phone number.",
       "icon": "fas fa-comment-sms"
     },
     {
       "id": 3,
-      "value": "email",
+      "value": "Email",
       "name": "Email OTP",
       "description": "Get a verification code sent to your registered email address.",
       "icon": "fas fa-envelope"
     },
     {
       "id": 4,
-      "value": "hardware",
+      "value": "Hardware",
       "name": "Hardware Token (YubiKey)",
       "description": "Use a physical USB/NFC security key for authentication.",
       "icon": "fas fa-usb"

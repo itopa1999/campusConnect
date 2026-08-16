@@ -22,6 +22,13 @@ class UserLoginSerializer(serializers.Serializer):
     platform = serializers.CharField(required=True)
 
 
+class StaffLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(min_length=8, write_only=True, required=True)
+    code = serializers.CharField(max_length=20, min_length=6)
+    platform = serializers.CharField(required=False, default='web')
+    method = serializers.CharField(required=False, default='totp')
+
 
 class UserForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)

@@ -9,10 +9,8 @@ import random
 from apps.users.manager import UserManager
 from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransactionTypeEnum, ReportStatusEnum, TokenTypeEnum, TwoFactorMethodEnum, UserIdVerificationEnum
 from utils.enums import IssueTypeEnum
-# Create your models here.
 import os
 import uuid
-
 
 def profile_picture_upload_path(instance, filename):
     ext = os.path.splitext(filename)[1]
@@ -111,6 +109,12 @@ class User(BaseModel, AbstractUser):
         choices=UserIdVerificationEnum.choices(),
         help_text="Verification status of the student ID (pending, approved, rejected)."
     )
+    student_id_verified_rejection_reason = models.CharField(
+        max_length=5000,
+        null=True,
+        blank=True,
+        help_text="Reason for rejection"
+    )
     
     department = models.CharField(
         max_length=100,
@@ -168,6 +172,12 @@ class User(BaseModel, AbstractUser):
         blank=True,
         choices=UserIdVerificationEnum.choices(),
         help_text="Verification status of hall/residence (pending, approved, rejected)."
+    )
+    hall_verified_status_rejection_reason = models.CharField(
+        max_length=5000,
+        null=True,
+        blank=True,
+        help_text="Reason for rejection"
     )
 
     user_badges = models.ManyToManyField(

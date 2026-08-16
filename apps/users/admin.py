@@ -58,11 +58,14 @@ class UserAdmin(SoftDeleteAdmin):
             'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'points',
                        'notification', 'visibility', 'two_factor_enabled')
         }),
+        ('Market_count', {
+            'fields' : ('sold_items',)
+        }),
         ('Student Verification', {
-            'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified','student_id_verified_status')
+            'fields': ('matric_number', 'student_id_photo', 'student_id_preview', 'student_id_verified','student_id_verified_status', 'student_id_verified_rejection_reason')
         }),
         ('Student Hall Verification', {
-            'fields': ('hall_number', 'hall_residence','hall_verified', 'hall_verified_status')
+            'fields': ('hall_number', 'hall_residence','hall_verified', 'hall_verified_status', 'hall_verified_status_rejection_reason')
         }),
         ('Academic Info', {
             'fields': ('department', 'faculty', 'level'),

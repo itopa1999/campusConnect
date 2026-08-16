@@ -6,7 +6,7 @@ from django.test import RequestFactory
 
 from apps.campus.BBL.Queries.get_lookup import LookUpQuery
 from apps.campus.models import Category, CampusHotspot
-from utils.enums import AdvertTypeEnum, BadgeListingTypeEnum, ListingTypeEnum
+from utils.enums import AdvertTypeEnum, ListingConditionEnum, ListingTypeEnum
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ class TestLookUpQuery:
 
         # ── Badge choices ──
         badge_choices = data["badge_choices"]
-        expected_badges = [{"value": choice[0], "label": choice[1]} for choice in BadgeListingTypeEnum.choices()]
+        expected_badges = [{"value": choice[0], "label": choice[1]} for choice in ListingConditionEnum.choices()]
         assert badge_choices == expected_badges
 
         # ── Type choices ──

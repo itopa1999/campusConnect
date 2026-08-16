@@ -8,7 +8,7 @@ from apps.users.serializers import (BuyPointSerializer, ChangePasswordSerializer
             ConfirmResetPasswordSerializer, HallVerificationSerializer, LogoutSerializer, 
             ProfilePictureSerializer, ProfileSerializer, ProfileUpdateSerializer, 
             RefreshTokenSerializer, ReportSerializer, ResendVerificationEmailSerializer, 
-            RetryPurchaseSerailizer, ToggleTwoFactorMethodSerializer, TwoFALoginSerializer, UploadStudentIdSerializer, 
+            RetryPurchaseSerailizer, StaffLoginSerializer, ToggleTwoFactorMethodSerializer, TwoFALoginSerializer, UploadStudentIdSerializer, 
             UserCreationSerializer, UserForgotPasswordSerializer, UserLoginSerializer, VerifyTotpSerializer)
 from common.throttling.enums import UserTypeEnum
 from common.throttling.throttler import CustomRateThrottle
@@ -120,6 +120,50 @@ class ConfirmResetPasswordView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         result = AuthCommand.ConfirmResetPassword(request, serializer.validated_data)
         return Response(result.to_dict(), status=result.status_code)
+
+
+class LoginStaffView(generics.GenericAPIView):
+    serializer_class = StaffLoginSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [CustomRateThrottle(rate=10, period=300, user_type=UserTypeEnum.ANON)]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = AuthCommand.staff_login(request, serializer.validated_data)
+        if result.status_code != 200:
+            return Response(result.to_dict(), status=result.status_code)
+        response = Response(result.to_dict(), status=result.status_code)
+        access_token = result.data.get('access_token')
+        refresh_token = result.data.get('refresh_token')
+        if result.data.get('platform').lower() == PlatformEnum.WEB.value.lower():
+            access_lifetime_seconds = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
+            refresh_lifetime_seconds = int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds())
+            response.set_cookie(
+                'access_token',
+                access_token,
+                httponly=True,
+                secure=settings.COOKIE_SECURE,
+                samesite=settings.COOKIE_SAMESITE,
+                max_age=access_lifetime_seconds,
+                path='/',
+            )
+            response.set_cookie(
+                'refresh_token',
+                refresh_token,
+                httponly=True,
+                secure=settings.COOKIE_SECURE,
+                samesite=settings.COOKIE_SAMESITE,
+                max_age=refresh_lifetime_seconds,
+                path='/',
+            )
+
+        return response
+    
+
+
+
 
 
 class LoginView(generics.GenericAPIView):

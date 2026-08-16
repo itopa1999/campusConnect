@@ -173,7 +173,7 @@ CELERY_TASK_DEFAULT_MAX_RETRIES = 3
 
 # JWT Settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=15), # TODO: change this to minutes = 15
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=5), # TODO: change this to minutes = 15
     "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,

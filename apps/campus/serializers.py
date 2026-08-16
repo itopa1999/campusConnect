@@ -99,7 +99,7 @@ class ListingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"listing_type": "This field is required."})
 
         # Validate required fields per listing type
-        if listing_type == ListingTypeEnum.SELL.value:
+        if listing_type.lower() == ListingTypeEnum.SELL.value.lower():
             if 'category' not in data or data['category'] is None:
                 raise serializers.ValidationError({"category": "Category is required for sell listings."})
             if 'price' not in data or data['price'] is None:
@@ -107,10 +107,10 @@ class ListingSerializer(serializers.ModelSerializer):
             if data.get('price', 0) <= 0:
                 raise serializers.ValidationError({"price": "Price must be greater than zero."})
 
-        elif listing_type == ListingTypeEnum.SERVICE.value:
+        elif listing_type.lower() == ListingTypeEnum.SERVICE.value.lower():
             pass
 
-        elif listing_type == ListingTypeEnum.ACCOMMODATION.value:
+        elif listing_type.lower() == ListingTypeEnum.ACCOMMODATION.value.lower():
             if 'rent_price' not in data or data['rent_price'] is None:
                 raise serializers.ValidationError({"rent_price": "Rent price is required for accommodation listings."})
             if data.get('rent_price', 0) <= 0:
@@ -173,7 +173,7 @@ class ListingSerializer(serializers.ModelSerializer):
         # Create detail based on listing_type
         listing_type = listing.listing_type
 
-        if listing_type == ListingTypeEnum.SELL.value:
+        if listing_type.lower() == ListingTypeEnum.SELL.value.lower():
             SellListing.objects.create(
                 listing=listing,
                 category=detail_data['category'],
@@ -187,7 +187,7 @@ class ListingSerializer(serializers.ModelSerializer):
                 warranty=detail_data.get('warranty'),
             )
 
-        elif listing_type == ListingTypeEnum.SERVICE.value:
+        elif listing_type.lower() == ListingTypeEnum.SERVICE.value.lower():
             ServiceListing.objects.create(
                 listing=listing,
                 category=detail_data['category'],
@@ -201,7 +201,7 @@ class ListingSerializer(serializers.ModelSerializer):
                 online_available=detail_data['online_available'],
             )
 
-        elif listing_type == ListingTypeEnum.ACCOMMODATION.value:
+        elif listing_type.lower() == ListingTypeEnum.ACCOMMODATION.value.lower():
             AccommodationListing.objects.create(
                 listing=listing,
                 purpose=detail_data.get('purpose'),
@@ -243,7 +243,7 @@ class ListingSerializer(serializers.ModelSerializer):
             instance.hotspots.set(validated_data['hotspots'])
 
         listing_type = instance.listing_type
-        if listing_type == ListingTypeEnum.SELL.value and hasattr(instance, 'sell_details'):
+        if listing_type.lower() == ListingTypeEnum.SELL.value.lower() and hasattr(instance, 'sell_details'):
             sell = instance.sell_details
             sell.category = validated_data.get('category', sell.category)
             sell.subcategory = validated_data.get('subcategory', sell.subcategory)
@@ -255,7 +255,7 @@ class ListingSerializer(serializers.ModelSerializer):
             sell.quantity = validated_data.get('quantity', sell.quantity)
             sell.warranty = validated_data.get('warranty', sell.warranty)
             sell.save()
-        elif listing_type == ListingTypeEnum.SERVICE.value and hasattr(instance, 'service_details'):
+        elif listing_type.lower() == ListingTypeEnum.SERVICE.value.lower() and hasattr(instance, 'service_details'):
             service = instance.service_details
             service.category = validated_data.get('category', service.category)
             service.subcategory = validated_data.get('subcategory', service.subcategory)
@@ -267,7 +267,7 @@ class ListingSerializer(serializers.ModelSerializer):
             service.portfolio = validated_data.get('portfolio', service.portfolio)
             service.online_available = validated_data.get('online_available', service.online_available)
             service.save()
-        elif listing_type == ListingTypeEnum.ACCOMMODATION.value and hasattr(instance, 'accommodation_details'):
+        elif listing_type.lower() == ListingTypeEnum.ACCOMMODATION.value.lower() and hasattr(instance, 'accommodation_details'):
             acc = instance.accommodation_details
             acc.purpose = validated_data.get('purpose', acc.purpose)
             acc.property_type = validated_data.get('property_type', acc.property_type)

@@ -258,7 +258,7 @@ class DashboardQuery:
             all_listings = []
             for listing in page_obj:
                 # Determine price and category based on listing_type
-                if listing.listing_type == ListingTypeEnum.SELL.value and hasattr(listing, 'sell_details') and listing.sell_details:
+                if listing.listing_type.lower() == ListingTypeEnum.SELL.value.lower() and hasattr(listing, 'sell_details') and listing.sell_details:
                     price_display = format_naira(listing.sell_details.price)
                     category = listing.sell_details.category
                     category_data = {
@@ -266,14 +266,14 @@ class DashboardQuery:
                         "icon": category.icon,
                     } if category else None
 
-                elif listing.listing_type == ListingTypeEnum.SERVICE.value and hasattr(listing, 'service_details') and listing.service_details:
+                elif listing.listing_type.lower() == ListingTypeEnum.SERVICE.value.lower() and hasattr(listing, 'service_details') and listing.service_details:
                     price_display = format_naira(listing.service_details.price) if listing.service_details.price else "Negotiable / Free"
                     category = listing.service_details.category
                     category_data = {
                         "name": category.name,
                         "icon": category.icon,
                     } if category else None
-                elif listing.listing_type == ListingTypeEnum.ACCOMMODATION.value and hasattr(listing, 'accommodation_details') and listing.accommodation_details:
+                elif listing.listing_type.lower() == ListingTypeEnum.ACCOMMODATION.value.lower() and hasattr(listing, 'accommodation_details') and listing.accommodation_details:
                     price_display = format_naira(listing.accommodation_details.rent_price)
                     accommodation = listing.accommodation_details
                     category_data = {

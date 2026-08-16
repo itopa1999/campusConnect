@@ -34,8 +34,8 @@ class TwoFactorCommand:
         op.start()
 
         factor_type = validated_data.get('two_factor_Type')
-        allowed_type = [choice[0] for choice in TwoFactorMethodEnum.choices()]
-        if factor_type not in allowed_type:
+        allowed_type = [choice[0].lower() for choice in TwoFactorMethodEnum.choices()]
+        if factor_type.lower() not in allowed_type:
             op.fail(f"[TwoFactorCommand.toggle_setup] invalid factor type for email: {user.email}")
             return BaseResultWithData(
                 message=f"Method must be one of: {', '.join(allowed_type)}",
@@ -44,7 +44,7 @@ class TwoFactorCommand:
 
         method, created = TwoFactorMethod.objects.get_or_create(
             user=user,
-            method=factor_type
+            method=factor_type.capitalize()
         )
 
         # ─── TOTP ──────────────────────────────────────────────────────
@@ -115,17 +115,19 @@ class TwoFactorCommand:
                     status_code=400
                 )
 
-            if method.is_enabled:
-                method.is_enabled = False
-                method.save(update_fields=['is_enabled'])
-                op.success(f"SMS 2FA disabled for {user.email}")
-                return BaseResultWithData(message="SMS 2FA disabled.", data={"is_enabled": False}, status_code=200)
-            else:
-                TwoFactorCommand._disable_other_methods(user, factor_type)
-                method.is_enabled = True
-                method.save(update_fields=['is_enabled'])
-                op.success(f"SMS 2FA enabled for {user.email}")
-                return BaseResultWithData(message="SMS 2FA enabled.", data={"is_enabled": True}, status_code=200)
+            return BaseResultWithData(message="Feature is not available", status_code=400)
+
+            # if method.is_enabled:
+            #     method.is_enabled = False
+            #     method.save(update_fields=['is_enabled'])
+            #     op.success(f"SMS 2FA disabled for {user.email}")
+            #     return BaseResultWithData(message="SMS 2FA disabled.", data={"is_enabled": False}, status_code=200)
+            # else:
+            #     TwoFactorCommand._disable_other_methods(user, factor_type)
+            #     method.is_enabled = True
+            #     method.save(update_fields=['is_enabled'])
+            #     op.success(f"SMS 2FA enabled for {user.email}")
+            #     return BaseResultWithData(message="SMS 2FA enabled.", data={"is_enabled": True}, status_code=200)
 
         # ─── EMAIL ────────────────────────────────────────────────────
         elif factor_type.lower() == TwoFactorMethodEnum.EMAIL.value.lower():
@@ -153,21 +155,24 @@ class TwoFactorCommand:
 
         # ─── HARDWARE ─────────────────────────────────────────────────
         elif factor_type.lower() == TwoFactorMethodEnum.HARDWARE.value.lower():
-            if method.is_enabled:
-                method.is_enabled = False
-                method.save(update_fields=['is_enabled'])
-                op.success(f"HARDWARE 2FA disabled for {user.email}")
-                return BaseResultWithData(message="HARDWARE 2FA disabled.", data={"is_enabled": False}, status_code=200)
-            else:
-                TwoFactorCommand._disable_other_methods(user, factor_type)
-                method.is_enabled = True
-                method.save(update_fields=['is_enabled'])
-                op.success(f"Hardware 2FA enabled for {user.email}")
-                return BaseResultWithData(
-                    message="Hardware token 2FA enabled successfully.",
-                    data=None,
-                    status_code=200
-                )
+
+            return BaseResultWithData(message="Feature is not available", status_code=400)
+        
+            # if method.is_enabled:
+            #     method.is_enabled = False
+            #     method.save(update_fields=['is_enabled'])
+            #     op.success(f"HARDWARE 2FA disabled for {user.email}")
+            #     return BaseResultWithData(message="HARDWARE 2FA disabled.", data={"is_enabled": False}, status_code=200)
+            # else:
+            #     TwoFactorCommand._disable_other_methods(user, factor_type)
+            #     method.is_enabled = True
+            #     method.save(update_fields=['is_enabled'])
+            #     op.success(f"Hardware 2FA enabled for {user.email}")
+            #     return BaseResultWithData(
+            #         message="Hardware token 2FA enabled successfully.",
+            #         data=None,
+            #         status_code=200
+            #     )
 
         else:
             op.fail(f"[TwoFactorCommand.toggle_setup] invalid factor type for email: {user.email}")
@@ -217,6 +222,7 @@ class TwoFactorCommand:
 
     @staticmethod
     def _2fa_verify_login(request, validated_data) -> BaseResultWithData:
+
         user_id = validated_data.get('user_id')
         code = validated_data.get('code')
         platform = validated_data.get('platform')
@@ -226,8 +232,8 @@ class TwoFactorCommand:
         op = OperationLogger(f"TwoFactorCommand._2fa_verify_login for user: {user.first_name or user.email}", data=validated_data)
         op.start()
 
-        allowed_type = [choice[0] for choice in TwoFactorMethodEnum.choices()]
-        if valid_method not in allowed_type:
+        allowed_type = [v.lower() for v in TwoFactorMethodEnum.values()]
+        if valid_method.lower() not in allowed_type:
             op.fail(f"[TwoFactorCommand._2fa_verify_login] invalid method type for email: {user.email}")
             return BaseResultWithData(
                 message=f"Method must be one of: {', '.join(allowed_type)}",
