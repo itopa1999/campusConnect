@@ -8,8 +8,8 @@ from apps.campus.serializers import ListingSerializer
 from apps.users.models import User
 from utils.base_result import BaseResultWithData
 from utils.constant_helper import ConstantHelper
-from utils.enums import AdvertTypeEnum, ListingStatusTypeEnum, NotificationEnum, PointTransactionTypeEnum
-from utils.helpers import UpdatePointsService, create_notification, parse_bool
+from utils.enums import AdvertTypeEnum, BadgeChoiceEnum, ListingStatusTypeEnum, NotificationEnum, PointTransactionTypeEnum
+from utils.helpers import BadgeService, UpdatePointsService, create_notification, parse_bool
 from utils.log_helpers import OperationLogger
 from PIL import Image
 from django.core.files.storage import default_storage
@@ -449,6 +449,12 @@ class ListingCommand:
 
                 user.sold_items += 1
                 user.save(update_fields=['sold_items'])
+
+                if user.sold_items >= ConstantHelper.SOLD_ITEMS_COUNT_FOR_TOP_SELLER_BADGE:
+                    BadgeService.add(
+                        user,
+                        BadgeChoiceEnum.TOP_SELLER.value
+                    )
 
                 create_notification(
                     user=user,

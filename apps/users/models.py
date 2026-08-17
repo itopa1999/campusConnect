@@ -367,14 +367,23 @@ class BackupCode(BaseModel):
         
 
 class ContactReport(BaseModel):
-
     # Basic info
+    reporter = models.ForeignKey(
+        User,
+        null =True,
+        blank=True,
+        on_delete=models.RESTRICT,
+        help_text="Authenticated user who reported (null if anonymous)."
+    )
+
     reporter_name = models.CharField(
-        max_length=255,
-        help_text="Full name of the person reporting."
+        max_length=150,
+        blank=True,
+        help_text="Name of the reporter (for anonymous reports)."
     )
     reporter_email = models.EmailField(
-        help_text="Email address of the person reporting."
+        blank=True,
+        help_text="Email of the reporter (for anonymous reports)."
     )
 
     # Issue categorization
@@ -385,17 +394,18 @@ class ContactReport(BaseModel):
         help_text="Category of the issue (e.g., report_listing, report_user, general_inquiry)."
     )
 
-    # Fields specific to certain issue types (optional)
+    # ─── Context fields (depending on issue type) ───
     listing_identifier = models.CharField(
         max_length=500,
         blank=True,
         null=True,
-        help_text="Listing URL or title (for report_listing)."
+        help_text="Listing ID or title (for report_listing)."
     )
-    reported_user_email = models.EmailField(
+    reported_user_identifer = models.CharField(
+        max_length=200,
         blank=True,
         null=True,
-        help_text="Email of the user being reported (for report_user)."
+        help_text="Email/ID or anything of the user being reported (for report_user)."
     )
 
     # Main message
@@ -474,12 +484,18 @@ class ContactReport(BaseModel):
             models.Index(fields=['status']),
             models.Index(fields=['assigned_to']),
             models.Index(fields=['issue_type']),
-            models.Index(fields=['reporter_email']),
+            models.Index(fields=['reporter_email']), 
         ]
 
     def __str__(self):
         return f"{self.get_issue_type_display()} - {self.reporter_name} ({self.created_at.date()})"
-    
+
+    @property
+    def reporter_display(self):
+        """Return the best available reporter name."""
+        if self.reporter:
+            return self.reporter.get_full_name() or self.reporter.email
+        return self.reporter_name or "Anonymous"
 
 class PointPackage(BaseModel):
     """

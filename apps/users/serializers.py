@@ -41,13 +41,24 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(min_length=8, write_only=True, required=True)
     confirm_password = serializers.CharField(min_length=8, write_only=True, required=True)
 
+
 class ReportSerializer(serializers.Serializer):
-    reporter_name = serializers.CharField(max_length=255)
-    reporter_email = serializers.EmailField()
-    issue_type = serializers.ChoiceField(choices=IssueTypeEnum.choices())
+    issue_type = serializers.ChoiceField(choices=IssueTypeEnum.choices(), required=True)
     listing_identifier = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    reported_user_email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
-    message = serializers.CharField()
+    reported_user_identifer = serializers.CharField(required=False, allow_blank=True, allow_null=True)  # matches model field name
+    message = serializers.CharField(required=True, allow_blank=False)
+
+    # Optional for anonymous reporters
+    reporter_name = serializers.CharField(required=False, allow_blank=True)
+    reporter_email = serializers.EmailField(required=False, allow_blank=True)
+
+    def validate(self, data):
+        issue_type = data.get('issue_type')
+        if issue_type == IssueTypeEnum.REPORT_LISTING.value and not data.get('listing_identifier'):
+            raise serializers.ValidationError({"listing_identifier": "Listing identifier is required for listing reports."})
+        if issue_type == IssueTypeEnum.REPORT_USER.value and not data.get('reported_user_identifer'):
+            raise serializers.ValidationError({"reported_user_identifer": "User identifier is required for user reports."})
+        return data
 
 class LogoutSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(max_length=5000, write_only=True, required=False)

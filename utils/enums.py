@@ -175,12 +175,10 @@ class ListingConditionEnum(BaseChoiceEnum):
 # ============================================================
 
 class IssueTypeEnum(BaseChoiceEnum):
-    REPORT_LISTING = "Report Listing"
-    REPORT_USER = "Report User"
-    BUG = "Bug"
-    QUESTION = "Question"
-    OTHER = "Other"
-    ACCOUNT = "Account"
+    REPORT_LISTING = "Listing"
+    REPORT_USER = "User"
+    IMPROVE = "Improve"
+    SUPPORT = "Support"
 
 
 # ============================================================

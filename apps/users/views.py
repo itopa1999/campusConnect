@@ -289,8 +289,9 @@ class RefreshTokenView(generics.GenericAPIView):
 
 class SubmitReportView(generics.GenericAPIView):
     serializer_class = ReportSerializer
-    permission_classes = [AllowAny]
-    authentication_classes = []
+    permission_classes = [IsAuthenticated]
+    # permission_classes = [AllowAny]
+    # authentication_classes = []
     throttle_classes = [CustomRateThrottle(rate=10, period=3600, user_type=UserTypeEnum.ANON)]
 
     def post(self, request):

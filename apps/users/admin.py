@@ -248,8 +248,8 @@ class ContactReportAdmin(SoftDeleteAdmin):
     list_display = (
         'id',
         'issue_type_badge',
-        'reporter_name',
-        'reporter_email',
+        'reporter_display',
+        'reporter_email_display',
         'status_badge',
         'assigned_to',
         'created_at',
@@ -264,10 +264,14 @@ class ContactReportAdmin(SoftDeleteAdmin):
         'is_deleted',
     )
     search_fields = (
+        'reporter__email',
+        'reporter__first_name',
+        'reporter__last_name',
+        'reporter__username',
         'reporter_name',
         'reporter_email',
-        'reported_user_email',
         'listing_identifier',
+        'reported_user_identifer',
         'message',
         'admin_notes',
         'resolution_notes',
@@ -280,18 +284,20 @@ class ContactReportAdmin(SoftDeleteAdmin):
         'modified_by',
         'deleted_at',
         'deleted_by',
+        'reporter_display',
     )
     list_per_page = 25
     date_hierarchy = 'created_at'
     ordering = ['-created_at']
-    autocomplete_fields = ['assigned_to', 'resolved_by']
+    autocomplete_fields = ['reporter', 'assigned_to', 'resolved_by', 'escalated_by']
+    list_select_related = ('reporter', 'assigned_to', 'resolved_by', 'escalated_by')
 
     fieldsets = (
         ('Reporter Information', {
-            'fields': ('reporter_name', 'reporter_email'),
+            'fields': ('reporter', 'reporter_name', 'reporter_email', 'reporter_display'),
         }),
         ('Issue Details', {
-            'fields': ('issue_type', 'message', 'listing_identifier', 'reported_user_email'),
+            'fields': ('issue_type', 'message', 'listing_identifier', 'reported_user_identifer'),
         }),
         ('Moderation Workflow', {
             'fields': ('status', 'assigned_to', 'resolved_by', 'resolved_at', 'resolution_notes'),
@@ -299,7 +305,7 @@ class ContactReportAdmin(SoftDeleteAdmin):
         ('Escalation', {
             'fields': ('escalated_to_admin', 'escalated_at', 'escalated_note', 'escalated_by'),
         }),
-        ('Admin Handling (legacy)', {
+        ('Admin Notes', {
             'fields': ('is_reviewed', 'admin_notes'),
             'classes': ('collapse',),
         }),
@@ -309,24 +315,37 @@ class ContactReportAdmin(SoftDeleteAdmin):
         }),
     )
 
-    actions = ['mark_as_resolved', 'assign_to_me', 'escalate_to_admin']
+    actions = ['mark_as_resolved', 'mark_as_in_review', 'assign_to_me', 'escalate_to_admin']
 
+    # ─── Display helpers ─────────────────────────────────────────────
+
+    @admin.display(description='Reporter', ordering='reporter__first_name')
+    def reporter_display(self, obj):
+        return obj.reporter_display
+
+    @admin.display(description='Email')
+    def reporter_email_display(self, obj):
+        if obj.reporter:
+            return obj.reporter.email
+        return obj.reporter_email or "—"
+
+    @admin.display(description='Status', ordering='status')
     def status_badge(self, obj):
         colors = {
             'pending': '#ffc107',
             'in_review': '#17a2b8',
             'resolved': '#28a745',
             'escalated': '#dc3545',
+            'closed': '#6c757d',
         }
         color = colors.get(obj.status, '#6c757d')
         display = obj.get_status_display()
         return format_html(
-            '<span style="background-color: {}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem;">{}</span>',
+            '<span style="background-color: {}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">{}</span>',
             color, display
         )
-    status_badge.short_description = 'Status'
-    status_badge.admin_order_field = 'status'
 
+    @admin.display(description='Issue Type', ordering='issue_type')
     def issue_type_badge(self, obj):
         colors = {
             'report_listing': '#dc3545',
@@ -338,33 +357,45 @@ class ContactReportAdmin(SoftDeleteAdmin):
         display = obj.get_issue_type_display()
         color = colors.get(obj.issue_type, '#6c757d')
         return format_html(
-            '<span style="background-color: {}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem;">{}</span>',
+            '<span style="background-color: {}; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">{}</span>',
             color, display
         )
-    issue_type_badge.short_description = 'Issue Type'
-    issue_type_badge.admin_order_field = 'issue_type'
 
-    @admin.action(description='Mark selected reports as resolved')
+    # ─── Actions ─────────────────────────────────────────────────────
+
+    @admin.action(description='Mark selected as resolved')
     def mark_as_resolved(self, request, queryset):
-        updated = queryset.update(status=ReportStatusEnum.RESOLVED.value, resolved_by=request.user, resolved_at=timezone.now())
+        updated = queryset.update(
+            status=ReportStatusEnum.RESOLVED.value,
+            resolved_by=request.user,
+            resolved_at=timezone.now()
+        )
         self.message_user(request, f'{updated} report(s) marked as resolved.')
+
+    @admin.action(description='Mark selected as in review')
+    def mark_as_in_review(self, request, queryset):
+        updated = queryset.update(status=ReportStatusEnum.IN_REVIEW.value)
+        self.message_user(request, f'{updated} report(s) marked as in review.')
 
     @admin.action(description='Assign selected reports to me')
     def assign_to_me(self, request, queryset):
-        updated = queryset.update(assigned_to=request.user, status=ReportStatusEnum.IN_REVIEW.value)
+        updated = queryset.update(
+            assigned_to=request.user,
+            status=ReportStatusEnum.IN_REVIEW.value
+        )
         self.message_user(request, f'{updated} report(s) assigned to you.')
 
     @admin.action(description='Escalate selected reports to admin')
     def escalate_to_admin(self, request, queryset):
-        updated = queryset.update(escalated_to_admin=True, escalated_at=timezone.now(), escalated_by=request.user, status=ReportStatusEnum.ESCALATED.value)
+        updated = queryset.update(
+            escalated_to_admin=True,
+            escalated_at=timezone.now(),
+            escalated_by=request.user,
+            status=ReportStatusEnum.ESCALATED.value
+        )
         self.message_user(request, f'{updated} report(s) escalated to admin.')
 
-    def save_model(self, request, obj, form, change):
-        if not obj.pk:
-            obj.created_by = request.user.username
-        obj.modified_by = request.user.username
-        super().save_model(request, obj, form, change)
-
+            
 # ========== PointTransaction Inline ==========
 class PointTransactionInline(admin.TabularInline):
     model = PointTransaction

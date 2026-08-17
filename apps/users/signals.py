@@ -79,11 +79,6 @@ def convert_updated_images_to_webp(sender, instance, created, **kwargs):
 
 # for cache
 
-@receiver(post_save, sender=User)
-def add_badges(sender, instance, **kwargs):
-    if instance.sold_items >= ConstantHelper.SOLD_ITEMS_COUNT_FOR_TOP_SELLER_BADGE:
-        print(instance.sold_items)
-        BadgeService.set(instance, [BadgeChoiceEnum.TOP_SELLER.value])
 
     # if instance.hall_verified and instance.hall_verified_status == UserIdVerificationEnum.APPROVED.value:
     #     BadgeService.set(instance, [BadgeChoiceEnum.HALL_VERIFIED.value])

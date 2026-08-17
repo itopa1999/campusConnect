@@ -66,5 +66,3 @@ class JobListing(BaseModel):
 
 <!-- TODO -->
 check the email template to have standard for all others
-TOP seller badge is not setting
-BADGES ARE NOT UPDATING IN SIGNAL
