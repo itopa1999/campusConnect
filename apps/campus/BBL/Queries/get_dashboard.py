@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Count, Q
 from django.core.paginator import Paginator
+from asgiref.sync import sync_to_async
 from apps.campus.models import Listing, Review
 from apps.campus.utils import get_listing_detail_info
 from apps.moderator.models import FlaggedContent
@@ -9,14 +10,17 @@ from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum, ContentTypeEnum, ListingStatusTypeEnum, ListingTypeEnum
 from utils.helpers import calculate_profile_completion, format_naira, humanize_date
+import asyncio
 
 
 class DashboardQuery:
+    
     @staticmethod
-    def get_dashboard(request) -> BaseResultWithData:
+    async def get_dashboard(request) -> BaseResultWithData:
         user = request.user
         cache_key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user.id)
 
+        @sync_to_async
         def build_dashboard_data():
             now = timezone.now()
 
@@ -29,10 +33,8 @@ class DashboardQuery:
                 total_hidden=Count('id', filter=Q(status=ListingStatusTypeEnum.HIDDEN.value))
             )
 
-            # ── Trust score ──
             trust_score = round((float(user.average_rating) / 5.0) * 100, 1) if user.average_rating else 0.0
 
-            # ── Profile completion ──
             profile_data = calculate_profile_completion(user)
             profile_completion = profile_data['percentage']
             missing_fields = profile_data['missing_fields']
@@ -52,13 +54,16 @@ class DashboardQuery:
                 'flagged_listing_count': flagged_listing_count,
             }
 
-        data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_dashboard_data,
-            timeout=300,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_dashboard_data,
+                timeout=300,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
 
         return BaseResultWithData(
             message="Dashboard data retrieved successfully",
@@ -67,7 +72,7 @@ class DashboardQuery:
         )
     
     @staticmethod
-    def get_dashboard_reviews(request, filters=None) -> BaseResultWithData:
+    async def get_dashboard_reviews(request, filters=None) -> BaseResultWithData:
         user = request.user
         filters = filters or request.GET.dict()
         page = int(filters.get('page', 1))
@@ -81,16 +86,25 @@ class DashboardQuery:
                 filter_parts.append(f"{key}={value}")
         filter_parts.sort()
         filter_str = '&'.join(filter_parts)
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD_REVIEW, user_id=user.id, page=page, per_page=per_page, filters = filter_str)
+        
+        cache_key = CacheKeysEnum.format(
+            CacheKeysEnum.DASHBOARD_REVIEW,
+            user_id=user.id,
+            page=page,
+            per_page=per_page,
+            filters=filter_str
+        )
+
+        @sync_to_async
         def build_reviews_data():
             qs = Review.objects.filter(
                 to_user=user,
                 is_deleted=False
-            ).select_related('from_user', 'listing') \
-            .only('rating', 'comment', 'created_at',
+            ).select_related('from_user', 'listing').only(
+                'rating', 'comment', 'created_at',
                 'from_user__first_name', 'from_user__last_name', 'from_user__email',
-                'listing__title') \
-            .order_by('-created_at')
+                'listing__title'
+            ).order_by('-created_at')
 
             search = filters.get("search")
             if search:
@@ -98,13 +112,15 @@ class DashboardQuery:
                     qs = qs.filter(Q(rating=int(search)))
                 else:
                     qs = qs.filter(
-                        Q(from_user__last_name__icontains=search)
-                        | Q(comment__icontains=search) |
+                        Q(from_user__last_name__icontains=search) |
+                        Q(comment__icontains=search) |
                         Q(listing__title__icontains=search) |
                         Q(from_user__first_name__icontains=search)
                     )
+            
             paginator = Paginator(qs, per_page)
             page_obj = paginator.get_page(page)
+            
             reviews = [
                 {
                     'from': r.from_user.get_full_name() or r.from_user.email,
@@ -126,15 +142,18 @@ class DashboardQuery:
                     'has_next': page_obj.has_next(),
                     'has_previous': page_obj.has_previous(),
                 }
-            } 
+            }
 
-        data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_reviews_data,
-            timeout=3600,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_reviews_data,
+                timeout=3600,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
 
         return BaseResultWithData(
             message="Dashboard review listing data retrieved successfully",
@@ -142,12 +161,15 @@ class DashboardQuery:
             status_code=200
         )
 
-
-
     @staticmethod
-    def get_expiring_listing(request) -> BaseResultWithData:
+    async def get_expiring_listing(request) -> BaseResultWithData:
         user = request.user
-        cache_key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD_UPCOMING_EXPIRATION_LISTING, user_id=user.id)
+        cache_key = CacheKeysEnum.format(
+            CacheKeysEnum.DASHBOARD_UPCOMING_EXPIRATION_LISTING,
+            user_id=user.id
+        )
+
+        @sync_to_async
         def build_dashboard_data():
             now = timezone.now()
             listings = Listing.objects.filter(
@@ -156,9 +178,9 @@ class DashboardQuery:
                 is_deleted=False,
                 expires_at__gt=now,
                 expires_at__lte=now + timedelta(days=7)
-            ).prefetch_related('hotspots') \
-            .only('title', 'description', 'expires_at', 'auto_reactivate') \
-            .order_by('expires_at')
+            ).prefetch_related('hotspots').only(
+                'title', 'description', 'expires_at', 'auto_reactivate'
+            ).order_by('expires_at')
 
             upcoming = []
             for listing in listings:
@@ -173,16 +195,19 @@ class DashboardQuery:
                 })
 
             return {
-            'upcoming_expiring_listings': upcoming,
+                'upcoming_expiring_listings': upcoming,
             }
 
-        data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_dashboard_data,
-            timeout=3600,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_dashboard_data,
+                timeout=3600,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
 
         return BaseResultWithData(
             message="Dashboard expiring listing data retrieved successfully",
@@ -191,7 +216,7 @@ class DashboardQuery:
         )
 
     @staticmethod
-    def get_dashboard_listing(request, filters=None) -> BaseResultWithData:
+    async def get_dashboard_listing(request, filters=None) -> BaseResultWithData:
         user = request.user
         filters = filters or request.GET.dict()
         page = int(filters.get('page', 1))
@@ -214,36 +239,30 @@ class DashboardQuery:
             filters=filter_str
         )
 
+        @sync_to_async
         def build_dashboard_listing():
-            # Base queryset: fetch Listing with its related detail (if any)
-            qs = Listing.objects.filter(user=user, is_deleted=False) \
-                .select_related(
-                    'sell_details',
-                    'sell_details__category',
-                    'sell_details__subcategory',
-                    'service_details',
-                    'service_details__category',
-                    'service_details__subcategory',
-                    'accommodation_details',
-                ) \
-                .prefetch_related('hotspots') \
-                .only(
-                    'id', 'title', 'description', 'listing_type',
-                    'is_hot_sales', 'is_ads_banner',
-                    'auto_reactivate', 'status', 'image', 'created_at',
-                    'sell_details__price', 'sell_details__category__name',
-                    'sell_details__subcategory__name',
-                    'service_details__price', 'service_details__category__name',
-                    'service_details__subcategory__name',
-                    'accommodation_details__rent_price',
-                    'accommodation_details__property_type',
-                ) \
-                .order_by('-created_at')
+            qs = Listing.objects.filter(user=user, is_deleted=False).select_related(
+                'sell_details',
+                'sell_details__category',
+                'sell_details__subcategory',
+                'service_details',
+                'service_details__category',
+                'service_details__subcategory',
+                'accommodation_details',
+            ).prefetch_related('hotspots').only(
+                'id', 'title', 'description', 'listing_type',
+                'is_hot_sales', 'is_ads_banner',
+                'auto_reactivate', 'status', 'image', 'created_at',
+                'sell_details__price', 'sell_details__category__name',
+                'sell_details__subcategory__name',
+                'service_details__price', 'service_details__category__name',
+                'service_details__subcategory__name',
+                'accommodation_details__rent_price',
+                'accommodation_details__property_type',
+            ).order_by('-created_at')
 
             search = filters.get("search")
-            print(search)
             if search:
-                # Basic search on title, description, listing_type
                 qs = qs.filter(
                     Q(title__icontains=search) |
                     Q(description__icontains=search) |
@@ -267,9 +286,7 @@ class DashboardQuery:
 
                 location = [hs.name for hs in listing.hotspots.all()] or ["Campus"]
 
-                image_url = None
-                if listing.image:
-                    image_url = listing.image.url
+                image_url = listing.image.url if listing.image else None
 
                 all_listings.append({
                     'id': listing.id,
@@ -299,13 +316,16 @@ class DashboardQuery:
                 },
             }
 
-        data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_dashboard_listing,
-            timeout=3600,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_dashboard_listing,
+                timeout=3600,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
 
         return BaseResultWithData(
             message="Dashboard listings data retrieved successfully",

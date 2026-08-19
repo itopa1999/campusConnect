@@ -17,12 +17,13 @@ from apps.campus.BBL.Queries.lost_and_found import GetLostItemsQuery
 from django.shortcuts import render
 from django.conf import settings
 from utils.enums import GroupNamesEnum
+from utils.helpers import run_async
 from utils.permissions import ConstantPermission
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters import rest_framework as filters
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
+import asyncio
 
 # ──────────────────────────────────────────────
 # PUBLIC VIEWS
@@ -63,7 +64,7 @@ class LostAndFoundListView(APIView):
         ]
     )
     def get(self, request):
-        result = GetLostItemsQuery.get_items(request, request.GET.dict())
+        result = run_async(GetLostItemsQuery.get_items(request, request.GET.dict()))
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -101,7 +102,7 @@ class GetDashboardView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request):
-        result = DashboardQuery.get_dashboard(request)
+        result = run_async(DashboardQuery.get_dashboard(request))
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -116,7 +117,7 @@ class GetDashboardReviewsView(APIView):
         ]
     )
     def get(self, request):
-        result = DashboardQuery.get_dashboard_reviews(request, request.GET.dict())
+        result = result = run_async(DashboardQuery.get_dashboard_reviews(request, request.GET.dict()))
         return Response(result.to_dict(), status=result.status_code)
     
 
@@ -132,7 +133,7 @@ class GetDashboardListingView(APIView):
         ]
     )
     def get(self, request):
-        result = DashboardQuery.get_dashboard_listing(request, request.GET.dict())
+        result = run_async(DashboardQuery.get_dashboard_listing(request, request.GET.dict()))
         return Response(result.to_dict(), status=result.status_code)
     
 
@@ -140,7 +141,7 @@ class GetDashboardUpCommingExpirationListingView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=30, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request):
-        result = DashboardQuery.get_expiring_listing(request)
+        result = run_async(DashboardQuery.get_expiring_listing(request))
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -158,7 +159,7 @@ class GetLookUpView(APIView):
         ]
     )
     def get(self, request):
-        result = LookUpQuery.get_lookup(request, request.GET.dict())
+        result = run_async(LookUpQuery.get_lookup(request, request.GET.dict()))
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -205,7 +206,7 @@ class ListingDetailView(generics.GenericAPIView):
         return None
     
     def get(self, request, listing_id):
-        result = ListingQuery.get_listing_detail(request, request.user, listing_id)
+        result = run_async(ListingQuery.get_listing_detail(request, request.user, listing_id))
         return Response(result.to_dict(), status=result.status_code)
     
     def put(self, request, listing_id):
@@ -265,7 +266,7 @@ class CategorizedListingsView(APIView):
         ]
     )
     def get(self, request):
-        result = ListingQuery.get_categorized_listings(request, request.user, request.GET.dict())
+        result = run_async(ListingQuery.get_categorized_listings(request, request.user, request.GET.dict()))
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -274,7 +275,7 @@ class ListingDetailsView(APIView):
     throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
     
     def get(self, request, listing_id):
-        result = ListingQuery.listing_details(request, listing_id)
+        result = run_async(ListingQuery.listing_details(request, listing_id))
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -287,9 +288,11 @@ class ToggleFavouriteListingView(APIView):
         return Response(result.to_dict(), status=result.status_code)
 
 
+
 class ListFavouriteListingView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=60, period=60, user_type=UserTypeEnum.AUTH)]
+    
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING),
@@ -298,7 +301,7 @@ class ListFavouriteListingView(APIView):
         ]
     )
     def get(self, request):
-        result = FavouriteQuery.get_favourites(request, request.GET.dict())
+        result = run_async(
+            FavouriteQuery.get_favourites(request, request.GET.dict())
+        )
         return Response(result.to_dict(), status=result.status_code)
-
-

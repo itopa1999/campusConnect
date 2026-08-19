@@ -51,14 +51,14 @@ class TestNotificationQueries:
         }
         request = request_factory.get("/?page=1")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = NotificationQueries.get_notification(request, test_user)
 
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=CacheKeysEnum.format(CacheKeysEnum.NOTIFICATIONS, user_id=test_user.id, page=1, per_page = 10),
             callback=ANY,
             timeout=300,
@@ -79,10 +79,10 @@ class TestNotificationQueries:
 
         request = request_factory.get("/?page=1&per_page=2")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = NotificationQueries.get_notification(request, test_user)
 
@@ -106,7 +106,7 @@ class TestNotificationQueries:
 
         assert mock_humanize.call_count == 2
 
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=ANY,
             callback=ANY,
             timeout=300,
@@ -121,10 +121,10 @@ class TestNotificationQueries:
 
         request = request_factory.get("/?page=invalid&per_page=2")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = NotificationQueries.get_notification(request, test_user)
 
@@ -138,10 +138,10 @@ class TestNotificationQueries:
 
         request = request_factory.get("/?page=10&per_page=2")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = NotificationQueries.get_notification(request, test_user)
 
@@ -156,10 +156,10 @@ class TestNotificationQueries:
 
         request = request_factory.get("/?page=1&per_page=10")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = NotificationQueries.get_notification(request, test_user)
 
@@ -179,10 +179,10 @@ class TestNotificationQueries:
 
         request = request_factory.get("/?page=1&per_page=2")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = NotificationQueries.get_notification(request, test_user)
 
@@ -199,14 +199,14 @@ class TestNotificationQueries:
         }
         request = request_factory.get("/")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = NotificationQueries.get_notifications_header(request, test_user)
 
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=CacheKeysEnum.format(CacheKeysEnum.NOTIFICATION_HEADER, user_id=test_user.id),
             callback=ANY,
             timeout=120,
@@ -227,10 +227,10 @@ class TestNotificationQueries:
 
         request = request_factory.get("/")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = NotificationQueries.get_notifications_header(request, test_user)
 
@@ -246,7 +246,7 @@ class TestNotificationQueries:
 
         assert mock_humanize.call_count == 5
 
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=CacheKeysEnum.format(CacheKeysEnum.NOTIFICATION_HEADER, user_id=test_user.id),
             callback=ANY,
             timeout=120,
@@ -261,10 +261,10 @@ class TestNotificationQueries:
 
         request = request_factory.get("/")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = NotificationQueries.get_notifications_header(request, test_user)
 
@@ -284,10 +284,10 @@ class TestNotificationQueries:
 
         request = request_factory.get("/")
 
-        with patch("apps.users.BBL.Queries.notification.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.notification.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = NotificationQueries.get_notifications_header(request, test_user)
 

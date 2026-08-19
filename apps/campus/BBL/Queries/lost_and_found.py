@@ -1,18 +1,16 @@
+from asgiref.sync import sync_to_async
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from apps.campus.models import LostAndFound
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum, LostAndFoundStatusEnum
 from django.db.models import Q
+import asyncio
+
 
 class GetLostItemsQuery:
     @staticmethod
-    def get_items(request, filters=None) -> BaseResultWithData:
-        """
-        Fetch paginated lost items (excludes answer1 and answer2).
-        Supports filtering by item_name, description, location, date_from, date_to.
-        """
-        # Use provided filters or fallback to request.GET
+    async def get_items(request, filters=None) -> BaseResultWithData:
         if filters is None:
             filters = request.GET.dict()
         else:
@@ -52,14 +50,13 @@ class GetLostItemsQuery:
             filters=filter_str
         )
 
+        @sync_to_async
         def build_lost_items_data():
-            # --- Start with base queryset ---
             queryset = LostAndFound.objects.filter(
                 is_deleted=False,
                 status=LostAndFoundStatusEnum.OPEN.value
             )
 
-            # --- Apply filters ---
             search = filters.get('search')
             if search:
                 queryset = queryset.filter(
@@ -67,7 +64,7 @@ class GetLostItemsQuery:
                     Q(description__icontains=search) |
                     Q(location__icontains=search)
                 )
-            # --- Ordering ---
+
             queryset = queryset.order_by('-created_at')
 
             paginator = Paginator(queryset, per_page)
@@ -78,12 +75,9 @@ class GetLostItemsQuery:
             except EmptyPage:
                 items_page = paginator.page(paginator.num_pages)
 
-            # --- Build safe data list (exclude answers) ---
             items_data = []
             for item in items_page:
-                image_url = None
-                if item.image:
-                    image_url = item.image.url
+                image_url = item.image.url if item.image else None
                 items_data.append({
                     'id': item.id,
                     'item_name': item.item_name,
@@ -91,8 +85,8 @@ class GetLostItemsQuery:
                     'location': item.location,
                     'date_found': item.date_found.isoformat(),
                     'status': item.status,
-                    'verification1': item.verification1,   # question 1 (safe)
-                    'verification2': item.verification2,   # question 2 (safe)
+                    'verification1': item.verification1,
+                    'verification2': item.verification2,
                     'image': image_url,
                 })
 
@@ -109,20 +103,23 @@ class GetLostItemsQuery:
             }
 
         try:
-            data = GlobalCache.get_or_set(
+            data = await GlobalCache.aget_or_set(
                 key=cache_key,
                 callback=build_lost_items_data,
                 timeout=3600,
                 lock_timeout=30,
                 max_wait=5.0,
             )
-            return BaseResultWithData(
-                message="Lost items retrieved successfully.",
-                data=data,
-                status_code=200
-            )
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             return BaseResultWithData(
                 message=f"An unexpected error occurred: {str(e)}",
                 status_code=500
             )
+
+        return BaseResultWithData(
+            message="Lost items retrieved successfully.",
+            data=data,
+            status_code=200
+        )

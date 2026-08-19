@@ -86,11 +86,11 @@ def listing_changed(sender, instance, **kwargs):
     user_id = instance.user_id if instance else None
     if user_id:
         key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user_id)
-        GlobalCache.delete(key)
+        GlobalCache.adelete(key)
 
 
     invalidate_listing_caches(instance, user_id)
-    GlobalCache.delete(CacheKeysEnum.INDEX_PRODUCTS.value)
+    GlobalCache.adelete(CacheKeysEnum.INDEX_PRODUCTS.value)
 
 
 @receiver(post_save, sender=Review)
@@ -99,15 +99,15 @@ def review_changed(sender, instance, **kwargs):
     user_id = instance.to_user_id if instance else None
     if user_id:
         key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user_id)
-        GlobalCache.delete(key)
+        GlobalCache.adelete(key)
 
         
     listing = getattr(instance, 'listing', None)
     if listing is not None:
         invalidate_listing_caches(listing, user_id)
     else:
-        GlobalCache.delete_prefix("listing_detail_")
-        GlobalCache.delete_prefix("public_listing_details_")
+        GlobalCache.adelete_prefix("listing_detail_")
+        GlobalCache.adelete_prefix("public_listing_details_")
 
 
 @receiver(post_save, sender=Category)
@@ -124,7 +124,7 @@ def campus_hotspot_changed(sender, instance, **kwargs):
 @receiver(post_save, sender=LostAndFound)
 @receiver(post_delete, sender=LostAndFound)
 def lost_item_changed(sender, instance, **kwargs):
-    GlobalCache.delete_prefix("lost_items_")
+    GlobalCache.adelete_prefix("lost_items_")
 
 
 @receiver(post_save, sender=PointPackage)
@@ -149,11 +149,11 @@ def point_transaction_changed(sender, instance, **kwargs):
 @receiver(post_delete, sender=Favourite)
 def favourite_changed(sender, instance, **kwargs):
     key = f'favourite_{instance.user_id}_'
-    GlobalCache.delete_prefix(key)
+    GlobalCache.adelete_prefix(key)
 
 
 def invalidate_lookup_cache():
-    GlobalCache.delete(CacheKeysEnum.LOOKUP_DATA.value)
+    GlobalCache.adelete(CacheKeysEnum.LOOKUP_DATA.value)
 
 
 def invalidate_listing_caches(listing, user_id):
@@ -166,26 +166,26 @@ def invalidate_listing_caches(listing, user_id):
         listing_id=listing.id,
     )
 
-    GlobalCache.delete(detail_key)
-    GlobalCache.delete_prefix("listing_detail_")
-    GlobalCache.delete_prefix("public_listing_details_")
-    GlobalCache.delete_prefix("categorized_listings_")
+    GlobalCache.adelete(detail_key)
+    GlobalCache.adelete_prefix("listing_detail_")
+    GlobalCache.adelete_prefix("public_listing_details_")
+    GlobalCache.adelete_prefix("categorized_listings_")
 
 
 def invalidate_packages_cache():
-    GlobalCache.delete(CacheKeysEnum.POINT_PACKAGES.value)
+    GlobalCache.adelete(CacheKeysEnum.POINT_PACKAGES.value)
 
 def invalidate_user_purchases_cache(user_id):
     prefix = f"purchases_{user_id}_"
-    GlobalCache.delete_prefix(prefix)
+    GlobalCache.adelete_prefix(prefix)
 
 def invalidate_user_transactions_cache(user_id):
     prefix = f"transactions_{user_id}_"
-    GlobalCache.delete_prefix(prefix)
+    GlobalCache.adelete_prefix(prefix)
 
 def invalidate_user_point_caches(user_id):
     invalidate_user_purchases_cache(user_id)
     invalidate_user_transactions_cache(user_id)
 
     cache_key = CacheKeysEnum.format(CacheKeysEnum.GET_POINTS_BALANCE, user_id=user_id)
-    GlobalCache.delete(cache_key)
+    GlobalCache.adelete(cache_key)

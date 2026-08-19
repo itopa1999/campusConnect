@@ -327,7 +327,7 @@ class TestDashboardQuery:
         mocker,
     ):
         """Test cache miss: data is built from scratch and cached."""
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.side_effect = lambda key, callback, timeout, lock_timeout, max_wait: callback()
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)
@@ -395,7 +395,7 @@ class TestDashboardQuery:
 
     def test_get_dashboard_stats_cache_hit(self, request_with_user, mocker):
         cached_data = {'test': 'data', 'last_updated': timezone.now().isoformat()}
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.return_value = cached_data
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)
@@ -407,7 +407,7 @@ class TestDashboardQuery:
         # Clear all data except the request user (moderator)
         # We already have the moderator user in the DB, and that is the only user.
         # Ensure no other data.
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.side_effect = lambda key, callback, timeout, lock_timeout, max_wait: callback()
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)
@@ -455,7 +455,7 @@ class TestDashboardQuery:
         flagged_review,
         mocker,
     ):
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.side_effect = lambda key, callback, timeout, lock_timeout, max_wait: callback()
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)
@@ -471,7 +471,7 @@ class TestDashboardQuery:
         moderator_actions,
         mocker,
     ):
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.side_effect = lambda key, callback, timeout, lock_timeout, max_wait: callback()
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)
@@ -488,7 +488,7 @@ class TestDashboardQuery:
         reports,
         mocker,
     ):
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.side_effect = lambda key, callback, timeout, lock_timeout, max_wait: callback()
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)
@@ -504,7 +504,7 @@ class TestDashboardQuery:
         listings,
         mocker,
     ):
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.side_effect = lambda key, callback, timeout, lock_timeout, max_wait: callback()
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)
@@ -528,7 +528,7 @@ class TestDashboardQuery:
             reason='test',
             is_deleted=False,
         )
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.side_effect = lambda key, callback, timeout, lock_timeout, max_wait: callback()
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)
@@ -544,7 +544,7 @@ class TestDashboardQuery:
         listing_for_review,
         mocker,
     ):
-        cache_mock = mocker.patch.object(GlobalCache, 'get_or_set')
+        cache_mock = mocker.patch.object(GlobalCache, 'aget_or_set')
         cache_mock.side_effect = lambda key, callback, timeout, lock_timeout, max_wait: callback()
 
         result = DashboardQuery.get_dashboard_stats(request_with_user)

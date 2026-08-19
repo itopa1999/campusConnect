@@ -4,7 +4,7 @@ from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
 from utils.enums import CacheKeysEnum, PointTransactionTypeEnum
 from django.utils import timezone
-
+import asyncio
 
 def validate_ui_email(email: str) -> tuple[bool, str]:
   
@@ -176,7 +176,7 @@ class UpdatePointsService:
         def build_check_point_data():
             points_balance = user.points or 0
             return points_balance
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_check_point_data,
             timeout=3600,
@@ -395,3 +395,13 @@ def format_naira(amount):
     if amount is None:
         return '₦0'
     return f"₦{int(amount):,}"
+
+
+def run_async(coro):
+    """Run an async coroutine and return the result."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    else:
+        return loop.run_until_complete(coro)

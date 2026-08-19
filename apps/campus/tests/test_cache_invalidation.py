@@ -23,8 +23,8 @@ def test_listing_save_triggers_cache_invalidation():
     )
     category = Category.objects.create(name="Test Category", icon="fa-test", description="Test")
 
-    with patch("utils.cache_helper.GlobalCache.delete") as mock_delete, patch(
-        "utils.cache_helper.GlobalCache.delete_prefix"
+    with patch("utils.cache_helper.GlobalCache.adelete") as mock_delete, patch(
+        "utils.cache_helper.GlobalCache.adelete_prefix"
     ) as mock_delete_prefix:
         Listing.objects.create(
             user=user,

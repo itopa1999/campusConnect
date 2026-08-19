@@ -117,14 +117,14 @@ class TestIndexProductsQuery:
         cached_data = {"listings": [{"id": 1, "title": "Cached"}]}
         request = request_factory.get("/")
 
-        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = IndexProductsQuery.get_index_product(request)
 
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=ANY,
             callback=ANY,
             timeout=3600,
@@ -137,11 +137,11 @@ class TestIndexProductsQuery:
         """Cache miss: fetch only active admin listings, limit to 6, order by created_at desc."""
         request = request_factory.get("/")
 
-        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.aget_or_set") as mock_aget_or_set:
             # Simulate cache miss by executing the callback
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = IndexProductsQuery.get_index_product(request)
 
@@ -204,10 +204,10 @@ class TestIndexProductsQuery:
 
         request = request_factory.get("/")
 
-        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = IndexProductsQuery.get_index_product(request)
 
@@ -233,10 +233,10 @@ class TestIndexProductsQuery:
 
         request = request_factory.get("/")
 
-        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = IndexProductsQuery.get_index_product(request)
 
@@ -261,12 +261,12 @@ class TestIndexProductsQuery:
 
         request = request_factory.get("/")
 
-        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.aget_or_set") as mock_aget_or_set:
             # We need to test that the limit is passed correctly.
             # We'll spy on the queryset slicing by checking the callback result length.
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             # Default limit 6
             result = IndexProductsQuery.get_index_product(request)
@@ -292,10 +292,10 @@ class TestIndexProductsQuery:
 
         request = request_factory.get("/")
 
-        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.index_products.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = IndexProductsQuery.get_index_product(request)
 

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.cache import cache
-
+import asyncio
 import random
 import time
 
@@ -81,168 +81,97 @@ class GlobalCache:
                 f"Failed to store cache key '{build_key}': {e}"
             )
             return False
-
+    
     @staticmethod
-    def get_or_set(
+    async def aget_or_set(
         key: str,
         callback,
         timeout: int = CACHE_TTL,
         lock_timeout: int = 30,
         max_wait: float = 5.0,
     ):
-        """
-        Retrieve data from cache or generate and cache it.
-
-        Uses a distributed lock to reduce cache stampedes when
-        multiple requests attempt to populate the same cache key.
-        """
-
-        return callback()
-
-    #     build_key = GlobalCache._key(key)
-    #     lock_key = f"{build_key}:lock"
-
-    #     op = OperationLogger(
-    #         "cache_get_or_set",
-    #         data={"cache_key": build_key}
-    #     )
-    #     op.start()
-
-    #     try:
-    #         # Fast path
-    #         cached = cache.get(build_key)
-
-    #         if cached is not None:
-    #             return None if cached == CACHE_NULL else cached
-
-    #         # Attempt lock acquisition
-    #         acquired = cache.add(
-    #             lock_key,
-    #             "1",
-    #             timeout=lock_timeout
-    #         )
-
-    #         if acquired:
-    #             try:
-    #                 value = callback()
-
-    #                 GlobalCache.set(
-    #                     key=key,
-    #                     value=value,
-    #                     timeout=timeout
-    #                 )
-
-    #                 return value
-
-    #             finally:
-    #                 cache.delete(lock_key)
-
-    #         # Wait for lock holder to populate cache
-    #         start = time.monotonic()
-    #         wait_interval = 0.1
-
-    #         while time.monotonic() - start < max_wait:
-
-    #             cached = cache.get(build_key)
-
-    #             if cached is not None:
-    #                 return (
-    #                     None
-    #                     if cached == CACHE_NULL
-    #                     else cached
-    #                 )
-
-    #             time.sleep(wait_interval)
-
-    #             wait_interval = min(
-    #                 wait_interval * 1.5,
-    #                 0.5
-    #             )
-
-    #         # Final cache check
-    #         cached = cache.get(build_key)
-
-    #         if cached is not None:
-    #             return (
-    #                 None
-    #                 if cached == CACHE_NULL
-    #                 else cached
-    #             )
-
-    #         # Fallback computation
-    #         value = callback()
-
-    #         GlobalCache.set(
-    #             key=key,
-    #             value=value,
-    #             timeout=timeout
-    #         )
-
-    #         return value
-
-    #     except Exception as e:
-    #         op.fail(
-    #             f"Cache get_or_set failed for key '{build_key}': {e}"
-    #         )
-    #         raise
+        build_key = GlobalCache._key(key)
+        lock_key = f"{build_key}:lock"
+        
+        # Check cache - fast path
+        cached = await cache.aget(build_key)
+        if cached is not None:
+            print(f"[CACHE HIT] Key: {build_key}")
+            return None if cached == CACHE_NULL else cached
+        
+        print(f"[CACHE MISS] Key: {build_key}")
+        
+        # Try to acquire distributed lock
+        existing_lock = await cache.aget(lock_key)
+        if existing_lock is None:
+            await cache.aset(lock_key, "1", lock_timeout)
+            print(f"[LOCK ACQUIRED] Key: {build_key}")
+            try:
+                value = await callback()
+                cache_value = CACHE_NULL if value is None else value
+                await cache.aset(build_key, cache_value, timeout)
+                print(f"[CACHE SET] Key: {build_key}")
+                return value
+            except asyncio.CancelledError:
+                await cache.adelete(lock_key)
+                print(f"[LOCK RELEASED - CANCELLED] Key: {build_key}")
+                raise
+            finally:
+                await cache.adelete(lock_key)
+                print(f"[LOCK RELEASED] Key: {build_key}")
+        
+        # Lock holder is generating data, wait for it
+        print(f"[WAITING FOR LOCK] Key: {build_key}")
+        start = time.monotonic()
+        wait_interval = 0.1
+        
+        while time.monotonic() - start < max_wait:
+            cached = await cache.aget(build_key)
+            if cached is not None:
+                print(f"[CACHE FOUND AFTER WAIT] Key: {build_key}")
+                return None if cached == CACHE_NULL else cached
+            await asyncio.sleep(wait_interval)
+            wait_interval = min(wait_interval * 1.5, 0.5)
+        
+        print(f"[FALLBACK - GENERATING DATA] Key: {build_key}")
+        cached = await cache.aget(build_key)
+        if cached is not None:
+            print(f"[CACHE FOUND IN FINAL CHECK] Key: {build_key}")
+            return None if cached == CACHE_NULL else cached
+        
+        value = await callback()
+        cache_value = CACHE_NULL if value is None else value
+        await cache.aset(build_key, cache_value, timeout)
+        print(f"[CACHE SET - FALLBACK] Key: {build_key}")
+        return value
 
     @staticmethod
-    def delete(key: str) -> bool:
+    async def adelete(key: str) -> bool:
         build_key = GlobalCache._key(key)
-
-        op = OperationLogger(
-            "cache_delete",
-            data={"cache_key": build_key}
-        )
-        op.start()
-
         try:
-            cache.delete(build_key)
+            await cache.adelete(build_key)
             return True
-
-        except Exception as e:
-            op.fail(
-                f"Failed to delete cache key '{build_key}': {e}"
-            )
+        except Exception:
             return False
 
     @staticmethod
-    def delete_prefix(prefix: str) -> bool:
-        """
-        Delete all cache keys matching a prefix.
-
-        Requires a cache backend that supports pattern deletion.
-        """
-
+    async def adelete_prefix(prefix: str) -> bool:
         build_key = GlobalCache._key(prefix)
-
-        op = OperationLogger(
-            "cache_delete_prefix",
-            data={"prefix": build_key}
-        )
-        op.start()
-
         pattern = f"{build_key}*"
-
+        
         try:
-            if hasattr(cache, "delete_pattern"):
-                cache.delete_pattern(pattern)
+            if hasattr(cache, "adelete_pattern"):
+                await cache.adelete_pattern(pattern)
                 return True
-
-            if hasattr(cache, "keys"):
-                keys = cache.keys(pattern)
-
+            
+            if hasattr(cache, "akeys"):
+                keys = await cache.akeys(pattern)
                 for key in keys:
-                    cache.delete(key)
-
+                    await cache.adelete(key)
                 return True
-
+            
             raise NotImplementedError(
                 "Current cache backend does not support prefix deletion."
             )
-
-        except Exception as e:
-            op.fail(
-                f"Failed to delete cache prefix '{build_key}': {e}"
-            )
+        except Exception:
             return False

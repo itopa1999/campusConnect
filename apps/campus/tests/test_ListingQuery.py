@@ -198,18 +198,18 @@ def multiple_listings(test_user, test_category, test_hotspots):
 class TestGetListingDetail:
 
     def test_get_listing_detail_cache_hit(self, request_factory, test_listing):
-        """Return cached data when get_or_set returns it."""
+        """Return cached data when aget_or_set returns it."""
         cached_data = {"id": test_listing.id, "title": "Cached"}
         request = request_factory.get("/")
 
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = ListingQuery.get_listing_detail(request, test_listing.user, test_listing.id)
 
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=ANY,
             callback=ANY,
             timeout=3600,
@@ -229,10 +229,10 @@ class TestGetListingDetail:
         request = request_factory.get("/")
 
         # Simulate cache miss by executing callback that returns None
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = ListingQuery.get_listing_detail(request, test_user, 9999)
 
@@ -243,11 +243,11 @@ class TestGetListingDetail:
     def test_get_listing_detail_success(self, request_factory, test_listing_with_image, test_reviews_with_image):
         """Test full details with an image and reviews."""
         request = request_factory.get("/")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             # Execute the callback to build data
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = ListingQuery.get_listing_detail(
@@ -269,16 +269,16 @@ class TestGetListingDetail:
         assert data["editing_period_day"] == ConstantHelper.EDIT_DATE
         assert data["image"] == "http://testserver/media/test.jpg"
 
-        # get_or_set was called with the callback, but we don't assert set separately
-        mock_get_or_set.assert_called_once()
+        # aget_or_set was called with the callback, but we don't assert set separately
+        mock_aget_or_set.assert_called_once()
 
     def test_get_listing_detail_exception(self, request_factory, test_user, test_listing):
         request = request_factory.get("/")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             # Simulate exception during callback
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 raise Exception("DB error")
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = ListingQuery.get_listing_detail(request, test_user, test_listing.id)
 
@@ -301,20 +301,20 @@ class TestGetCategorizedListings:
     def test_get_categorized_listings_cache_hit(self, request_factory, test_user):
         cached_data = {"items": [{"id": 1}], "page": 1, "total_pages": 1, "total_items": 1}
         request = request_factory.get("/?section=banner")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = ListingQuery.get_categorized_listings(request, test_user)
         assert result.is_success is True
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once()
+        mock_aget_or_set.assert_called_once()
 
     def test_get_categorized_listings_banner(self, request_factory, test_user, multiple_listings,
                                              test_listing_admin):
         request = request_factory.get("/?section=banner")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                 result = ListingQuery.get_categorized_listings(request, test_user)
@@ -329,10 +329,10 @@ class TestGetCategorizedListings:
 
     def test_get_categorized_listings_hot_sales(self, request_factory, test_user, multiple_listings):
         request = request_factory.get("/?section=hot_sales")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                 result = ListingQuery.get_categorized_listings(request, test_user)
@@ -358,10 +358,10 @@ class TestGetCategorizedListings:
             expires_at=timezone.now() + timedelta(days=5),
         )
         request = request_factory.get("/?section=departmental")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                 result = ListingQuery.get_categorized_listings(request, test_user)
@@ -375,10 +375,10 @@ class TestGetCategorizedListings:
         test_user.department = None
         test_user.save()
         request = request_factory.get("/?section=departmental")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = ListingQuery.get_categorized_listings(request, test_user)
 
@@ -405,10 +405,10 @@ class TestGetCategorizedListings:
             expires_at=timezone.now() + timedelta(days=5),
         )
         request = request_factory.get("/?section=for_you")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                 result = ListingQuery.get_categorized_listings(request, test_user)
@@ -430,10 +430,10 @@ class TestGetCategorizedListings:
 
         # Test page 1
         request = request_factory.get("/?section=banner&page=1&per_page=8")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                 result = ListingQuery.get_categorized_listings(request, test_user)
@@ -449,10 +449,10 @@ class TestGetCategorizedListings:
         # Test page 2 (only if there are more than 8 items)
         if banner_count > 8:
             request = request_factory.get("/?section=banner&page=2&per_page=8")
-            with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+            with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
                 def side_effect2(key, callback, timeout, lock_timeout, max_wait):
                     return callback()
-                mock_get_or_set.side_effect = side_effect2
+                mock_aget_or_set.side_effect = side_effect2
 
                 with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                     result = ListingQuery.get_categorized_listings(request, test_user)
@@ -465,10 +465,10 @@ class TestGetCategorizedListings:
 
         # Test custom per_page
         request = request_factory.get("/?section=banner&page=1&per_page=3")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect3(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect3
+            mock_aget_or_set.side_effect = side_effect3
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                 result = ListingQuery.get_categorized_listings(request, test_user)
@@ -493,10 +493,10 @@ class TestGetCategorizedListings:
             is_ads_banner=True,
         )
         request = request_factory.get("/?section=banner")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                 result = ListingQuery.get_categorized_listings(request, test_user)
@@ -523,10 +523,10 @@ class TestGetCategorizedListings:
             is_ads_banner=True,
         )
         request = request_factory.get("/?section=banner")
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/"):
                 result = ListingQuery.get_categorized_listings(request, test_user)
@@ -550,9 +550,9 @@ class TestListingDetails:
         request = request_factory.get("/")
         request.user = User(id=1)
 
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             # Simulate a cache hit where the value is None (meaning listing not found)
-            mock_get_or_set.return_value = None
+            mock_aget_or_set.return_value = None
             result = ListingQuery.listing_details(request, 9999)
 
         assert result.is_success is False
@@ -563,10 +563,10 @@ class TestListingDetails:
         request = request_factory.get("/")
         request.user = test_user
 
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = ListingQuery.listing_details(request, test_listing_with_image.id)
@@ -599,10 +599,10 @@ class TestListingDetails:
         request = request_factory.get("/")
         request.user = test_user
 
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/image.jpg"):
                 result = ListingQuery.listing_details(request, test_listing.id)
@@ -623,10 +623,10 @@ class TestListingDetails:
         request = request_factory.get("/")
         request.user = test_user
 
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/image.jpg"):
                 result = ListingQuery.listing_details(request, test_listing.id)
@@ -638,10 +638,10 @@ class TestListingDetails:
         request = request_factory.get("/")
         request.user = test_user
 
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/image.jpg"):
                 result = ListingQuery.listing_details(request, test_listing.id)
@@ -653,10 +653,10 @@ class TestListingDetails:
         request = request_factory.get("/")
         request.user = test_user
 
-        with patch("apps.campus.BBL.Queries.listing.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.listing.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 raise Exception("DB error")
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = ListingQuery.listing_details(request, test_listing.id)
 

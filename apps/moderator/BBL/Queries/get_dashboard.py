@@ -137,7 +137,7 @@ class DashboardQuery:
             return data
 
         # Cache for 1 hour (3600 seconds)
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_dashboard_data,
             timeout=3600,

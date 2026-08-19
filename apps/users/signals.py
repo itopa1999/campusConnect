@@ -114,7 +114,7 @@ def user_profile_changed(sender, instance, **kwargs):
     invalidate_profile_cache(instance.id)
 
     prefix = f"public_listing_details_{instance.id}_"
-    GlobalCache.delete_prefix(prefix)
+    GlobalCache.adelete_prefix(prefix)
 
 
 
@@ -122,7 +122,7 @@ def invalidate_profile_cache(user_id):
     if not user_id:
         return
     key = CacheKeysEnum.format(CacheKeysEnum.PROFILE, user_id=user_id)
-    GlobalCache.delete(key)
+    GlobalCache.adelete(key)
 
 
 
@@ -130,13 +130,13 @@ def invalidate_profile_cache(user_id):
 @receiver(post_delete, sender=PointPurchase)
 def point_purchase_changed(sender, instance, **kwargs):
     cache_key = CacheKeysEnum.POINT_PACKAGES.value
-    GlobalCache.delete(cache_key)
+    GlobalCache.adelete(cache_key)
 
     prefix = f"purchases_{instance.user_id}"
-    GlobalCache.delete_prefix(prefix)
+    GlobalCache.adelete_prefix(prefix)
 
     prefix1 = f"transactions_{instance.user_id}"
-    GlobalCache.delete_prefix(prefix1)
+    GlobalCache.adelete_prefix(prefix1)
 
 
 
@@ -144,7 +144,7 @@ def point_purchase_changed(sender, instance, **kwargs):
 @receiver(post_delete, sender=Notification)
 def notification_changed(sender, instance, **kwargs):
     prefix = f"notifications_{instance.user_id}"
-    GlobalCache.delete_prefix(prefix)
+    GlobalCache.adelete_prefix(prefix)
 
     prefix1 = f"notifications_header_{instance.user_id}"
-    GlobalCache.delete_prefix(prefix1)
+    GlobalCache.adelete_prefix(prefix1)

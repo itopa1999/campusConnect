@@ -20,7 +20,7 @@ class ProfileQuery:
             serializer = ProfileSerializer(user, context={'request': request})
             return serializer.data
 
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_profile_data,
             timeout=86400,

@@ -54,14 +54,14 @@ class TestLookUpQuery:
         }
         request = request_factory.get("/fake")
 
-        with patch("apps.campus.BBL.Queries.get_lookup.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.campus.BBL.Queries.get_lookup.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = LookUpQuery.get_lookup(request)
 
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=ANY,
             callback=ANY,
             timeout=3600,
@@ -73,11 +73,11 @@ class TestLookUpQuery:
         """When cache is empty, fetch from DB, build the data, cache it, and return."""
         request = request_factory.get("/fake")
 
-        with patch("apps.campus.BBL.Queries.get_lookup.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.get_lookup.GlobalCache.aget_or_set") as mock_aget_or_set:
             # Simulate cache miss by executing the callback
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = LookUpQuery.get_lookup(request)
 
@@ -126,7 +126,7 @@ class TestLookUpQuery:
         assert advert_types == expected_adverts
 
         # Cache should have been called with the correct key and the callback
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=ANY,
             callback=ANY,
             timeout=3600,
@@ -143,10 +143,10 @@ class TestLookUpQuery:
 
         request = request_factory.get("/fake")
 
-        with patch("apps.campus.BBL.Queries.get_lookup.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.get_lookup.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = LookUpQuery.get_lookup(request)
 
@@ -169,10 +169,10 @@ class TestLookUpQuery:
 
         request = request_factory.get("/fake")
 
-        with patch("apps.campus.BBL.Queries.get_lookup.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.get_lookup.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = LookUpQuery.get_lookup(request)
 

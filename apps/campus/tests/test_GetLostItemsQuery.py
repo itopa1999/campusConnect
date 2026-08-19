@@ -74,14 +74,14 @@ class TestGetLostItemsQuery:
         cached_data = {"items": [{"id": 1}], "pagination": {"current_page": 1}}
         request = request_factory.get("/?page=1&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = GetLostItemsQuery.get_items(request)
 
         assert result.is_success is True
         assert result.status_code == 200
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=ANY,
             callback=ANY,
             timeout=3600,
@@ -93,11 +93,11 @@ class TestGetLostItemsQuery:
         """Retrieve paginated lost items with default parameters."""
         request = request_factory.get("/?page=1&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             # Simulate cache miss by executing the callback
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -126,10 +126,10 @@ class TestGetLostItemsQuery:
         """Retrieve second page of results."""
         request = request_factory.get("/?page=2&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -147,10 +147,10 @@ class TestGetLostItemsQuery:
         """Test custom per_page parameter."""
         request = request_factory.get("/?page=1&per_page=5")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -167,10 +167,10 @@ class TestGetLostItemsQuery:
         """Invalid page (string) should default to page 1."""
         request = request_factory.get("/?page=invalid&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -184,10 +184,10 @@ class TestGetLostItemsQuery:
         """Page beyond total should return last page."""
         request = request_factory.get("/?page=999&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -199,10 +199,10 @@ class TestGetLostItemsQuery:
         """Test that image URL is built correctly when image exists."""
         request = request_factory.get("/?page=1&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -220,10 +220,10 @@ class TestGetLostItemsQuery:
         """When no image, image field should be None."""
         request = request_factory.get("/?page=1&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -235,10 +235,10 @@ class TestGetLostItemsQuery:
         """Ensure answer1 and answer2 are never included in the response."""
         request = request_factory.get("/?page=1&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -252,9 +252,9 @@ class TestGetLostItemsQuery:
         request = request_factory.get("/?page=1&per_page=10")
 
         with patch("apps.campus.BBL.Queries.lost_and_found.LostAndFound.objects.filter", side_effect=Exception("DB error")):
-            with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
-                # get_or_set will call the callback, which raises the exception
-                mock_get_or_set.side_effect = Exception("DB error")  # Simulate the exception bubbling up
+            with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
+                # aget_or_set will call the callback, which raises the exception
+                mock_aget_or_set.side_effect = Exception("DB error")  # Simulate the exception bubbling up
                 result = GetLostItemsQuery.get_items(request)
 
         assert result.is_success is False
@@ -266,10 +266,10 @@ class TestGetLostItemsQuery:
         LostAndFound.objects.all().delete()
         request = request_factory.get("/?page=1&per_page=10")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -286,10 +286,10 @@ class TestGetLostItemsQuery:
         """Negative per_page should default to 1."""
         request = request_factory.get("/?page=1&per_page=-5")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)
@@ -301,10 +301,10 @@ class TestGetLostItemsQuery:
         """per_page > 100 should be capped at 100."""
         request = request_factory.get("/?page=1&per_page=200")
 
-        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.lost_and_found.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             with patch.object(request, 'build_absolute_uri', return_value="http://testserver/media/test.jpg"):
                 result = GetLostItemsQuery.get_items(request)

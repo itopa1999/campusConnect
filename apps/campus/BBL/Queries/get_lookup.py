@@ -1,27 +1,19 @@
+from asgiref.sync import sync_to_async
 from apps.campus.models import Category, CampusHotspot, SubCategory
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import AdvertTypeEnum, CacheKeysEnum, ListingConditionEnum, ListingTypeEnum
+import asyncio
 
 
 class LookUpQuery:
     @staticmethod
-    def get_lookup(request, filters=None) -> BaseResultWithData:
-        """
-        Return all lookup data needed for the create‑listing page:
-        - categories (id, name, icon, description)
-        - subcategories (id, name, category_id, category_name)
-        - campus hotspots (id, name, description)
-        - badge choices (value, label)
-        - type choices (value, label)
-        - advert type choices
-        """
+    async def get_lookup(request, filters=None) -> BaseResultWithData:
         if filters is None:
             filters = request.GET.dict()
         else:
             filters = dict(filters)
 
-        # Include the new filter key 'is_subcategory'
         filter_keys = [
             'is_category',
             'is_subcategory', 
@@ -45,10 +37,10 @@ class LookUpQuery:
                 return False
             return str(value).lower() in ("true", "1", "yes")
 
+        @sync_to_async
         def build_lookup_data():
             data = {}
 
-            # ─── Categories ───
             if is_true(filters.get("is_category")):
                 categories_qs = Category.objects.filter(
                     is_deleted=False
@@ -65,7 +57,6 @@ class LookUpQuery:
                     for cat in categories_qs
                 ]
 
-            # ─── Subcategories (new) ───
             if is_true(filters.get("is_subcategory")):
                 subcategories_qs = SubCategory.objects.filter(
                     is_deleted=False
@@ -83,7 +74,6 @@ class LookUpQuery:
                     for sub in subcategories_qs
                 ]
 
-            # ─── Hotspots ───
             if is_true(filters.get("is_hotspot")):
                 hotspots_qs = CampusHotspot.objects.filter(
                     is_deleted=False
@@ -98,7 +88,6 @@ class LookUpQuery:
                     for hs in hotspots_qs
                 ]
 
-            # ─── Badge choices ───
             if is_true(filters.get("is_condition_choices")):
                 data["condition_choices"] = [
                     {
@@ -108,7 +97,6 @@ class LookUpQuery:
                     for choice in ListingConditionEnum.choices()
                 ]
 
-            # ─── Listing type choices ───
             if is_true(filters.get("is_type_choices")):
                 data["type_choices"] = [
                     {
@@ -118,19 +106,21 @@ class LookUpQuery:
                     for choice in ListingTypeEnum.choices()
                 ]
 
-            # ─── Advert type choices ───
             if is_true(filters.get("is_advert_type")):
                 data["advert_type"] = AdvertTypeEnum.choices()
 
             return data
 
-        data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_lookup_data,
-            timeout=3600,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_lookup_data,
+                timeout=3600,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
 
         return BaseResultWithData(
             message="Lookup data retrieved successfully",

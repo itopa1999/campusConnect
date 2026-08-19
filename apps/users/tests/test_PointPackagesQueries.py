@@ -101,11 +101,11 @@ class TestGetPointPackages:
     def test_get_point_packages_cache_hit(self, test_packages):
         """Return cached data if available."""
         cached_data = [{"id": 1, "points": 100}]
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = PointPackagesQueries.get_point_packages()
             assert result == cached_data
-            mock_get_or_set.assert_called_once_with(
+            mock_aget_or_set.assert_called_once_with(
                 key=CacheKeysEnum.POINT_PACKAGES.value,
                 callback=ANY,
                 timeout=86400,
@@ -115,10 +115,10 @@ class TestGetPointPackages:
 
     def test_get_point_packages_cache_miss(self, test_packages):
         """Fetch from DB, serialize, cache, and return."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_point_packages()
 
@@ -143,7 +143,7 @@ class TestGetPointPackages:
         expected_ppp = Decimal(str(round(18.00 / 200, 2)))
         assert first["price_per_point"] == expected_ppp
 
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=CacheKeysEnum.POINT_PACKAGES.value,
             callback=ANY,
             timeout=86400,
@@ -152,10 +152,10 @@ class TestGetPointPackages:
         )
 
     def test_get_point_packages_formatting(self, test_packages):
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_point_packages()
 
@@ -166,15 +166,15 @@ class TestGetPointPackages:
 
     def test_get_point_packages_empty(self, db):
         """If no packages, return empty list."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_point_packages()
             assert result == []
 
-            mock_get_or_set.assert_called_once_with(
+            mock_aget_or_set.assert_called_once_with(
                 key=CacheKeysEnum.POINT_PACKAGES.value,
                 callback=ANY,
                 timeout=86400,
@@ -188,10 +188,10 @@ class TestGetPointPackages:
         test_packages[0].is_deleted = True
         test_packages[0].save()
 
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_point_packages()
 
@@ -207,13 +207,13 @@ class TestGetPurchases:
     def test_get_purchases_cache_hit(self, test_user):
         """Return cached data if available."""
         cached_data = {"items": [{"id": 1}], "page": 1}
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = PointPackagesQueries.get_purchases(test_user, page=1, per_page=10)
 
         assert result.is_success is True
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=CacheKeysEnum.format(CacheKeysEnum.PURCHASES, user_id=test_user.id, page=1, per_page=10),
             callback=ANY,
             timeout=86400,
@@ -223,10 +223,10 @@ class TestGetPurchases:
 
     def test_get_purchases_cache_miss(self, test_user, test_purchases):
         """Fetch from DB, paginate, serialize, cache, and return."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_purchases(test_user, page=1, per_page=10)
 
@@ -268,7 +268,7 @@ class TestGetPurchases:
         assert "price_per_point" in pkg
         assert "savings_percentage" in pkg
 
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=CacheKeysEnum.format(CacheKeysEnum.PURCHASES, user_id=test_user.id, page=1, per_page=10),
             callback=ANY,
             timeout=86400,
@@ -278,10 +278,10 @@ class TestGetPurchases:
 
     def test_get_purchases_page_2(self, test_user, test_purchases):
         """Test second page."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_purchases(test_user, page=2, per_page=10)
 
@@ -293,10 +293,10 @@ class TestGetPurchases:
 
     def test_get_purchases_invalid_page(self, test_user, test_purchases):
         """Invalid page (string) should default to page 1."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_purchases(test_user, page="invalid", per_page=10)
 
@@ -304,10 +304,10 @@ class TestGetPurchases:
 
     def test_get_purchases_page_beyond_last(self, test_user, test_purchases):
         """Page beyond total should return last page."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_purchases(test_user, page=999, per_page=10)
 
@@ -316,10 +316,10 @@ class TestGetPurchases:
 
     def test_get_purchases_empty(self, test_user, db):
         """If no purchases, return empty list with pagination metadata."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_purchases(test_user, page=1, per_page=10)
 
@@ -338,13 +338,13 @@ class TestGetTransactions:
     def test_get_transactions_cache_hit(self, test_user):
         """Return cached data if available."""
         cached_data = {"items": [{"id": 1}], "page": 1}
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data
             result = PointPackagesQueries.get_transactions(test_user, page=1, per_page=10)
 
         assert result.is_success is True
         assert result.data == cached_data
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=CacheKeysEnum.format(CacheKeysEnum.TRANSACTIONS, user_id=test_user.id, page=1, per_page=10),
             callback=ANY,
             timeout=300,
@@ -354,10 +354,10 @@ class TestGetTransactions:
 
     def test_get_transactions_cache_miss(self, test_user, test_transactions):
         """Fetch from DB, paginate, serialize, cache, and return."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_transactions(test_user, page=1, per_page=10)
 
@@ -383,7 +383,7 @@ class TestGetTransactions:
         assert "purchase_id" in item
         assert "created_at" in item
 
-        mock_get_or_set.assert_called_once_with(
+        mock_aget_or_set.assert_called_once_with(
             key=CacheKeysEnum.format(CacheKeysEnum.TRANSACTIONS, user_id=test_user.id, page=1, per_page=10),
             callback=ANY,
             timeout=300,
@@ -393,10 +393,10 @@ class TestGetTransactions:
 
     def test_get_transactions_page_2(self, test_user, test_transactions):
         """Test second page."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_transactions(test_user, page=2, per_page=10)
 
@@ -408,10 +408,10 @@ class TestGetTransactions:
 
     def test_get_transactions_invalid_page(self, test_user, test_transactions):
         """Invalid page (string) should default to page 1."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_transactions(test_user, page="invalid", per_page=10)
 
@@ -419,10 +419,10 @@ class TestGetTransactions:
 
     def test_get_transactions_page_beyond_last(self, test_user, test_transactions):
         """Page beyond total should return last page."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_transactions(test_user, page=999, per_page=10)
 
@@ -431,10 +431,10 @@ class TestGetTransactions:
 
     def test_get_transactions_empty(self, test_user, db):
         """If no transactions, return empty list with pagination metadata."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_transactions(test_user, page=1, per_page=10)
 
@@ -445,10 +445,10 @@ class TestGetTransactions:
 
     def test_get_transactions_purchase_id_null(self, test_user, test_transactions):
         """If transaction has no purchase, purchase_id should be None."""
-        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.users.BBL.Queries.point_packages.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = PointPackagesQueries.get_transactions(test_user, page=1, per_page=20)
 

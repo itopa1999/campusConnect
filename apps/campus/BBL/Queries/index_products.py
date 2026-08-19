@@ -44,7 +44,7 @@ class IndexProductsQuery:
             return {'listings': listings_data}
 
         # ── Atomic cache get-or-set with stampede protection ──
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_index_products_data,
             timeout=3600,

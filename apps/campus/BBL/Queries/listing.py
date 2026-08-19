@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 from apps.campus.models import Favourite, Listing, Review
 from apps.campus.utils import get_listing_detail_info
 from apps.users.models import User
@@ -8,15 +9,12 @@ from django.db.models import Avg, Count, Prefetch, Q
 from utils.enums import CacheKeysEnum, GroupNamesEnum, ListingStatusTypeEnum, ListingTypeEnum
 from utils.helpers import humanize_date
 from django.core.paginator import Paginator
+import asyncio
 
 
 class ListingQuery:
     @staticmethod
-    def get_listing_detail(request, user: User, listing_id: int) -> BaseResultWithData:
-        """
-        Fetch full details of a listing owned by the user.
-        """
-
+    async def get_listing_detail(request, user: User, listing_id: int) -> BaseResultWithData:
         if not listing_id:
             return BaseResultWithData(
                 message="Listing Id is required",
@@ -25,8 +23,8 @@ class ListingQuery:
 
         cache_key = CacheKeysEnum.format(CacheKeysEnum.LISTING_DETAIL, user_id=user.id, listing_id=listing_id)
 
+        @sync_to_async
         def build_listing_detail_data():
-            """Heavy computation callback – runs only on cache miss."""
             listing = Listing.objects.filter(
                 id=listing_id,
                 user=user,
@@ -40,14 +38,12 @@ class ListingQuery:
             ).first()
 
             if not listing:
-                return None  # Will be cached as CACHE_NULL
+                return None
 
-            # Prepare hotspot IDs and names using prefetched hotspots
             hotspots = list(listing.hotspots.all())
             hotspot_ids = [h.id for h in hotspots]
             hotspot_names = [h.name for h in hotspots]
 
-            # --- Reviews for this listing (prefetched) ---
             review_count = getattr(listing, 'review_count', 0) or 0
             avg_rating = getattr(listing, 'avg_rating', 0.0) or 0.0
 
@@ -60,9 +56,7 @@ class ListingQuery:
                     'created_at': humanize_date(rev.created_at),
                 })
 
-            image_url = None
-            if listing.image:
-                image_url = listing.image.url
+            image_url = listing.image.url if listing.image else None
 
             return {
                 'id': listing.id,
@@ -90,7 +84,7 @@ class ListingQuery:
             }
 
         try:
-            data = GlobalCache.get_or_set(
+            data = await GlobalCache.aget_or_set(
                 key=cache_key,
                 callback=build_listing_detail_data,
                 timeout=3600,
@@ -110,30 +104,25 @@ class ListingQuery:
                 status_code=200
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             return BaseResultWithData(
                 message=f"An error occurred: {str(e)}",
                 status_code=500
             )
-        
 
     @staticmethod
-    def get_categorized_listings(request, user, filters=None) -> BaseResultWithData:
-        """
-        Fetch categorized listings with section-based rules.
-        """
-        # --- Parse filters ---
+    async def get_categorized_listings(request, user, filters=None) -> BaseResultWithData:
         if filters is None:
             filters = request.GET.dict() if request else {}
         else:
             filters = dict(filters)
 
-        # --- Pagination (only relevant for non-banner sections) ---
         page = int(filters.get('page', 1))
         per_page = int(filters.get('per_page', 8))
         per_page = max(1, min(per_page, 100))
 
-        # --- Section validation ---
         raw_section = filters.get('section')
         if not raw_section:
             return BaseResultWithData(
@@ -143,7 +132,6 @@ class ListingQuery:
 
         section = raw_section.lower()
 
-    
         listing_type_values = [v.lower() for v in ListingTypeEnum.values()]
         valid_sections = listing_type_values + ['banner', 'departmental', 'search']
         if section not in valid_sections:
@@ -152,7 +140,6 @@ class ListingQuery:
                 status_code=400
             )
 
-        # --- Build cache key (filters only for search) ---
         if section == 'search':
             filter_keys = ['max_price', 'category_name', 'listing_type', 'search_query', 'condition', 'date_from', 'date_to']
             filter_parts = []
@@ -165,7 +152,6 @@ class ListingQuery:
         else:
             filter_str = ''
 
-        # User is always authenticated, so user.id is safe
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.CATEGORIZED_LISTINGS,
             user_id=user.id,
@@ -175,9 +161,8 @@ class ListingQuery:
             filters=filter_str
         )
 
+        @sync_to_async
         def build_categorized_listings_data():
-            """Callback executed on cache miss."""
-            # --- Base queryset ---
             base_qs = Listing.objects.filter(
                 status__iexact=ListingStatusTypeEnum.ACTIVE.value,
                 is_deleted=False,
@@ -192,14 +177,11 @@ class ListingQuery:
                 'accommodation_details'
             ).prefetch_related('hotspots')
 
-            # --- Section-specific logic ---
             if section == 'banner':
                 qs = base_qs.filter(is_ads_banner=True).order_by('-created_at')
                 items = []
                 for listing in qs:
-                    image_url = None
-                    if listing.image and request:
-                        image_url = listing.image.url
+                    image_url = listing.image.url if listing.image and request else None
                     price, category_name, category_icon = get_listing_detail_info(listing)
                     items.append({
                         'id': listing.id,
@@ -222,7 +204,6 @@ class ListingQuery:
                     qs = base_qs.none()
             elif section == 'search':
                 qs = base_qs
-                # Apply search filters (only if present)
                 price = filters.get('max_price')
                 if price is not None:
                     try:
@@ -245,7 +226,7 @@ class ListingQuery:
 
                 condition = filters.get('condition')
                 if condition:
-                    qs = qs.filter(sell_details__condition__icontains=condition) 
+                    qs = qs.filter(sell_details__condition__icontains=condition)
 
                 search = filters.get('search_query')
                 if search:
@@ -261,9 +242,8 @@ class ListingQuery:
                 if date_to:
                     qs = qs.filter(created_at__date__lte=date_to)
             else:
-                qs = base_qs.none()  # fallback
+                qs = base_qs.none()
 
-            # --- Order and paginate (all non-banner sections) ---
             qs = qs.order_by('-created_at')
             paginator = Paginator(qs, per_page)
             page_obj = paginator.get_page(page)
@@ -286,10 +266,7 @@ class ListingQuery:
 
             items = []
             for listing in page_obj:
-                image_url = None
-                if listing.image and request:
-                    image_url = listing.image.url
-
+                image_url = listing.image.url if listing.image and request else None
                 price, category_name, category_icon = get_listing_detail_info(listing)
                 hotspots = listing.hotspots.values_list("name", flat=True).first() or "Campus"
                 items.append({
@@ -319,14 +296,16 @@ class ListingQuery:
                 },
             }
 
-        # --- Cache or compute ---
-        data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_categorized_listings_data,
-            timeout=600,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_categorized_listings_data,
+                timeout=600,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
 
         return BaseResultWithData(
             message="Categorized listings retrieved successfully",
@@ -335,12 +314,7 @@ class ListingQuery:
         )
 
     @staticmethod
-    def listing_details(request, listing_id: int) -> BaseResultWithData:
-        """
-        Fetch public details of a listing for viewing by any user.
-        Respects the seller's visibility setting.
-        Returns common listing fields, seller info, and type-specific details.
-        """
+    async def listing_details(request, listing_id: int) -> BaseResultWithData:
         if not listing_id:
             return BaseResultWithData(
                 message="Listing ID is required.",
@@ -353,9 +327,8 @@ class ListingQuery:
             listing_id=listing_id
         )
 
+        @sync_to_async
         def build_public_listing_details():
-            """Heavy computation callback – runs only on cache miss."""
-            # ─── Fetch base listing with all three detail relations ──────────
             listing = Listing.objects.filter(
                 id=listing_id,
                 is_deleted=False,
@@ -385,14 +358,9 @@ class ListingQuery:
 
             listing_type = listing.listing_type.lower()
 
-            # ─── Build common listing fields ──────────────────────────────────
-            image_url = None
-            if listing.image:
-                image_url = listing.image.url
-
+            image_url = listing.image.url if listing.image else None
             hotspots = [h.name for h in list(listing.hotspots.all())]
 
-            # ─── Reviews ──────────────────────────────────────────────────────
             review_count = getattr(listing, 'review_count', 0) or 0
             avg_rating = getattr(listing, 'avg_rating', 0.0) or 0.0
             reviews_list = []
@@ -404,7 +372,6 @@ class ListingQuery:
                     'date': humanize_date(rev.created_at),
                 })
 
-            # ─── Seller information (with privacy) ──────────────────────────
             seller = listing.user
             visibility = seller.visibility
 
@@ -508,7 +475,6 @@ class ListingQuery:
             else:
                 details = {}
 
-            # ─── Build final response ────────────────────────────────────────
             return {
                 'id': listing.id,
                 'listing_type': listing.listing_type,
@@ -530,7 +496,7 @@ class ListingQuery:
             }
 
         try:
-            data = GlobalCache.get_or_set(
+            data = await GlobalCache.aget_or_set(
                 key=cache_key,
                 callback=build_public_listing_details,
                 timeout=3600,
@@ -550,6 +516,8 @@ class ListingQuery:
                 status_code=200
             )
 
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             return BaseResultWithData(
                 message=f"An error occurred: {str(e)}",

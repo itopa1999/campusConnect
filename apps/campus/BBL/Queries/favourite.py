@@ -1,4 +1,4 @@
-
+from asgiref.sync import sync_to_async
 from apps.campus.models import Favourite
 from apps.campus.utils import get_listing_detail_info
 from utils.base_result import BaseResultWithData
@@ -6,14 +6,11 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
+import asyncio
 
 class FavouriteQuery:
     @staticmethod
-    def get_favourites(request, filters = None) -> BaseResultWithData:
-        """
-        Retrieve paginated favourites for the current user.
-        Each item includes: id, title, price, category, image (absolute URL), badge, hotspots.
-        """
+    async def get_favourites(request, filters=None) -> BaseResultWithData:
         user = request.user
 
         if filters is None:
@@ -21,26 +18,12 @@ class FavouriteQuery:
         else:
             filters = dict(filters)
 
-        page = filters.get('page', 1)
-        per_page = filters.get('per_page', 10)
+        page = int(filters.get('page', 1))
+        per_page = int(filters.get('per_page', 10))
+        page = max(1, page)
+        per_page = max(1, min(100, per_page))
 
-        try:
-            page = int(page)
-        except (ValueError, TypeError):
-            page = 1
-
-        try:
-            per_page = int(per_page)
-        except (ValueError, TypeError):
-            per_page = 10
-
-        if per_page < 1:
-            per_page = 1
-        if per_page > 100:
-            per_page = 100
-
-        # --- Build cache key (filters only for search) ---
-        filter_keys = ['search',]
+        filter_keys = ['search']
         filter_values = []
         for key in filter_keys:
             value = filters.get(key)
@@ -51,12 +34,13 @@ class FavouriteQuery:
 
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.FAVOURITE,
-            user_id = user.id,
+            user_id=user.id,
             page=page,
             per_page=per_page,
             filters=filter_str
         )
         
+        @sync_to_async
         def build_favourites_data():
             favourites_qs = Favourite.objects.select_related(
                 'listing',
@@ -84,9 +68,7 @@ class FavouriteQuery:
             items = []
             for fav in page_obj:
                 listing = fav.listing
-                image_url = None
-                if listing.image:
-                    image_url = listing.image.url
+                image_url = listing.image.url if listing.image else None
 
                 hotspot_name = listing.hotspots.values_list('name', flat=True).first()
                 hotspots = hotspot_name or "Campus"
@@ -118,13 +100,17 @@ class FavouriteQuery:
                 },
             }
 
-        data = GlobalCache.get_or_set(
-            key=cache_key,
-            callback=build_favourites_data,
-            timeout=600,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_favourites_data,
+                timeout=600,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
+
         return BaseResultWithData(
             message="Favourites retrieved successfully",
             data=data,

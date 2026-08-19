@@ -98,7 +98,7 @@ class NotificationQueries:
                 }
             }
 
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_notifications_data,
             timeout=300,
@@ -148,7 +148,7 @@ class NotificationQueries:
                 "unread_messages_counts": unread_messages_counts
             }
 
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_header_notifications_data,
             timeout=120,

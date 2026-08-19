@@ -111,17 +111,17 @@ class TestDashboardQuery:
 
     def test_get_dashboard_cache_miss(self, test_user, active_listings, expired_listings, reviews,
                                       request_factory):
-        """Test cache miss: data is built and stored via get_or_set callback."""
+        """Test cache miss: data is built and stored via aget_or_set callback."""
         request = request_factory.get("/fake")
         request.user = test_user
 
-        # Patch get_or_set to call the callback immediately (simulate cache miss)
-        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.get_or_set") as mock_get_or_set:
+        # Patch aget_or_set to call the callback immediately (simulate cache miss)
+        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.aget_or_set") as mock_aget_or_set:
 
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()  # call the builder
 
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = DashboardQuery.get_dashboard(request)
 
@@ -151,8 +151,8 @@ class TestDashboardQuery:
         assert "comment" in all_reviews[0]
         assert "date" in all_reviews[0]
 
-        # Verify get_or_set was called with correct parameters
-        mock_get_or_set.assert_called_once_with(
+        # Verify aget_or_set was called with correct parameters
+        mock_aget_or_set.assert_called_once_with(
             key=ANY,
             callback=ANY,
             timeout=3600,
@@ -166,8 +166,8 @@ class TestDashboardQuery:
         request = request_factory.get("/fake")
         request.user = test_user
 
-        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.get_or_set") as mock_get_or_set:
-            mock_get_or_set.return_value = cached_data  # cache hit
+        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.aget_or_set") as mock_aget_or_set:
+            mock_aget_or_set.return_value = cached_data  # cache hit
 
             result = DashboardQuery.get_dashboard(request)
 
@@ -175,8 +175,8 @@ class TestDashboardQuery:
         assert result.status_code == 200
         assert result.data == cached_data
 
-        # get_or_set called, but the callback was not executed (cache hit)
-        mock_get_or_set.assert_called_once_with(
+        # aget_or_set called, but the callback was not executed (cache hit)
+        mock_aget_or_set.assert_called_once_with(
             key=ANY,
             callback=ANY,
             timeout=3600,
@@ -192,20 +192,20 @@ class TestDashboardQuery:
         request = request_factory.get("/fake")
         request.user = test_user
 
-        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = DashboardQuery.get_dashboard(request)
             assert result.data["trust_score"] == 0.0
 
         test_user.average_rating = 0  # already 0, but keep
         test_user.save()
-        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.aget_or_set") as mock_aget_or_set:
             def side_effect(key, callback, timeout, lock_timeout, max_wait):
                 return callback()
-            mock_get_or_set.side_effect = side_effect
+            mock_aget_or_set.side_effect = side_effect
 
             result = DashboardQuery.get_dashboard(request)
             assert result.data["trust_score"] == 0.0
@@ -215,15 +215,15 @@ class TestDashboardQuery:
         request = request_factory.get("/fake")
         request.user = test_user
 
-        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.get_or_set") as mock_get_or_set:
+        with patch("apps.campus.BBL.Queries.get_dashboard.GlobalCache.aget_or_set") as mock_aget_or_set:
             # We need to mock calculate_profile_completion inside the callback.
-            # Since the callback is executed inside get_or_set, we patch it at the module level.
+            # Since the callback is executed inside aget_or_set, we patch it at the module level.
             with patch("apps.campus.BBL.Queries.get_dashboard.calculate_profile_completion") as mock_completion:
                 mock_completion.return_value = 75.5
 
                 def side_effect(key, callback, timeout, lock_timeout, max_wait):
                     return callback()
-                mock_get_or_set.side_effect = side_effect
+                mock_aget_or_set.side_effect = side_effect
 
                 result = DashboardQuery.get_dashboard(request)
 

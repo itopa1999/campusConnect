@@ -38,7 +38,7 @@ class PointPackagesQueries:
                 for pkg in queryset
             ]
 
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_point_packages_data,
             timeout=86400,
@@ -166,7 +166,7 @@ class PointPackagesQueries:
                 }
             }
 
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_purchases_data,
             timeout=86400,
@@ -284,7 +284,7 @@ class PointPackagesQueries:
                 }
             }
 
-        data = GlobalCache.get_or_set(
+        data = GlobalCache.aget_or_set(
             key=cache_key,
             callback=build_transactions_data,
             timeout=300, 
