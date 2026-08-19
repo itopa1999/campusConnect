@@ -28,7 +28,7 @@ class IndexProductsQuery:
                 location = hotspots[0].name if hotspots else "Campus"
                 image_url = None
                 if listing.image:
-                    image_url = request.build_absolute_uri(listing.image.url)
+                    image_url = listing.image.url
                 listings_data.append({
                     'id': listing.id,
                     'title': listing.title,

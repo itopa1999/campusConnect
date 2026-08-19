@@ -7,7 +7,7 @@ from utils.base_model import BaseModel
 from utils.cache_helper import GlobalCache
 from utils.constant_helper import ConstantHelper
 from utils.enums import BadgeChoiceEnum, CacheKeysEnum
-from utils.helpers import BadgeService, convert_to_webp
+from utils.helpers import BadgeService, cloudinary_conversion_to_webp
 from django.utils import timezone
 
 @receiver(pre_save)
@@ -32,50 +32,71 @@ def auto_fill_audit_fields(sender, instance, **kwargs):
         
 
 @receiver(pre_save, sender=User)
-def store_old_images(sender, instance, **kwargs):
-    """Store the old image fields before the instance is saved."""
-    if instance.pk:
-        try:
-            old = sender.objects.get(pk=instance.pk)
-            instance._old_profile_picture = old.profile_picture
-            instance._old_student_id = old.student_id_photo
-        except sender.DoesNotExist:
-            instance._old_profile_picture = None
-            instance._old_student_id = None
-    else:
-        instance._old_profile_picture = None
-        instance._old_student_id = None
+def convert_updated_images_to_webp(sender, instance, **kwargs):
 
-@receiver(post_save, sender=User)
-def convert_updated_images_to_webp(sender, instance, created, **kwargs):
-    """Convert only the image field(s) that were updated."""
-    # Avoid infinite recursion
-    if getattr(instance, '_converting_images', False):
+    if not instance.pk:
+        if instance.profile_picture:
+            cloudinary_conversion_to_webp(
+                instance=instance,
+                image=instance.profile_picture,
+                field_name="profile_picture",
+            )
+
+        if instance.student_id_photo:
+            cloudinary_conversion_to_webp(
+                instance=instance,
+                image=instance.student_id_photo,
+                field_name="student_id_photo",
+            )
+
         return
 
-    updated_fields = []
+    try:
+        old_instance = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        old_instance = None
 
-    # Check if profile_picture changed and needs conversion
-    if (instance.profile_picture and 
-        instance.profile_picture != instance._old_profile_picture and
-        not instance.profile_picture.name.lower().endswith('.webp')):
-        if convert_to_webp(instance, 'profile_picture', quality=30):
-            updated_fields.append('profile_picture')
+    if not old_instance:
+        return
 
-    # Check if student_id_photo changed and needs conversion
-    if (instance.student_id_photo and 
-        instance.student_id_photo != instance._old_student_id and
-        not instance.student_id_photo.name.lower().endswith('.webp')):
-        if convert_to_webp(instance, 'student_id_photo', quality=30):
-            updated_fields.append('student_id_photo')
+    current_profile = instance.profile_picture
+    old_profile = old_instance.profile_picture
 
-    # If any conversion happened, save only those fields
-    if updated_fields:
-        instance._converting_images = True
-        instance.save(update_fields=updated_fields)
-        instance._converting_images = False
+    profile_changed = (
+        bool(current_profile)
+        and (
+            not old_profile
+            or current_profile.name != old_profile.name
+        )
+    )
+
+    if profile_changed:
+        cloudinary_conversion_to_webp(
+            instance=instance,
+            image=current_profile,
+            field_name="profile_picture",
+        )
 
 
+    current_student_id = instance.student_id_photo
+    old_student_id = old_instance.student_id_photo
+
+    student_id_changed = (
+        bool(current_student_id)
+        and (
+            not old_student_id
+            or current_student_id.name != old_student_id.name
+        )
+    )
+
+    if student_id_changed:
+        cloudinary_conversion_to_webp(
+            instance=instance,
+            image=current_student_id,
+            field_name="student_id_photo",
+        )
+
+    
 
 # for cache
 

@@ -96,7 +96,7 @@ class CategoryQuery:
                 'title': listing.title,
                 'description': listing.description,
                 'price': float(listing.price) if listing.price else 0,
-                'image':request.build_absolute_uri(listing.image.url) if listing.image else None,
+                'image':listing.image.url if listing.image else None,
                 'listing_type': listing.listing_type,
                 'status': listing.status,
                 'is_ads_banner': listing.is_ads_banner,

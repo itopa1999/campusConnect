@@ -259,7 +259,7 @@ class AuthCommand:
             op.success(f"Login successful for user: {user.first_name or user.email}")
             
             if user.profile_picture and hasattr(user.profile_picture, 'url'):
-                profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
+                profile_pic_url = user.profile_picture.url
             else:
                 profile_pic_url = None
 
@@ -328,17 +328,17 @@ class AuthCommand:
             if not user:
                 op.fail(f"[AuthCommand.ForgotPassword] No account found for email: {email}")
                 return BaseResultWithData(
-                    message="Account with email doesn't exists",
+                    message="If an account with that email exists, an email containing a new password has been sent",
                     data=None,
-                    status_code=400
+                    status_code=200
                 )
 
             if not is_email_verified(user):
                 op.fail(f"[AuthCommand.ForgotPassword] Email not verified for user: {user.first_name or user.email}")
                 return BaseResultWithData(
-                    message="Email not verified.",
+                    message="If an account with that email exists, an email containing a new password has been sent",
                     data=None,
-                    status_code=400
+                    status_code=200
                 )
             
             verification_token = AccountCommand._create_verification_token(user, token_type=TokenTypeEnum.PASSWORD_RESET.value)
@@ -666,7 +666,7 @@ class AuthCommand:
             new_access = new_refresh.access_token
 
             if user.profile_picture and hasattr(user.profile_picture, 'url'):
-                profile_pic_url = request.build_absolute_uri(user.profile_picture.url)
+                profile_pic_url = user.profile_picture.url
             else:
                 profile_pic_url = None
 

@@ -167,6 +167,7 @@ class ProfileCommand:
         try:
             img = Image.open(image_file)
             img.verify()
+            image_file.seek(0)
         except Exception:
             op.fail(f"Invalid image file while update_profile_picture for user: {user.first_name or user.email}")
             return BaseResultWithData(
@@ -178,10 +179,14 @@ class ProfileCommand:
             with transaction.atomic():
                 if user.profile_picture and user.profile_picture.name:
                     try:
-                        default_storage.delete(user.profile_picture.path)
+                        user.profile_picture.delete(save=False)
                     except Exception as e:
                         op.fail(f"Could not delete old picture while update_profile_picture for user: {user.first_name or user.email}:  {e}")
-
+                        return BaseResultWithData(
+                            message="Could not remove the previous profile picture.",
+                            status_code=500
+                        )
+                    
                 user.profile_picture = image_file
 
                 user.save(update_fields=['profile_picture'])
@@ -190,7 +195,7 @@ class ProfileCommand:
                 return BaseResultWithData(
                     message="Profile picture updated successfully.",
                     data = {
-                        'profile_picture_url': request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
+                        'profile_picture_url': user.profile_picture.url if user.profile_picture else None
                     },
                     status_code=200
                 )
@@ -243,6 +248,7 @@ class ProfileCommand:
         try:
             img = Image.open(image_file)
             img.verify()
+            image_file.seek(0)
         except Exception:
             op.fail(f"Invalid image file while upload_student_id for user: {user.first_name or user.email}")
             return BaseResultWithData(
@@ -254,10 +260,14 @@ class ProfileCommand:
             with transaction.atomic():
                 if user.student_id_photo and user.student_id_photo.name:
                     try:
-                        default_storage.delete(user.student_id_photo.path)
+                        user.student_id_photo.delete(save=False)
                     except Exception as e:
                         op.fail(f"Could not delete old picture while upload_student_id for user: {user.first_name or user.email}: {e}")
-
+                        return BaseResultWithData(
+                            message="Could not remove the previous Id picture.",
+                            status_code=500
+                        )
+                    
                 user.student_id_photo = image_file
                 user.student_id_verified_status = UserIdVerificationEnum.PENDING.value
 

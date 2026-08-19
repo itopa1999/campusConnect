@@ -213,6 +213,84 @@ def convert_to_webp(instance, field_name, quality=30):
         return False
     
 
+def cloudinary_conversion_to_webp(instance, image, field_name):
+    """
+    Convert an uploaded image to a real WebP image.
+
+    The image content is decoded and re-encoded using Pillow.
+    The resulting WebP file is assigned back to the specified
+    ImageField.
+
+    Args:
+        instance: Django model instance.
+        image: The uploaded ImageField file.
+        field_name: Name of the ImageField on the model.
+
+    Returns:
+        True  -> image was converted successfully
+        False -> image was already WebP or conversion failed
+    """
+
+    try:
+        from PIL import Image, ImageOps
+        from io import BytesIO
+        from django.core.files.base import ContentFile
+
+        image.open("rb")
+
+        with Image.open(image) as original:
+
+            if original.format == "WEBP":
+                return False
+
+            img = ImageOps.exif_transpose(original)
+
+            img.load()
+
+            if "A" in img.getbands():
+                img = img.convert("RGBA")
+            else:
+                img = img.convert("RGB")
+
+            output = BytesIO()
+
+            img.save(
+                output,
+                format="WEBP",
+                quality=60,
+                method=6,
+                lossless=False,
+            )
+
+            webp_data = output.getvalue()
+
+        if not webp_data:
+            raise ValueError("WebP conversion produced an empty file.")
+
+        converted_file = ContentFile(
+            webp_data,
+            name="converted.webp",
+        )
+
+        converted_file.seek(0)
+
+        setattr(
+            instance,
+            field_name,
+            converted_file,
+        )
+
+        return True
+
+    except Exception as e:
+        print(
+            f"Error converting {field_name} to WebP: {e}"
+        )
+        return False
+
+
+
+    
 def parse_bool(val):
     if isinstance(val, bool):
         return val

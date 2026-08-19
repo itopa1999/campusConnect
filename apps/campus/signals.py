@@ -5,61 +5,77 @@ from apps.campus.models import CampusHotspot, Category, Favourite, Listing, Lost
 from apps.users.models import PointPackage, PointPurchase, PointTransaction
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
-from utils.helpers import convert_to_webp
-
+from utils.helpers import cloudinary_conversion_to_webp
 
 @receiver(pre_save, sender=LostAndFound)
-def store_old_lostfound_image(sender, instance, **kwargs):
-    if instance.pk:
-        try:
-            old = sender.objects.get(pk=instance.pk)
-            instance._old_image = old.image
-        except sender.DoesNotExist:
-            instance._old_image = None
-    else:
-        instance._old_image = None
+def convert_lostfound_image(sender, instance, **kwargs):
 
-@receiver(post_save, sender=LostAndFound)
-def convert_lostfound_image(sender, instance, created, **kwargs):
-    if getattr(instance, '_converting_images', False):
+    image = instance.image
+    if not image or not image.name:
         return
-    updated = False
-    if (instance.image and 
-        instance.image != instance._old_image and
-        not instance.image.name.lower().endswith('.webp')):
-        if convert_to_webp(instance, 'image', quality=30):
-            updated = True
-    if updated:
-        instance._converting_images = True
-        instance.save(update_fields=['image'])
-        instance._converting_images = False
 
-@receiver(pre_save, sender=Listing)
-def store_old_listing_image(sender, instance, **kwargs):
-    if instance.pk:
-        try:
-            old = sender.objects.get(pk=instance.pk)
-            instance._old_image = old.image
-        except sender.DoesNotExist:
-            instance._old_image = None
-    else:
-        instance._old_image = None
+    if not instance.pk:
+        cloudinary_conversion_to_webp(
+            instance=instance,
+            image=image,
+            field_name="image",
+        )
+        return
+
+    try:
+        old_instance = LostAndFound.objects.get(pk=instance.pk)
+    except LostAndFound.DoesNotExist:
+        cloudinary_conversion_to_webp(
+            instance=instance,
+            image=image,
+            field_name="image",
+        )
+        return
+
+    old_image = old_instance.image
+
+    if old_image and old_image.name == image.name:
+        return
+    
+    cloudinary_conversion_to_webp(
+        instance=instance,
+        image=image,
+    )
+
 
 @receiver(post_save, sender=Listing)
-def convert_listing_image(sender, instance, created, **kwargs):
-    if getattr(instance, '_converting_images', False):
-        return
-    updated = False
-    if (instance.image and 
-        instance.image != instance._old_image and
-        not instance.image.name.lower().endswith('.webp')):
-        if convert_to_webp(instance, 'image', quality=30):
-            updated = True
-    if updated:
-        instance._converting_images = True
-        instance.save(update_fields=['image'])
-        instance._converting_images = False
+def convert_listing_image(sender, instance, **kwargs):
 
+    image = instance.image
+    if not image or not image.name:
+        return
+
+    if not instance.pk:
+        cloudinary_conversion_to_webp(
+            instance=instance,
+            image=image,
+        )
+        return
+
+    try:
+        old_instance = Listing.objects.get(pk=instance.pk)
+    except Listing.DoesNotExist:
+        cloudinary_conversion_to_webp(
+            instance=instance,
+            image=image,
+        )
+        return
+
+    old_image = old_instance.image
+
+    if old_image and old_image.name == image.name:
+        return
+        
+    
+    cloudinary_conversion_to_webp(
+        instance=instance,
+        image=image,
+    )
 
 
 # for cache invalidation

@@ -46,7 +46,7 @@ class ListingSerializer(serializers.ModelSerializer):
     online_available = serializers.BooleanField(default=False, required=False)
 
     # Accommodation-specific
-    purpose = serializers.ChoiceField(choices=PurposeChoicesEnum.choices(), required=False)
+    purpose = serializers.CharField(max_length=100, required=False)
     property_type = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
     bedrooms = serializers.IntegerField(default=1, required=False)
     bathrooms = serializers.IntegerField(default=1, required=False)
@@ -59,8 +59,8 @@ class ListingSerializer(serializers.ModelSerializer):
     security = serializers.BooleanField(default=False, required=False)
     parking = serializers.BooleanField(default=False, required=False)
     distance_to_campus = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
-    preferred_gender = serializers.ChoiceField(choices=[('M', 'Male'), ('F', 'Female'), ('A', 'Any')], required=False, allow_null=True)
-    preferred_student_type = serializers.ChoiceField(choices=[('UG', 'Undergrad'), ('G', 'Graduate'), ('A', 'Any')], required=False, allow_null=True)
+    preferred_gender = serializers.CharField(max_length=50, required=False, allow_null=True)
+    preferred_student_type = serializers.CharField(max_length=50,required=False, allow_null=True)
     max_occupants = serializers.IntegerField(default=1, required=False)
     roommate_notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 

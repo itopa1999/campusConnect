@@ -97,92 +97,94 @@ class GlobalCache:
         multiple requests attempt to populate the same cache key.
         """
 
-        build_key = GlobalCache._key(key)
-        lock_key = f"{build_key}:lock"
+        return callback()
 
-        op = OperationLogger(
-            "cache_get_or_set",
-            data={"cache_key": build_key}
-        )
-        op.start()
+    #     build_key = GlobalCache._key(key)
+    #     lock_key = f"{build_key}:lock"
 
-        try:
-            # Fast path
-            cached = cache.get(build_key)
+    #     op = OperationLogger(
+    #         "cache_get_or_set",
+    #         data={"cache_key": build_key}
+    #     )
+    #     op.start()
 
-            if cached is not None:
-                return None if cached == CACHE_NULL else cached
+    #     try:
+    #         # Fast path
+    #         cached = cache.get(build_key)
 
-            # Attempt lock acquisition
-            acquired = cache.add(
-                lock_key,
-                "1",
-                timeout=lock_timeout
-            )
+    #         if cached is not None:
+    #             return None if cached == CACHE_NULL else cached
 
-            if acquired:
-                try:
-                    value = callback()
+    #         # Attempt lock acquisition
+    #         acquired = cache.add(
+    #             lock_key,
+    #             "1",
+    #             timeout=lock_timeout
+    #         )
 
-                    GlobalCache.set(
-                        key=key,
-                        value=value,
-                        timeout=timeout
-                    )
+    #         if acquired:
+    #             try:
+    #                 value = callback()
 
-                    return value
+    #                 GlobalCache.set(
+    #                     key=key,
+    #                     value=value,
+    #                     timeout=timeout
+    #                 )
 
-                finally:
-                    cache.delete(lock_key)
+    #                 return value
 
-            # Wait for lock holder to populate cache
-            start = time.monotonic()
-            wait_interval = 0.1
+    #             finally:
+    #                 cache.delete(lock_key)
 
-            while time.monotonic() - start < max_wait:
+    #         # Wait for lock holder to populate cache
+    #         start = time.monotonic()
+    #         wait_interval = 0.1
 
-                cached = cache.get(build_key)
+    #         while time.monotonic() - start < max_wait:
 
-                if cached is not None:
-                    return (
-                        None
-                        if cached == CACHE_NULL
-                        else cached
-                    )
+    #             cached = cache.get(build_key)
 
-                time.sleep(wait_interval)
+    #             if cached is not None:
+    #                 return (
+    #                     None
+    #                     if cached == CACHE_NULL
+    #                     else cached
+    #                 )
 
-                wait_interval = min(
-                    wait_interval * 1.5,
-                    0.5
-                )
+    #             time.sleep(wait_interval)
 
-            # Final cache check
-            cached = cache.get(build_key)
+    #             wait_interval = min(
+    #                 wait_interval * 1.5,
+    #                 0.5
+    #             )
 
-            if cached is not None:
-                return (
-                    None
-                    if cached == CACHE_NULL
-                    else cached
-                )
+    #         # Final cache check
+    #         cached = cache.get(build_key)
 
-            # Fallback computation
-            value = callback()
+    #         if cached is not None:
+    #             return (
+    #                 None
+    #                 if cached == CACHE_NULL
+    #                 else cached
+    #             )
 
-            GlobalCache.set(
-                key=key,
-                value=value,
-                timeout=timeout
-            )
+    #         # Fallback computation
+    #         value = callback()
 
-            return value
+    #         GlobalCache.set(
+    #             key=key,
+    #             value=value,
+    #             timeout=timeout
+    #         )
 
-        except Exception as e:
-            op.fail(
-                f"Cache get_or_set failed for key '{build_key}': {e}"
-            )
-            raise
+    #         return value
+
+    #     except Exception as e:
+    #         op.fail(
+    #             f"Cache get_or_set failed for key '{build_key}': {e}"
+    #         )
+    #         raise
 
     @staticmethod
     def delete(key: str) -> bool:

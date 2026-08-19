@@ -86,10 +86,7 @@ class FavouriteQuery:
                 listing = fav.listing
                 image_url = None
                 if listing.image:
-                    if request:
-                        image_url = request.build_absolute_uri(listing.image.url)
-                    else:
-                        image_url = listing.image.url
+                    image_url = listing.image.url
 
                 hotspot_name = listing.hotspots.values_list('name', flat=True).first()
                 hotspots = hotspot_name or "Campus"

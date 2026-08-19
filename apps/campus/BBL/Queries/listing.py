@@ -62,7 +62,7 @@ class ListingQuery:
 
             image_url = None
             if listing.image:
-                image_url = request.build_absolute_uri(listing.image.url)
+                image_url = listing.image.url
 
             return {
                 'id': listing.id,
@@ -179,7 +179,7 @@ class ListingQuery:
             """Callback executed on cache miss."""
             # --- Base queryset ---
             base_qs = Listing.objects.filter(
-                status=ListingStatusTypeEnum.ACTIVE.value,
+                status__iexact=ListingStatusTypeEnum.ACTIVE.value,
                 is_deleted=False,
                 user__is_active=True
             ).exclude(user__groups__name=GroupNamesEnum.ADMIN.value)
@@ -199,7 +199,7 @@ class ListingQuery:
                 for listing in qs:
                     image_url = None
                     if listing.image and request:
-                        image_url = request.build_absolute_uri(listing.image.url)
+                        image_url = listing.image.url
                     price, category_name, category_icon = get_listing_detail_info(listing)
                     items.append({
                         'id': listing.id,
@@ -288,7 +288,7 @@ class ListingQuery:
             for listing in page_obj:
                 image_url = None
                 if listing.image and request:
-                    image_url = request.build_absolute_uri(listing.image.url)
+                    image_url = listing.image.url
 
                 price, category_name, category_icon = get_listing_detail_info(listing)
                 hotspots = listing.hotspots.values_list("name", flat=True).first() or "Campus"
@@ -339,6 +339,7 @@ class ListingQuery:
         """
         Fetch public details of a listing for viewing by any user.
         Respects the seller's visibility setting.
+        Returns common listing fields, seller info, and type-specific details.
         """
         if not listing_id:
             return BaseResultWithData(
@@ -354,15 +355,26 @@ class ListingQuery:
 
         def build_public_listing_details():
             """Heavy computation callback – runs only on cache miss."""
+            # ─── Fetch base listing with all three detail relations ──────────
             listing = Listing.objects.filter(
                 id=listing_id,
                 is_deleted=False,
-
-                status=ListingStatusTypeEnum.ACTIVE.value
-            ).exclude(user__groups__name=GroupNamesEnum.ADMIN.value).select_related('user', 'category', 'subcategory').prefetch_related(
+                status__iexact=ListingStatusTypeEnum.ACTIVE.value
+            ).exclude(
+                user__groups__name=GroupNamesEnum.ADMIN.value
+            ).select_related(
+                'user',
+                'sell_details',
+                'sell_details__category',
+                'sell_details__subcategory',
+                'service_details',
+                'service_details__category',
+                'service_details__subcategory',
+                'accommodation_details'
+            ).prefetch_related(
                 'hotspots',
                 Prefetch('reviews', queryset=Review.objects.filter(is_deleted=False).select_related('from_user')),
-                Prefetch('user__user_badges')
+                Prefetch('user__user_badges'),
             ).annotate(
                 review_count=Count('reviews', filter=Q(reviews__is_deleted=False)),
                 avg_rating=Avg('reviews__rating', filter=Q(reviews__is_deleted=False))
@@ -371,19 +383,18 @@ class ListingQuery:
             if not listing:
                 return None
 
-            seller = listing.user
-            visibility = seller.visibility
+            listing_type = listing.listing_type.lower()
 
+            # ─── Build common listing fields ──────────────────────────────────
             image_url = None
             if listing.image:
-                image_url = request.build_absolute_uri(listing.image.url)
+                image_url = listing.image.url
 
             hotspots = [h.name for h in list(listing.hotspots.all())]
 
-            # ─── Reviews for this listing ──────────────────────────
+            # ─── Reviews ──────────────────────────────────────────────────────
             review_count = getattr(listing, 'review_count', 0) or 0
             avg_rating = getattr(listing, 'avg_rating', 0.0) or 0.0
-
             reviews_list = []
             for rev in list(listing.reviews.all()):
                 reviews_list.append({
@@ -393,18 +404,26 @@ class ListingQuery:
                     'date': humanize_date(rev.created_at),
                 })
 
-            # ─── Seller information (with privacy) ──────────────────
+            # ─── Seller information (with privacy) ──────────────────────────
+            seller = listing.user
+            visibility = seller.visibility
+
+            total_seller_reviews = Review.objects.filter(
+                listing__user=seller,
+                is_deleted=False
+            ).count()
+
             seller_data = {
                 'id': seller.id,
                 'name': seller.get_full_name() if visibility else None,
-                'profile_picture': request.build_absolute_uri(seller.profile_picture.url) if seller.profile_picture and visibility else None,
+                'profile_picture': seller.profile_picture.url if seller.profile_picture and visibility else None,
                 'phone': seller.phone,
                 'department': seller.department,
                 'level': seller.level,
                 'matric_no': seller.matric_number if visibility else None,
                 'member_since': seller.date_joined.year if seller.date_joined else None,
                 'average_rating': float(seller.average_rating) if seller.average_rating else 0.0,
-                'total_reviews': seller.reviews_received.filter(is_deleted=False).count(),
+                'total_reviews': total_seller_reviews,
                 'email_verified': seller.email_verified,
                 'hall_verified': seller.hall_verified,
                 'student_id_verified': seller.student_id_verified,
@@ -412,30 +431,102 @@ class ListingQuery:
                 'visibility': visibility,
                 'is_owner': request.user.id == seller.id if request.user.is_authenticated else False,
             }
-
-            # ─── Compute trust score ──────────────────────────────
             trust_score = round((float(seller.average_rating) / 5.0) * 100, 1) if seller.average_rating else 0.0
             seller_data['trust_score'] = trust_score
 
-            # ─── Build response data ────────────────────────────────
+            details = {}
+
+            if listing_type.lower() == ListingTypeEnum.SELL.value.lower():
+                detail = getattr(listing, 'sell_details', None)
+                if detail:
+                    details = {
+                        'price': float(detail.price) if detail.price else 0,
+                        'negotiation': detail.negotiation,
+                        'condition': detail.condition,
+                        'brand': detail.brand,
+                        'model': detail.model,
+                        'quantity': detail.quantity,
+                        'warranty': detail.warranty,
+                        'category': {
+                            'id': detail.category.id if detail.category else None,
+                            'name': detail.category.name if detail.category else None,
+                            'icon': detail.category.icon if detail.category else None,
+                        } if detail.category else None,
+                        'subcategory': {
+                            'id': detail.subcategory.id if detail.subcategory else None,
+                            'name': detail.subcategory.name if detail.subcategory else None,
+                            'icon': detail.subcategory.icon if detail.subcategory else None,
+                        } if detail.subcategory else None,
+                    }
+
+            elif listing_type.lower() == ListingTypeEnum.SERVICE.value.lower():
+                detail = getattr(listing, 'service_details', None)
+                if detail:
+                    details = {
+                        'price': float(detail.price) if detail.price else 0,
+                        'negotiation': detail.negotiation,
+                        'delivery_time': detail.delivery_time,
+                        'service_duration': detail.service_duration,
+                        'experience': detail.experience,
+                        'portfolio': detail.portfolio,
+                        'online_available': detail.online_available,
+                        'category': {
+                            'id': detail.category.id if detail.category else None,
+                            'name': detail.category.name if detail.category else None,
+                            'icon': detail.category.icon if detail.category else None,
+                        } if detail.category else None,
+                        'subcategory': {
+                            'id': detail.subcategory.id if detail.subcategory else None,
+                            'name': detail.subcategory.name if detail.subcategory else None,
+                            'icon': detail.subcategory.icon if detail.subcategory else None,
+                        } if detail.subcategory else None,
+                    }
+
+            elif listing_type.lower() == ListingTypeEnum.ACCOMMODATION.value.lower():
+                detail = getattr(listing, 'accommodation_details', None)
+                if detail:
+                    details = {
+                        'purpose': detail.purpose,
+                        'property_type': detail.property_type,
+                        'bedrooms': detail.bedrooms,
+                        'bathrooms': detail.bathrooms,
+                        'furnished': detail.furnished,
+                        'rent_price': float(detail.rent_price) if detail.rent_price else 0,
+                        'available_from': detail.available_from,
+                        'lease_duration': detail.lease_duration,
+                        'electricity': detail.electricity,
+                        'water': detail.water,
+                        'security': detail.security,
+                        'parking': detail.parking,
+                        'distance_to_campus': detail.distance_to_campus,
+                        'preferred_gender': detail.preferred_gender,
+                        'preferred_student_type': detail.preferred_student_type,
+                        'max_occupants': detail.max_occupants,
+                        'roommate_notes': detail.roommate_notes,
+                    }
+
+            else:
+                details = {}
+
+            # ─── Build final response ────────────────────────────────────────
             return {
                 'id': listing.id,
+                'listing_type': listing.listing_type,
                 'title': listing.title,
                 'description': listing.description or "",
-                'price': float(listing.price) if listing.price else 0,
-                'category': listing.category.name if listing.category else None,
-                'sub_category': listing.subcategory.name if listing.subcategory else None,
-                'badge': listing.badge or "",
-                'listing_type': listing.listing_type,
-                'is_hot_sale': listing.is_hot_sales,
-                'location': hotspots[0] if hotspots else "Campus",
-                'hotspots': hotspots,
                 'image': image_url,
+                'hotspots': hotspots,
+                'is_hot_sale': listing.is_hot_sales,
+                'is_ads_banner': listing.is_ads_banner,
                 'created_at': humanize_date(listing.created_at),
+                'expires_at': listing.expires_at.isoformat() if listing.expires_at else None,
+                'auto_reactivate': listing.auto_reactivate,
                 'seller': seller_data,
+                'details': details,
                 'reviews': reviews_list,
                 'review_count': review_count,
                 'avg_rating': float(avg_rating),
+                'negotiation': details.get('negotiation', False) if details else False,
             }
 
         try:

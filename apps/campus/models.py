@@ -3,21 +3,25 @@ from django.core.validators import MinValueValidator, MaxValueValidator, RegexVa
 import datetime
 from django.utils import timezone
 from apps.users.models import User
-from utils.enums import ListingConditionEnum, ListingTypeEnum, ListingStatusTypeEnum, LostAndFoundStatusEnum, PurposeChoicesEnum
+from utils.enums import ListingConditionEnum, ListingTypeEnum, ListingStatusTypeEnum, LostAndFoundStatusEnum, PreferredGenderEnum, PreferredStudentEnum, PurposeChoicesEnum
 from utils.base_model import BaseModel
 import os
 import uuid
-
+import re
 
 def listing_upload_path(instance, filename):
-    ext = os.path.splitext(filename)[1]
+    item_name = instance.title.strip()
+    item_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", item_name)
+    item_name = item_name[:80].strip("_")
     unique = uuid.uuid4().hex[:10]
-    return f"Listing_images/Listing_image_{instance.title}_{unique}{ext}"
+    return f"listing_images/Listing_image_{item_name}_{unique}.webp"
 
 def lost_and_found_upload_path(instance, filename):
-    ext = os.path.splitext(filename)[1]
+    item_name = instance.item_name.strip()
+    item_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", item_name)
+    item_name = item_name[:80].strip("_")
     unique = uuid.uuid4().hex[:10]
-    return f"lost_and_found/lost_and_found_{instance.item_name}_{unique}{ext}"
+    return f"lost_and_found/lost_and_found_{item_name}_{unique}.webp"
 
 
 class Category(BaseModel):
@@ -513,14 +517,14 @@ class AccommodationListing(BaseModel):
     )
     preferred_gender = models.CharField(
         max_length=10,
-        choices=[('M', 'Male'), ('F', 'Female'), ('A', 'Any')],
+        choices=PreferredGenderEnum.choices(),
         blank=True,
         null=True,
         help_text="Preferred gender of the roommate(s)."
     )
     preferred_student_type = models.CharField(
         max_length=10,
-        choices=[('UG', 'Undergrad'), ('G', 'Graduate'), ('A', 'Any')],
+        choices=PreferredStudentEnum.choices(),
         blank=True,
         null=True,
         help_text="Preferred type of student (undergrad, graduate, or any)."

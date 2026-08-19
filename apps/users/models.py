@@ -11,19 +11,23 @@ from utils.enums import NotificationEnum, PointPurchaseStatusEnum, PointTransact
 from utils.enums import IssueTypeEnum
 import os
 import uuid
+import re
+
 
 def profile_picture_upload_path(instance, filename):
-    ext = os.path.splitext(filename)[1]
+    item_name = instance.email.strip()
+    item_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", item_name)
+    item_name = item_name[:80].strip("_")
     unique = uuid.uuid4().hex[:10]
-
-    return f"profile_pictures/profile_picture_{instance.id}_{unique}{ext}"
+    return f"profile_pictures/profile_picture_{item_name}_{unique}.webp"
 
 
 def student_id_upload_path(instance, filename):
-    ext = os.path.splitext(filename)[1]
+    item_name = instance.email.strip()
+    item_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", item_name)
+    item_name = item_name[:80].strip("_")
     unique = uuid.uuid4().hex[:10]
-
-    return f"student_ids/student_ids_{instance.id}_{unique}{ext}"
+    return f"student_ids/student_ids_{item_name}_{unique}.webp"
 
 
 

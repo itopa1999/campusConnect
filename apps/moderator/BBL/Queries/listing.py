@@ -124,7 +124,7 @@ class ListingQuery:
                 'price': float(listing.price) if listing.price else 0,
                 'category': listing.category.name if listing.category else '',
                 'category_id': listing.category_id,
-                'image':request.build_absolute_uri(listing.image.url) if listing.image else None,
+                'image':listing.image.url if listing.image else None,
                 'user': {
                     'id': listing.user.id,
                     'email': listing.user.email,
@@ -246,7 +246,7 @@ class ListingQuery:
             'auto_reactivate': listing.auto_reactivate,
             'expires_at': listing.expires_at.isoformat() if listing.expires_at else None,
             'hotspots': [{'id': h.id, 'name': h.name} for h in listing.hotspots.all()],
-            'image': request.build_absolute_uri(listing.image.url) if listing.image else None,
+            'image': listing.image.url if listing.image else None,
             'created_at': listing.created_at.isoformat(),
             'modified_at':listing.modified_at,
             'is_flagged': listing_flagged.filter(is_resolved=False).exists(),

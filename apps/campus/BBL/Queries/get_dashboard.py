@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db.models import Count, Q
 from django.core.paginator import Paginator
 from apps.campus.models import Listing, Review
+from apps.campus.utils import get_listing_detail_info
 from apps.moderator.models import FlaggedContent
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
@@ -257,42 +258,18 @@ class DashboardQuery:
 
             all_listings = []
             for listing in page_obj:
-                # Determine price and category based on listing_type
-                if listing.listing_type.lower() == ListingTypeEnum.SELL.value.lower() and hasattr(listing, 'sell_details') and listing.sell_details:
-                    price_display = format_naira(listing.sell_details.price)
-                    category = listing.sell_details.category
-                    category_data = {
-                        "name": category.name,
-                        "icon": category.icon,
-                    } if category else None
+                price, category_name, category_icon = get_listing_detail_info(listing)
+                price_display = price
+                category_data = {
+                    "name": category_name,
+                    "icon": category_icon
+                }
 
-                elif listing.listing_type.lower() == ListingTypeEnum.SERVICE.value.lower() and hasattr(listing, 'service_details') and listing.service_details:
-                    price_display = format_naira(listing.service_details.price) if listing.service_details.price else "Negotiable / Free"
-                    category = listing.service_details.category
-                    category_data = {
-                        "name": category.name,
-                        "icon": category.icon,
-                    } if category else None
-                elif listing.listing_type.lower() == ListingTypeEnum.ACCOMMODATION.value.lower() and hasattr(listing, 'accommodation_details') and listing.accommodation_details:
-                    price_display = format_naira(listing.accommodation_details.rent_price)
-                    accommodation = listing.accommodation_details
-                    category_data = {
-                        "name": accommodation.property_type if accommodation else "Accommodation",
-                        "icon": "fas fa-home",
-                    }
-                else:
-                    price_display = "N/A"
-                    category_data = {
-                        "name": "Accommodation",
-                        "icon": "fas fa-home",
-                    }
-
-                # Location from hotspots
                 location = [hs.name for hs in listing.hotspots.all()] or ["Campus"]
 
                 image_url = None
                 if listing.image:
-                    image_url = request.build_absolute_uri(listing.image.url)
+                    image_url = listing.image.url
 
                 all_listings.append({
                     'id': listing.id,

@@ -49,9 +49,7 @@ class ProfileQuery:
             'student_id_verified_rejection_reason': None
         }
         if not is_verified and user.student_id_photo:
-            data["student_id_photo_url"] = request.build_absolute_uri(
-                user.student_id_photo.url
-            )
+            data["student_id_photo_url"] = user.student_id_photo.url
 
         if user.student_id_verified_status == UserIdVerificationEnum.REJECTED.value:
             data["student_id_verified_rejection_reason"] = user.student_id_verified_rejection_reason

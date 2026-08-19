@@ -121,7 +121,7 @@ class UserQuery:
 
             items.append({
                 'id': user.id,
-                'image': request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None,
+                'image': user.profile_picture.url if user.profile_picture else None,
                 'email': user.email,
                 'full_name': user.get_full_name() or user.email,
                 'department': user.department,
@@ -186,7 +186,7 @@ class UserQuery:
                 'title': listing.title,
                 'description': listing.description,
                 'price': float(listing.price) if listing.price else 0,
-                'image':request.build_absolute_uri(listing.image.url) if listing.image else None,
+                'image':listing.image.url if listing.image else None,
                 'listing_type': listing.listing_type,
                 'status': listing.status,
                 'is_ads_banner': listing.is_ads_banner,
@@ -252,7 +252,7 @@ class UserQuery:
         data = {
             'id': user.id,
             'email': user.email,
-            'image': request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None,
+            'image': user.profile_picture.url if user.profile_picture else None,
             'full_name': user.get_full_name() or user.email,
             'first_name': user.first_name,
             'last_name': user.last_name,

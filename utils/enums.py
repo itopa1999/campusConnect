@@ -125,6 +125,17 @@ class PurposeChoicesEnum(BaseChoiceEnum):
     ROOMMATE_WANTED = "Looking for Roommate"
 
 
+class PreferredGenderEnum(BaseChoiceEnum):
+    MALE = 'Male'
+    FEMALE = 'Female'
+    ANY = 'Any'
+
+class PreferredStudentEnum(BaseChoiceEnum):
+    UNDERGRAD = 'Undergrad'
+    GRADUATE = 'Graduate'
+    ANY = 'Any'
+
+
 # ============================================================
 # LISTING TYPES
 # ============================================================

@@ -260,12 +260,17 @@ class TwoFactorCommand:
         # ─── SMS and EMAIL ────────────────────────────────────────────
         elif valid_method.lower() in [TwoFactorMethodEnum.SMS.value.lower(), TwoFactorMethodEnum.EMAIL.value.lower()]:
             try:
-                method = TwoFactorMethod.objects.get(user=user, method=valid_method.lower(), is_enabled=True)
+                method_value = next(
+                    method.value
+                    for method in TwoFactorMethodEnum
+                    if method.value.lower() == valid_method.lower()
+                )
+                method = TwoFactorMethod.objects.get(user=user, method=method_value, is_enabled=True)
             except TwoFactorMethod.DoesNotExist:
                 op.fail(f"{valid_method.upper()} not enabled for user {user.email}")
                 return BaseResultWithData(message=f"{valid_method.upper()} not enabled", status_code=403)
 
-            if not OTPManager.verify_otp(user.id, valid_method.lower(), code):
+            if not OTPManager.verify_otp(user.id, method_value, code):
                 op.fail("Invalid or expired OTP")
                 return BaseResultWithData(message="Invalid or expired OTP.", status_code=400)
 
@@ -358,7 +363,7 @@ class TwoFactorCommand:
         refresh_token = str(refresh)
         op.success(f"Login successful for user: {user.first_name or user.email}")
 
-        profile_pic_url = request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else None
+        profile_pic_url = user.profile_picture.url if user.profile_picture else None
 
         total_favourites = Favourite.objects.filter(user=user).count()
         

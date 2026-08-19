@@ -113,7 +113,7 @@ class ListingCommand:
                     status_code=400
                 )
             # Ensure subcategory belongs to category (if category provided)
-            if category_id and subcategory.category_id != category_id:
+            if category_id and int(subcategory.category_id) != int(category_id):
                 op.fail(f"Subcategory {subcategory_id} does not belong to category {category_id}")
                 return BaseResultWithData(
                     message="The selected subcategory does not belong to the selected category.",
@@ -523,6 +523,7 @@ class ListingCommand:
             try:
                 img = Image.open(image_file)
                 img.verify()
+                image_file.seek(0)
             except Exception:
                 op.fail(f"Invalid image file for listing: {listing.title}")
                 return BaseResultWithData(
@@ -533,10 +534,13 @@ class ListingCommand:
             with transaction.atomic():
                 if listing.image and listing.image.name:
                     try:
-                        default_storage.delete(listing.image.path)
+                        listing.image.delete(save=False)
                     except Exception as e:
                         op.fail(f"Could not delete old picture for listing: {listing.title}: {e}")
-
+                        return BaseResultWithData(
+                            message="Could not remove the previous listing picture.",
+                            status_code=500
+                        )
                 listing.image = image_file
                 listing.save(update_fields=['image'])
 

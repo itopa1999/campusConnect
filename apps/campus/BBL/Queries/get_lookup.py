@@ -59,6 +59,7 @@ class LookUpQuery:
                         "id": cat.id,
                         "name": cat.name,
                         "icon": cat.icon,
+                        'listing_type': cat.listing_type,
                         "description": cat.description,
                     }
                     for cat in categories_qs
@@ -76,10 +77,8 @@ class LookUpQuery:
                         "name": sub.name,
                         "category_id": sub.category.id,
                         "category_name": sub.category.name,
-                        # optional: include description, icon, sort_order if needed
-                        # "description": sub.description,
-                        # "icon": sub.icon,
-                        # "sort_order": sub.sort_order,
+                        "description": sub.description,
+                        "icon": sub.icon,
                     }
                     for sub in subcategories_qs
                 ]

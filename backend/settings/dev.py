@@ -1,4 +1,7 @@
 from .base import *
+import cloudinary
+import cloudinary_storage
+
 
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
@@ -87,3 +90,14 @@ MONNIFY_BASE_URL=os.getenv('MONNIFY_BASE_URL')
 
 COOKIE_SECURE = False
 COOKIE_SAMESITE = 'None' if COOKIE_SECURE else 'Lax'
+
+
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}

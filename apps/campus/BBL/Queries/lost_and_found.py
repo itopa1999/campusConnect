@@ -83,7 +83,7 @@ class GetLostItemsQuery:
             for item in items_page:
                 image_url = None
                 if item.image:
-                    image_url = request.build_absolute_uri(item.image.url)
+                    image_url = item.image.url
                 items_data.append({
                     'id': item.id,
                     'item_name': item.item_name,
