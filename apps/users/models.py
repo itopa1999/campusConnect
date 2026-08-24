@@ -205,6 +205,10 @@ class User(BaseModel, AbstractUser):
         help_text="Whether two‑factor authentication is enabled for this user."
     )
 
+    refferal_code = models.CharField(max_length=20, null=True, blank=True)
+    refferal_by = models.EmailField(max_length=40, null=True, blank=True)
+    refferal_at = models.DateTimeField(null=True, blank=True)
+
     def save(self, *args, **kwargs):
         self.first_name = self.first_name.title()
         self.last_name = self.last_name.title()

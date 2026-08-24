@@ -397,11 +397,14 @@ def format_naira(amount):
     return f"₦{int(amount):,}"
 
 
-def run_async(coro):
-    """Run an async coroutine and return the result."""
+def run_async(coro, timeout=30):
+    """Run an async coroutine with a timeout and return the result."""
     try:
         loop = asyncio.get_running_loop()
+        return loop.run_until_complete(
+            asyncio.wait_for(coro, timeout=timeout)
+        )
     except RuntimeError:
-        return asyncio.run(coro)
-    else:
-        return loop.run_until_complete(coro)
+        return asyncio.run(
+            asyncio.wait_for(coro, timeout=timeout)
+        )

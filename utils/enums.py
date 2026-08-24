@@ -283,6 +283,7 @@ class FeatureFlagEnum(BaseChoiceEnum):
     FREE_BANNER = "Free Banner"
     ACCOUNT_CREATION_BONUS = "Account Creation Bonus"
     HIDE_VISIBILITY = "Profile Visibility"
+    FREE_ACCESS = "Free Access"
 
 
 # ============================================================
@@ -433,3 +434,23 @@ class TwoFactorMethodEnum(BaseChoiceEnum):
     EMAIL = "Email"
     HARDWARE = "Hardware"
     BACKUP = "Backup"
+
+
+class PollStatusEnum(BaseChoiceEnum):
+    DRAFT = 'Draft'
+    UPCOMING = 'Upcoming'
+    ACTIVE = 'Active'
+    ENDED = 'Ended'
+
+
+class ResultsVisibilityEnum(BaseChoiceEnum):
+    LIVE = 'Visible to All (Live)'
+    AFTER_VOTING = 'Visible After Voting'
+    HIDDEN_UNTIL_END = 'Hidden Until Poll Ends'
+    ADMINS_ONLY = 'Visible to Admins Only'
+    CONTESTANTS_ONLY = 'Visible to Contestants Only'
+
+
+class ContestantStatusEnum(BaseChoiceEnum):
+    ACTIVE = 'Active'
+    WITHDRAWN = 'Withdrawn'

@@ -20,7 +20,7 @@ class DashboardQuery:
         user = request.user
         cache_key = CacheKeysEnum.format(CacheKeysEnum.DASHBOARD, user_id=user.id)
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_dashboard_data():
             now = timezone.now()
 
@@ -95,7 +95,7 @@ class DashboardQuery:
             filters=filter_str
         )
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_reviews_data():
             qs = Review.objects.filter(
                 to_user=user,
@@ -169,7 +169,7 @@ class DashboardQuery:
             user_id=user.id
         )
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_dashboard_data():
             now = timezone.now()
             listings = Listing.objects.filter(
@@ -239,7 +239,7 @@ class DashboardQuery:
             filters=filter_str
         )
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_dashboard_listing():
             qs = Listing.objects.filter(user=user, is_deleted=False).select_related(
                 'sell_details',

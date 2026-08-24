@@ -44,6 +44,7 @@ class UserAdmin(SoftDeleteAdmin):
         'student_id_preview',
         'profile_picture_preview',
         'average_rating_display',
+        'refferal_at',
         'created_at',
         'created_by',
         'modified_at',
@@ -57,6 +58,10 @@ class UserAdmin(SoftDeleteAdmin):
         ('Account Information', {
             'fields': ('email', 'first_name', 'last_name', 'phone', 'email_verified', 'points',
                        'notification', 'visibility', 'two_factor_enabled')
+        }),
+        ('Refferal', {
+            'fields' : ('refferal_code','refferal_by','refferal_at'),
+            'classes': ('collapse',)
         }),
         ('Market_count', {
             'fields' : ('sold_items',)
@@ -237,8 +242,7 @@ class BadgeAdmin(SoftDeleteAdmin):
     
     def icon_preview(self, obj):
         if obj.icon:
-            return format_html('<img src="{}" width="50" height="50" style="object-fit: cover; border-radius: 5px;"/>', 
-                              obj.icon.url)
+            return mark_safe(f'<i class="{obj.icon}" style="font-size: 30px; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;"></i>')
         return "No icon"
     icon_preview.short_description = "Icon Preview"
 

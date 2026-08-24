@@ -50,7 +50,7 @@ class GetLostItemsQuery:
             filters=filter_str
         )
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_lost_items_data():
             queryset = LostAndFound.objects.filter(
                 is_deleted=False,

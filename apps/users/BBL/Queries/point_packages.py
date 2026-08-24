@@ -4,6 +4,8 @@ from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
 from utils.helpers import format_naira
+from asgiref.sync import sync_to_async
+import asyncio
 
 
 class PointPackagesQueries:
@@ -14,11 +16,12 @@ class PointPackagesQueries:
         return round(price_per_point, 2)
 
     @staticmethod
-    def get_point_packages():
+    async def get_point_packages():
         """Return serialized list of point packages."""
 
         cache_key = CacheKeysEnum.POINT_PACKAGES.value
 
+        @sync_to_async(thread_sensitive=False)
         def build_point_packages_data():
             """Heavy computation callback – runs only on cache miss."""
             queryset = PointPackage.objects.filter(is_deleted=False).order_by('sort_order', 'points')
@@ -38,13 +41,21 @@ class PointPackagesQueries:
                 for pkg in queryset
             ]
 
-        data = GlobalCache.aget_or_set(
-            key=cache_key,
-            callback=build_point_packages_data,
-            timeout=86400,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_point_packages_data,
+                timeout=86400,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            return BaseResultWithData(
+                message=f"An error occurred: {str(e)}",
+                status_code=500
+            )
 
         return BaseResultWithData(
             message="point packages retrieved successfully",
@@ -53,7 +64,7 @@ class PointPackagesQueries:
         )
     
     @staticmethod
-    def get_purchases(request, filters=None)-> BaseResultWithData:
+    async def get_purchases(request, filters=None)-> BaseResultWithData:
         """Retrieve paginated purchase history for a user."""
         user = request.user
         if filters is None:
@@ -92,6 +103,7 @@ class PointPackagesQueries:
             filters = filter_str
         )
 
+        @sync_to_async(thread_sensitive=False)
         def build_purchases_data():
             """Heavy computation callback – runs only on cache miss."""
             queryset = PointPurchase.objects.filter(
@@ -165,14 +177,21 @@ class PointPackagesQueries:
                     "has_previous": page_obj.has_previous(),
                 }
             }
-
-        data = GlobalCache.aget_or_set(
-            key=cache_key,
-            callback=build_purchases_data,
-            timeout=86400,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_purchases_data,
+                timeout=86400,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            return BaseResultWithData(
+                message=f"An error occurred: {str(e)}",
+                status_code=500
+            )
 
         return BaseResultWithData(
             message="Purchases retrieved successfully",
@@ -182,7 +201,7 @@ class PointPackagesQueries:
     
 
     @staticmethod
-    def get_transactions(request, filters=None)-> BaseResultWithData:
+    async def get_transactions(request, filters=None)-> BaseResultWithData:
         """Retrieve paginated transaction history for a user."""
         user = request.user
         if filters is None:
@@ -220,6 +239,7 @@ class PointPackagesQueries:
             filters = filter_str
         )
 
+        @sync_to_async(thread_sensitive=False)
         def build_transactions_data():
             """Heavy computation callback – runs only on cache miss."""
             queryset = PointTransaction.objects.filter(
@@ -284,13 +304,21 @@ class PointPackagesQueries:
                 }
             }
 
-        data = GlobalCache.aget_or_set(
-            key=cache_key,
-            callback=build_transactions_data,
-            timeout=300, 
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_transactions_data,
+                timeout=300, 
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            return BaseResultWithData(
+                message=f"An error occurred: {str(e)}",
+                status_code=500
+            )
 
         return BaseResultWithData(
             message="Transactions retrieved successfully",

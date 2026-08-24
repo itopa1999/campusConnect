@@ -26,8 +26,6 @@ class NotificationCommand:
 
             notification_check = NotificationCommand._has_unread_notifications(user)
 
-            print(notification_check)
-
             op.success(f"Notification: {notification_id} mark_as_read successfully for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Notification marked as read successfully",

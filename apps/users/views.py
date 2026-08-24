@@ -24,7 +24,7 @@ from apps.users.BBL.Queries.PaystackConfirm import PaystackConfirmQuery
 from apps.users.BBL.Queries.point_packages import PointPackagesQueries
 from utils.base_result import BaseResultWithData
 from utils.enums import GroupNamesEnum, PlatformEnum
-from utils.helpers import UpdatePointsService
+from utils.helpers import UpdatePointsService, run_async
 from utils.permissions import ConstantPermission
 from .BBL.Commands.account_command import AccountCommand
 from .BBL.Commands.auth_command import AuthCommand
@@ -446,7 +446,7 @@ class GetTransactionView(APIView):
         ]
     )
     def get(self, request):
-        result = PointPackagesQueries.get_transactions(request, request.GET.dict())
+        result = run_async(PointPackagesQueries.get_transactions(request, request.GET.dict()))
         return Response(result.to_dict(), status=result.status_code)
     
 
@@ -467,7 +467,7 @@ class GetPointPurchasedView(APIView):
         ]
     )
     def get(self, request):
-        result = PointPackagesQueries.get_purchases(request, request.GET.dict())
+        result = run_async(PointPackagesQueries.get_purchases(request, request.GET.dict()))
         return Response(result.to_dict(), status=result.status_code)
     
 
@@ -475,7 +475,7 @@ class PointPackagesView(APIView):
     permission_classes = [IsAuthenticated, ConstantPermission(GroupNamesEnum.STUDENT.value)]
     throttle_classes = [CustomRateThrottle(rate=20, period=60, user_type=UserTypeEnum.AUTH)]
     def get(self, request):
-        result = PointPackagesQueries.get_point_packages()
+        result = run_async(PointPackagesQueries.get_point_packages())
         return Response(result.to_dict(), status=result.status_code)
         
 
@@ -514,7 +514,7 @@ class ProfileView(generics.GenericAPIView):
         return ProfileSerializer
 
     def get(self, request, *args, **kwargs):
-        result = ProfileQuery.get_profile_detail(request, request.user)
+        result = run_async(ProfileQuery.get_profile_detail(request, request.user))
         return Response(result.to_dict(), status=result.status_code)
 
     def put(self, request, *args, **kwargs):
@@ -606,7 +606,7 @@ class GetAllNotificationsView(APIView):
         ]
     )
     def get(self, request, *args, **kwargs):
-        result = NotificationQueries.get_notification(request, request.user, request.GET.dict())
+        result = run_async(NotificationQueries.get_notification(request, request.user, request.GET.dict()))
         return Response(result.to_dict(), status=result.status_code)
 
 
@@ -615,7 +615,7 @@ class GetNotificationsHeaderView(APIView):
     throttle_classes = [CustomRateThrottle(rate=40, period=60, user_type=UserTypeEnum.AUTH)]
 
     def get(self, request, *args, **kwargs):
-        result = NotificationQueries.get_notifications_header(request, request.user)
+        result = run_async(NotificationQueries.get_notifications_header(request, request.user))
         return Response(result.to_dict(), status=result.status_code)
 
 

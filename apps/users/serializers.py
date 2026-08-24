@@ -6,14 +6,13 @@ from utils.helpers import calculate_profile_completion, humanize_date
 from .models import Badge, PointTransaction, User
 from utils.enums import ContentTypeEnum, IssueTypeEnum
 
-
 class UserCreationSerializer(serializers.Serializer):
     """Serializer for user account creation"""
-    first_name = serializers.CharField(max_length=150, required=True)
-    last_name = serializers.CharField(max_length=150, required=True)
-    email = serializers.EmailField(required=True)
-    phone = serializers.CharField(max_length=15, required=False, allow_blank=True)
-    password = serializers.CharField(min_length=8, write_only=True, required=True)
+    first_name = serializers.CharField(max_length=150, required=True, allow_blank = False)
+    last_name = serializers.CharField(max_length=150, required=True, allow_blank = False)
+    email = serializers.EmailField(max_length = 50, required=True, allow_blank = False)
+    phone = serializers.CharField(max_length=15, required=True, allow_blank=False)
+    password = serializers.CharField(min_length=8, write_only=True, required=True, allow_blank = False)
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -162,7 +161,6 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     def get_moderation(self, obj):
         mod, created = UserModeration.objects.get_or_create(user=obj)
-        print(mod)
         return UserModerationSerializer(mod).data
 
     def get_flags(self, obj):

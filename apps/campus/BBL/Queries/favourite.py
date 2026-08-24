@@ -40,7 +40,7 @@ class FavouriteQuery:
             filters=filter_str
         )
         
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_favourites_data():
             favourites_qs = Favourite.objects.select_related(
                 'listing',

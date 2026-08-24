@@ -1,15 +1,16 @@
+from asgiref.sync import sync_to_async
 from apps.users.models import Notification
 from utils.base_result import BaseResultWithData
 from utils.cache_helper import GlobalCache
 from utils.enums import CacheKeysEnum
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from utils.helpers import humanize_date
+import asyncio
 
 
 class NotificationQueries:
     @staticmethod
-    def get_notification(request, user, filters=None) -> BaseResultWithData:
-        """Retrieve paginated notifications for a user."""
+    async def get_notification(request, user, filters=None) -> BaseResultWithData:
         if filters is None:
             filters = request.GET.dict()
         else:
@@ -17,18 +18,22 @@ class NotificationQueries:
         
         page = filters.get('page', 1)
         per_page = filters.get('per_page', 10)
+        
         try:
             page = int(page)
         except (ValueError, TypeError):
             page = 1
+        
         try:
             per_page = int(per_page)
         except (ValueError, TypeError):
             per_page = 10
+        
         if per_page < 1:
             per_page = 1
         if per_page > 100:
             per_page = 100
+        
         filter_keys = ['is_read']
         filter_parts = []
         for key in filter_keys:
@@ -43,17 +48,15 @@ class NotificationQueries:
             user_id=user.id,
             page=page,
             per_page=per_page,
-            filters = filter_str
+            filters=filter_str
         )
 
+        @sync_to_async(thread_sensitive=False)
         def build_notifications_data():
-            """Heavy computation callback – runs only on cache miss."""
             queryset = Notification.objects.filter(
                 user=user,
                 is_deleted=False
             ).select_related('user').order_by('is_read').order_by('-created_at')
-
-            print(queryset.count())
 
             unread_messages_counts = queryset.filter(is_read=False).count()
 
@@ -64,7 +67,6 @@ class NotificationQueries:
                 else:
                     queryset = queryset.filter(is_read=False)
                     
-            # Pagination logic
             paginator = Paginator(queryset, per_page)
             try:
                 page_obj = paginator.page(page)
@@ -98,13 +100,21 @@ class NotificationQueries:
                 }
             }
 
-        data = GlobalCache.aget_or_set(
-            key=cache_key,
-            callback=build_notifications_data,
-            timeout=300,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_notifications_data,
+                timeout=300,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            return BaseResultWithData(
+                message=f"An error occurred: {str(e)}",
+                status_code=500
+            )
 
         return BaseResultWithData(
             message="Notifications retrieved successfully",
@@ -113,16 +123,14 @@ class NotificationQueries:
         )
     
     @staticmethod
-    def get_notifications_header(request, user) -> BaseResultWithData:
-        """Retrieve the latest notifications for the header display."""
-
+    async def get_notifications_header(request, user) -> BaseResultWithData:
         cache_key = CacheKeysEnum.format(
             CacheKeysEnum.NOTIFICATION_HEADER,
             user_id=user.id
         )
 
+        @sync_to_async(thread_sensitive=False)
         def build_header_notifications_data():
-            """Heavy computation callback – runs only on cache miss."""
             qs = Notification.objects.filter(
                 user=user,
                 is_deleted=False
@@ -148,13 +156,21 @@ class NotificationQueries:
                 "unread_messages_counts": unread_messages_counts
             }
 
-        data = GlobalCache.aget_or_set(
-            key=cache_key,
-            callback=build_header_notifications_data,
-            timeout=120,
-            lock_timeout=30,
-            max_wait=5.0,
-        )
+        try:
+            data = await GlobalCache.aget_or_set(
+                key=cache_key,
+                callback=build_header_notifications_data,
+                timeout=120,
+                lock_timeout=30,
+                max_wait=5.0,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            return BaseResultWithData(
+                message=f"An error occurred: {str(e)}",
+                status_code=500
+            )
 
         return BaseResultWithData(
             message="Header notifications retrieved successfully",

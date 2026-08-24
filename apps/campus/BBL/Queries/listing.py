@@ -23,7 +23,7 @@ class ListingQuery:
 
         cache_key = CacheKeysEnum.format(CacheKeysEnum.LISTING_DETAIL, user_id=user.id, listing_id=listing_id)
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_listing_detail_data():
             listing = Listing.objects.filter(
                 id=listing_id,
@@ -161,7 +161,7 @@ class ListingQuery:
             filters=filter_str
         )
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_categorized_listings_data():
             base_qs = Listing.objects.filter(
                 status__iexact=ListingStatusTypeEnum.ACTIVE.value,
@@ -327,7 +327,7 @@ class ListingQuery:
             listing_id=listing_id
         )
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_public_listing_details():
             listing = Listing.objects.filter(
                 id=listing_id,
@@ -359,7 +359,13 @@ class ListingQuery:
             listing_type = listing.listing_type.lower()
 
             image_url = listing.image.url if listing.image else None
-            hotspots = [h.name for h in list(listing.hotspots.all())]
+            hotspots = hotspots = [
+                {
+                    'name': h.name,
+                    'description': h.description or "",
+                }
+                for h in listing.hotspots.all()
+            ]
 
             review_count = getattr(listing, 'review_count', 0) or 0
             avg_rating = getattr(listing, 'avg_rating', 0.0) or 0.0
@@ -484,6 +490,7 @@ class ListingQuery:
                 'hotspots': hotspots,
                 'is_hot_sale': listing.is_hot_sales,
                 'is_ads_banner': listing.is_ads_banner,
+                'is_favourite': Favourite.objects.filter(user = request.user, listing = listing).exists(),
                 'created_at': humanize_date(listing.created_at),
                 'expires_at': listing.expires_at.isoformat() if listing.expires_at else None,
                 'auto_reactivate': listing.auto_reactivate,

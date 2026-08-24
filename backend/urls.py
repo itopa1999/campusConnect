@@ -24,6 +24,14 @@ v1_urlpatterns = [
         include("apps.campus.urls"),
     ),
     path(
+        "loan/api/",
+        include("apps.loan.urls"),
+    ),
+    path(
+        "vote/api/",
+        include("apps.vote.urls"),
+    ),
+    path(
         "user/api/",
         include("apps.users.urls"),
     ),
@@ -65,7 +73,7 @@ schema_view = get_schema_view(
         description="API description for CampusConnect Backend",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(
-            email="contact@snippets.local"
+            email="salawulucky08071@gmail.com"
         ),
         license=openapi.License(
             name="BSD License"
@@ -98,7 +106,7 @@ v2_schema_view = get_schema_view(
         description="API description for CampusConnect Backend - V2",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(
-            email="contact@snippets.local"
+            email="salawulucky08071@gmail.com"
         ),
         license=openapi.License(
             name="BSD License"

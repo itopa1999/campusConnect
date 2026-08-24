@@ -39,6 +39,8 @@ DEFAULT_APPS = [
 
 CUSTOM_APPS = [
     'apps.campus',
+    'apps.loan',
+    'apps.vote',
     'apps.users',
     'apps.moderator'
 ]
@@ -343,6 +345,15 @@ LOGGING = {
             'propagate': True,
         },
 
+        'asyncio': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',  # Don't log DEBUG in production
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Don't log every query
+        },
+
         # 🔥 Request logger: captures 500s with traceback
         'django.request': {
             'handlers': ['console', 'file'],
@@ -370,3 +381,5 @@ LOGGING = {
 }
 
 PROJECT_NAME = "campusConnect"
+
+ASYNC_SERVER_THREAD_POOL = 100

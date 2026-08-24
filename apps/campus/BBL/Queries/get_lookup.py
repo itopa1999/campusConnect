@@ -37,7 +37,7 @@ class LookUpQuery:
                 return False
             return str(value).lower() in ("true", "1", "yes")
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def build_lookup_data():
             data = {}
 

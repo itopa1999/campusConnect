@@ -11,7 +11,7 @@ from utils.log_helpers import logger, OperationLogger
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from django.conf import settings
 
-from utils.enums import GroupNamesEnum, NotificationEnum, PlatformEnum, TokenTypeEnum
+from utils.enums import GroupNamesEnum, NotificationEnum, PlatformEnum, TokenTypeEnum, TwoFactorMethodEnum
 from utils.helpers import create_notification, is_email_verified
 
 class AuthCommand:
@@ -36,7 +36,6 @@ class AuthCommand:
                 )
 
             user = User.objects.filter(email=email, is_deleted=False, groups__name=GroupNamesEnum.MODERATOR.value).first()
-
             if not user:
                 op.fail(f"[AuthCommand.staff_login] Login failed for email: {email}")
                 return BaseResultWithData(
@@ -52,6 +51,19 @@ class AuthCommand:
                     data=None,
                     status_code=400
                 )
+
+            if not user.two_factor_enabled:
+                op.fail(f"[AuthCommand.staff_login] two_factor_enabled is not enabled: {email}")
+                return BaseResultWithData(
+                    message="two factor must be enabled contact the admin",
+                    data=None,
+                    status_code=400
+                )
+
+            method = TwoFactorMethod.objects.filter(user=user, method=TwoFactorMethodEnum.TOTP.value, is_enabled=True).first()
+            if not method:
+                op.fail(f"TOTP not enabled for user {user.email}")
+                return BaseResultWithData(message="TOTP not enabled", status_code=403)
 
             validated_data_append = {
                 'user_id': user.id,
@@ -85,7 +97,6 @@ class AuthCommand:
                     status_code=400
                 )
 
-            print(result.data['user'])
             op.success(f"Login successful for user: {user.first_name or user.email}")
             return BaseResultWithData(
                 message="Login successful",

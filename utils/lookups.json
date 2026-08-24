@@ -815,6 +815,14 @@
       "is_active": false,
       "users": [],
       "is_deleted": false
+    },
+    {
+      "id": 3,
+      "name": "Free Access",
+      "description": "Allows users to have a free access use of the app",
+      "is_active": false,
+      "users": [],
+      "is_deleted": false
     }
   ],
   "2faMethods": [
